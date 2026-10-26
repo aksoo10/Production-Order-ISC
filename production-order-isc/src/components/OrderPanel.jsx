@@ -84,9 +84,9 @@ export default function OrderPanel({
       // Search term check
       if (!searchTerm.trim()) return true;
       const term = searchTerm.toLowerCase();
-      const matchNo = order.NoProduksi.toLowerCase().includes(term);
-      const matchStepDesc = order.steps.some((s) => s.NamaLangkah.toLowerCase().includes(term));
-      const matchKonf = order.steps.some((s) => String(s.NoKonfirmasi).toLowerCase().includes(term));
+      const matchNo = String(order.NoProduksi || '').toLowerCase().includes(term);
+      const matchStepDesc = order.steps.some((s) => String(s.NamaLangkah || '').toLowerCase().includes(term));
+      const matchKonf = order.steps.some((s) => String(s.NoKonfirmasi || '').toLowerCase().includes(term));
 
       return matchNo || matchStepDesc || matchKonf;
     });

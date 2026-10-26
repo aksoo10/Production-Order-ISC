@@ -14,7 +14,8 @@ import {
   Trash2,
   Edit3,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Cloud
 } from 'lucide-react';
 import CreateOrderModal from '../CreateOrderModal';
 import EditOrderModal from '../EditOrderModal';
@@ -104,11 +105,11 @@ export default function OrdersListView({
 
       if (!searchTerm.trim()) return true;
       const term = searchTerm.toLowerCase();
-      const matchNo = order.NoProduksi.toLowerCase().includes(term);
-      const matchGroup = (order.ProductGroup || '').toLowerCase().includes(term);
-      const matchTitle = (order.title || '').toLowerCase().includes(term);
-      const matchCustomer = (order.customers || '').toLowerCase().includes(term);
-      const matchStep = order.steps.some((s) => (s.NamaLangkah || '').toLowerCase().includes(term));
+      const matchNo = String(order.NoProduksi || '').toLowerCase().includes(term);
+      const matchGroup = String(order.ProductGroup || '').toLowerCase().includes(term);
+      const matchTitle = String(order.title || '').toLowerCase().includes(term);
+      const matchCustomer = String(order.customers || '').toLowerCase().includes(term);
+      const matchStep = order.steps.some((s) => String(s.NamaLangkah || '').toLowerCase().includes(term));
 
       return matchNo || matchGroup || matchTitle || matchCustomer || matchStep;
     });
@@ -239,12 +240,12 @@ export default function OrdersListView({
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((ord) => {
+                filteredOrders.map((ord, idx) => {
                   const percent = Math.round((ord.completedSteps / Math.max(1, ord.totalSteps)) * 100);
                   const isExpanded = expandedOrder === ord.NoProduksi;
 
                   return (
-                    <React.Fragment key={ord.NoProduksi}>
+                    <React.Fragment key={ord.NoProduksi || ord.id || idx}>
                       <tr className="order-row-main">
                         <td className="font-mono font-bold text-main" style={{ fontSize: '0.92rem' }}>
                           <div className="flex flex-col">

@@ -19,7 +19,7 @@ export default function PersonnelListView({
 
       if (!searchTerm.trim()) return true;
       const term = searchTerm.toLowerCase();
-      const matchName = person.Nama && person.Nama.toLowerCase().includes(term);
+      const matchName = person.Nama && String(person.Nama).toLowerCase().includes(term);
       const matchNo = person.NoPersonal && String(person.NoPersonal).toLowerCase().includes(term);
 
       return matchName || matchNo;
@@ -27,8 +27,9 @@ export default function PersonnelListView({
   }, [personnel, selectedGroup, searchTerm]);
 
   const getInitials = (name) => {
-    if (!name) return 'OP';
-    const parts = name.trim().split(/\s+/);
+    if (!name || typeof name !== 'string') return 'OP';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'OP';
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
@@ -65,8 +66,8 @@ export default function PersonnelListView({
             <div className="text-xs text-muted">Coba ubah kata kunci pencarian atau filter grup di atas.</div>
           </div>
         ) : (
-          filtered.map((op) => (
-            <div key={op.NoPersonal} className="personnel-card">
+          filtered.map((op, idx) => (
+            <div key={op.NoPersonal || op.Nama || idx} className="personnel-card">
               <div className="personnel-card-header">
                 <div className="showcase-avatar">
                   {getInitials(op.Nama)}

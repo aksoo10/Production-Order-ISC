@@ -23,7 +23,7 @@ export default function OperatorPanel({
       // Search term check (name or NoPersonal)
       if (!searchTerm.trim()) return true;
       const term = searchTerm.toLowerCase();
-      const matchName = person.Nama && person.Nama.toLowerCase().includes(term);
+      const matchName = person.Nama && String(person.Nama).toLowerCase().includes(term);
       const matchNo = person.NoPersonal && String(person.NoPersonal).toLowerCase().includes(term);
 
       return matchName || matchNo;
@@ -32,8 +32,9 @@ export default function OperatorPanel({
 
   // Generate initials for avatar
   const getInitials = (name) => {
-    if (!name) return 'OP';
-    const parts = name.trim().split(/\s+/);
+    if (!name || typeof name !== 'string') return 'OP';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'OP';
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
@@ -133,13 +134,13 @@ export default function OperatorPanel({
               <span>Tidak ada operator yang cocok dengan filter.</span>
             </div>
           ) : (
-            filteredPersonnel.map((op) => {
+            filteredPersonnel.map((op, idx) => {
               const isSelected =
                 selectedOperator && String(selectedOperator.NoPersonal) === String(op.NoPersonal);
 
               return (
                 <div
-                  key={op.NoPersonal}
+                  key={op.NoPersonal || op.Nama || idx}
                   className={`operator-item-card ${isSelected ? 'selected' : ''}`}
                   onClick={() => onSelectOperator(op)}
                 >

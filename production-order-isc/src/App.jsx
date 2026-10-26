@@ -7,6 +7,7 @@ import OrdersListView from './components/views/OrdersListView';
 import PersonnelListView from './components/views/PersonnelListView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ExcelImportModal from './components/ExcelImportModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { INITIAL_PERSONNEL, INITIAL_ORDERS } from './utils/initialData';
 import { exportToExcel, downloadTemplateExcel } from './utils/excelHelper';
 import { orderApiService } from './services/orderApiService';
@@ -555,7 +556,9 @@ export default function App() {
             width: `${100 / (zoomLevel / 100)}%`
           }}
         >
-          {renderActiveView()}
+          <ErrorBoundary onReset={() => setActiveTab('scanner')}>
+            {renderActiveView()}
+          </ErrorBoundary>
         </main>
       </div>
 
