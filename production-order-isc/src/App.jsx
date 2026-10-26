@@ -30,13 +30,31 @@ export default function App() {
     return localStorage.getItem('isc_production_sidebar') === 'true';
   });
 
+  // Helper to detect dummy orders in storage
+  const isDummyOrders = (arr) => {
+    if (!Array.isArray(arr) || arr.length === 0) return false;
+    const dummyNos = ['10048291', '10048292', '10049380', '10049455'];
+    return arr.some((o) => dummyNos.includes(String(o.NoProduksi || o.orderNo || '').trim()));
+  };
+
+  const isDummyPersonnel = (arr) => {
+    if (!Array.isArray(arr) || arr.length === 0) return false;
+    const dummyIds = ['530617', '109842', '442190', '331088', '550123'];
+    return arr.some((p) => dummyIds.includes(String(p.NoPersonal).trim()) || p.Nama === 'Renan Aldi');
+  };
+
   // Personnel state with localStorage persistence
   const [personnel, setPersonnel] = useState(() => {
     try {
       const saved = localStorage.getItem('isc_production_personnel');
-      return saved ? JSON.parse(saved) : INITIAL_PERSONNEL;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!isDummyPersonnel(parsed)) return parsed;
+      }
+      localStorage.removeItem('isc_production_personnel');
+      return [];
     } catch {
-      return INITIAL_PERSONNEL;
+      return [];
     }
   });
 
@@ -44,9 +62,14 @@ export default function App() {
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('isc_production_orders');
-      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!isDummyOrders(parsed)) return parsed;
+      }
+      localStorage.removeItem('isc_production_orders');
+      return [];
     } catch {
-      return INITIAL_ORDERS;
+      return [];
     }
   });
 
@@ -231,7 +254,7 @@ export default function App() {
   // --- CLOUD CRUD HANDLERS (Power Automate & SharePoint) ---
 
   // 1. READ: Sync orders from Cloud SharePoint
-  const handleSyncCloud = async () => {
+  const handleSyncCloud = async (silent = false) => {
     setIsLoadingCloud(true);
     try {
       const res = await orderApiService.getAllOrders();
@@ -242,19 +265,30 @@ export default function App() {
             setSelectedOrderNo(res.data[0].NoProduksi);
           }
         }
-        showToast(
-          `Berhasil menyinkronkan ${res.total || res.data.length} order dari SharePoint Cloud!`,
-          'success'
-        );
+        if (!silent) {
+          showToast(
+            `Berhasil menyinkronkan ${res.total || res.data.length} order dari SharePoint Cloud!`,
+            'success'
+          );
+        }
       } else {
-        showToast('Data dari cloud kosong atau tidak berformat array.', 'info');
+        if (!silent) {
+          showToast('Data dari cloud kosong atau tidak berformat array.', 'info');
+        }
       }
     } catch (err) {
-      showToast(`Gagal menyinkronkan cloud: ${err.message}`, 'error');
+      if (!silent) {
+        showToast(`Gagal menyinkronkan cloud: ${err.message}`, 'error');
+      }
     } finally {
       setIsLoadingCloud(false);
     }
   };
+
+  // Auto-sync real cloud orders on initial application load
+  useEffect(() => {
+    handleSyncCloud(true);
+  }, []);
 
   // 2. CREATE: Insert new order to Cloud SharePoint
   const handleCreateOrder = async (orderData) => {
