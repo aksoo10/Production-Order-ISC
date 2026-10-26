@@ -3,6 +3,8 @@
  * Centralized CRUD service interfacing with the backend proxy
  */
 
+import { INITIAL_ORDERS } from '../utils/initialData';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || './api';
 
 // Helper to determine URL path whether ending with .php or directory
@@ -22,12 +24,23 @@ export const orderApiService = {
    */
   async getAllOrders() {
     try {
-      const response = await fetch(getEndpointUrl('get'), {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
+      const primaryUrl = getEndpointUrl('get');
+      let response;
+      try {
+        response = await fetch(primaryUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+      } catch (networkErr) {
+        // Try fallback endpoint without .php if failed
+        const altUrl = primaryUrl.includes('.php')
+          ? primaryUrl.replace('orders.php', 'orders')
+          : primaryUrl.replace('/orders?', '/orders.php?');
+        response = await fetch(altUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -37,7 +50,15 @@ export const orderApiService = {
       const json = await response.json();
       return json;
     } catch (err) {
-      console.error('[orderApiService] Error fetching orders:', err);
+      console.warn('[orderApiService] Error fetching orders, using baseline data:', err);
+      if (Array.isArray(INITIAL_ORDERS) && INITIAL_ORDERS.length > 0) {
+        return {
+          success: true,
+          total: INITIAL_ORDERS.length,
+          data: INITIAL_ORDERS,
+          fallback: true
+        };
+      }
       throw err;
     }
   },

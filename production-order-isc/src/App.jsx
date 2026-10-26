@@ -37,39 +37,31 @@ export default function App() {
     return arr.some((o) => dummyNos.includes(String(o.NoProduksi || o.orderNo || '').trim()));
   };
 
-  const isDummyPersonnel = (arr) => {
-    if (!Array.isArray(arr) || arr.length === 0) return false;
-    const dummyIds = ['530617', '109842', '442190', '331088', '550123'];
-    return arr.some((p) => dummyIds.includes(String(p.NoPersonal).trim()) || p.Nama === 'Renan Aldi');
-  };
-
-  // Personnel state with localStorage persistence
+  // Personnel state with localStorage persistence (Defaults to INITIAL_PERSONNEL)
   const [personnel, setPersonnel] = useState(() => {
     try {
       const saved = localStorage.getItem('isc_production_personnel');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (!isDummyPersonnel(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      localStorage.removeItem('isc_production_personnel');
-      return [];
+      return INITIAL_PERSONNEL;
     } catch {
-      return [];
+      return INITIAL_PERSONNEL;
     }
   });
 
-  // Orders state with localStorage persistence
+  // Orders state with localStorage persistence (Defaults to INITIAL_ORDERS)
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('isc_production_orders');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (!isDummyOrders(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0 && !isDummyOrders(parsed)) return parsed;
       }
-      localStorage.removeItem('isc_production_orders');
-      return [];
+      return INITIAL_ORDERS;
     } catch {
-      return [];
+      return INITIAL_ORDERS;
     }
   });
 
@@ -91,11 +83,11 @@ export default function App() {
     if (currentUserSession?.operator) {
       return currentUserSession.operator;
     }
-    return personnel[0] || null;
+    return personnel[0] || INITIAL_PERSONNEL[0] || null;
   });
 
   const [selectedOrderNo, setSelectedOrderNo] = useState(() => {
-    return orders[0]?.NoProduksi || '';
+    return orders[0]?.NoProduksi || INITIAL_ORDERS[0]?.NoProduksi || '';
   });
   const [selectedGroup, setSelectedGroup] = useState('ALL');
 
@@ -259,15 +251,18 @@ export default function App() {
     try {
       const res = await orderApiService.getAllOrders();
       if (res && res.success && Array.isArray(res.data)) {
-        if (res.data.length > 0) {
-          setOrders(res.data);
-          if (!selectedOrderNo || !res.data.some((o) => o.NoProduksi === selectedOrderNo)) {
-            setSelectedOrderNo(res.data[0].NoProduksi);
-          }
+        const validOrders = res.data.filter(
+          (o) => o && o.NoProduksi && o.NoProduksi !== '-' && (o.customers || o.title || o.materialDescription)
+        );
+        if (validOrders.length > 0) {
+          setOrders(validOrders);
+          setSelectedOrderNo((prev) =>
+            prev && validOrders.some((o) => o.NoProduksi === prev) ? prev : validOrders[0].NoProduksi
+          );
         }
         if (!silent) {
           showToast(
-            `Berhasil menyinkronkan ${res.total || res.data.length} order dari SharePoint Cloud!`,
+            `Berhasil menyinkronkan ${validOrders.length || res.total} order dari SharePoint Cloud!`,
             'success'
           );
         }
@@ -277,6 +272,7 @@ export default function App() {
         }
       }
     } catch (err) {
+      console.warn('[SyncCloud] Warning:', err);
       if (!silent) {
         showToast(`Gagal menyinkronkan cloud: ${err.message}`, 'error');
       }

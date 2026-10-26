@@ -39,61 +39,78 @@ export default async function handler(req, res) {
         const mappedOrders = [];
 
         for (const sp of rawItems) {
-          const rawOrderNo = String(sp.field_4 || '').trim();
-          const titleText = String(sp.Title || '').trim();
-          const customerText = String(sp.field_1 || '').trim();
-          const soDoc = String(sp.field_2 || '').trim();
-          const wbsNo = String(sp.field_3 || '').trim();
-          const matDesc = String(sp.field_8 || '').trim();
+          const rawProdOrder = String(sp.field_4 || '').trim();
+          const rawTitle = String(sp.Title || '').trim();
+          const rawCustomer = String(sp.field_1 || '').trim();
+          const rawSO = String(sp.field_2 || '').trim();
+          const rawWBS = String(sp.field_3 || '').trim();
+          const rawDiv = String(sp.field_5 || '').trim();
+          const rawShortDesc = String(sp.field_6 || '').trim();
+          const rawMatNo = String(sp.field_7 || '').trim();
+          const rawMatDesc = String(sp.field_8 || '').trim();
 
-          if (!rawOrderNo && !titleText && !customerText && !matDesc) {
+          if (!rawProdOrder && !rawTitle && !rawCustomer && !rawMatDesc && !rawShortDesc && !rawWBS) {
             continue;
           }
 
-          const statusNum = sp.field_12 !== undefined ? parseInt(sp.field_12, 10) : 0;
-          const statusText = statusNum === 1 ? 'Selesai' : 'Berjalan';
-
-          let effectiveOrderNo = '';
-          if (rawOrderNo && rawOrderNo !== '-') {
-            effectiveOrderNo = rawOrderNo;
-          } else if (soDoc && soDoc !== '-' && soDoc.toLowerCase() !== 'new order') {
-            effectiveOrderNo = `${soDoc}-${sp.ID || '0'}`;
-          } else if (wbsNo && wbsNo !== '-') {
-            effectiveOrderNo = wbsNo;
-          } else if (titleText) {
-            effectiveOrderNo = titleText;
+          let orderNo = '';
+          if (rawProdOrder && rawProdOrder !== '-' && rawProdOrder !== '0') {
+            orderNo = rawProdOrder;
+          } else if (rawTitle && rawTitle !== '-' && rawTitle !== '0') {
+            orderNo = rawTitle;
+          } else if (rawWBS && rawWBS !== '-' && rawWBS !== '0') {
+            orderNo = rawWBS;
+          } else if (rawSO && rawSO !== '-' && rawSO.toLowerCase() !== 'new order' && rawSO !== '0') {
+            orderNo = `${rawSO}-${sp.ID || '0'}`;
           } else {
-            effectiveOrderNo = `ORD-${sp.ID || '0'}`;
+            orderNo = `ORD-${sp.ID || '0'}`;
           }
 
-          const processName = titleText || matDesc || 'Proses Produksi';
-          const confNo = (rawOrderNo && rawOrderNo !== '-')
-            ? `1000${rawOrderNo.slice(-4)}`
-            : `9000${String(sp.ID || 1).padStart(4, '0')}`;
+          let processName = rawShortDesc || rawMatDesc;
+          if (!processName || processName === '0') {
+            processName = (rawTitle && isNaN(Number(rawTitle))) ? rawTitle : 'Proses Produksi ISC';
+          }
+
+          let group = 'PKW';
+          if (rawDiv && rawDiv !== '0' && rawDiv !== '-') {
+            const first = rawDiv.split(/[\s&/]+/)[0].toUpperCase();
+            group = first || 'PKW';
+          }
+
+          let conf = '1000' + String(sp.ID || 1);
+          const digits = (rawProdOrder && rawProdOrder !== '-' && rawProdOrder !== '0' ? rawProdOrder : orderNo).replace(/\D/g, '');
+          if (digits.length >= 4) {
+            conf = '1000' + digits.slice(-4);
+          } else {
+            conf = '9000' + String(sp.ID || 1).padStart(4, '0');
+          }
+
+          const statusNum = sp.field_12 === 1 ? 1 : 0;
+          const statusText = statusNum === 1 ? 'Selesai' : 'Berjalan';
 
           mappedOrders.push({
             id: parseInt(sp.ID, 10) || 0,
             ID: parseInt(sp.ID, 10) || 0,
-            orderNo: effectiveOrderNo,
-            NoProduksi: effectiveOrderNo,
+            orderNo: orderNo,
+            NoProduksi: orderNo,
             title: processName,
             NamaLangkah: processName,
-            customers: String(sp.field_1 || ''),
-            soDocument: String(sp.field_2 || ''),
-            wbsProdNo: String(sp.field_3 || ''),
-            prodOrderNo: String(sp.field_4 || ''),
-            orderDivision: String(sp.field_5 || 'PKW'),
-            ProductGroup: String(sp.field_5 || 'PKW'),
-            shortDescSO: String(sp.field_6 || ''),
-            materialNo: String(sp.field_7 || ''),
-            materialDescription: String(sp.field_8 || ''),
+            customers: rawCustomer || 'ANDRITZ ISC Internal',
+            soDocument: rawSO && rawSO !== '0' ? rawSO : '-',
+            wbsProdNo: rawWBS && rawWBS !== '0' ? rawWBS : '-',
+            prodOrderNo: rawProdOrder && rawProdOrder !== '-' && rawProdOrder !== '0' ? rawProdOrder : '-',
+            orderDivision: rawDiv && rawDiv !== '0' && rawDiv !== '-' ? rawDiv : 'PKW Wood Process.Ser',
+            ProductGroup: group,
+            shortDescSO: rawShortDesc && rawShortDesc !== '0' ? rawShortDesc : '-',
+            materialNo: rawMatNo && rawMatNo !== '0' ? rawMatNo : '-',
+            materialDescription: rawMatDesc && rawMatDesc !== '0' ? rawMatDesc : processName,
             qtyOrder: parseFloat(sp.field_9) || 1.0,
-            planStart: String(sp.field_10 || ''),
-            planFinish: String(sp.field_11 || ''),
+            planStart: sp.field_10 ? String(sp.field_10).split('T')[0] : '2026-10-26',
+            planFinish: sp.field_11 ? String(sp.field_11).split('T')[0] : '2026-11-15',
             status: statusNum,
             Status: statusText,
             Langkah: 1,
-            NoKonfirmasi: confNo,
+            NoKonfirmasi: conf,
             Created: String(sp.Created || ''),
             Modified: String(sp.Modified || ''),
             Author: sp.Author ? sp.Author.DisplayName || '' : ''
