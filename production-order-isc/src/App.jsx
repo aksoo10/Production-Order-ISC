@@ -4,7 +4,6 @@ import Sidebar from './components/Sidebar';
 import LoginView from './components/LoginView';
 import ScannerView from './components/views/ScannerView';
 import OrdersListView from './components/views/OrdersListView';
-import PersonnelListView from './components/views/PersonnelListView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ExcelImportModal from './components/ExcelImportModal';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -477,14 +476,6 @@ export default function App() {
             onUpdateOrder={handleUpdateOrder}
             onDeleteOrder={handleDeleteOrder}
             isLoadingCloud={isLoadingCloud}
-          />
-        );
-      case 'personnel':
-        return (
-          <PersonnelListView
-            personnel={personnel}
-            onSelectOperatorAndOpenScanner={handleSelectOperatorAndOpenScanner}
-            selectedGroup={selectedGroup}
           />
         );
       default:

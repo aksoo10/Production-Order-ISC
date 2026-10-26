@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Scan,
   Layers,
-  Users,
   Upload,
   Download,
   LogOut,
@@ -48,15 +47,6 @@ export default function Sidebar({
       badge: ordersCount,
       badgeColor: '#00A3E0',
       desc: 'Monitoring Rangkaian Langkah'
-    },
-    {
-      id: 'personnel',
-      label: 'Personel Operator',
-      shortLabel: 'Operator',
-      icon: Users,
-      badge: personnelCount,
-      badgeColor: '#8B5CF6',
-      desc: 'Katalog No. Personal & Barcode'
     }
   ];
 

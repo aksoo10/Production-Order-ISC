@@ -40,8 +40,8 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Middle Controls: Filter */}
-      <div className="header-center-controls">
+      {/* Right Controls: Filter (moved next to operator/admin) + User Profile Info & Logout */}
+      <div className="header-right-controls">
         {/* Product Group Filter */}
         <div className="filter-pill-group">
           <Layers size={14} className="filter-icon" />
@@ -60,10 +60,7 @@ export default function Navbar({
             ))}
           </select>
         </div>
-      </div>
 
-      {/* Right Controls: User Profile Info & Logout */}
-      <div className="header-right-controls">
         {/* User Session Pill */}
         <div className={`status-mode-pill ${isAdmin ? 'admin-mode' : 'user-mode'}`}>
           {isAdmin ? (
