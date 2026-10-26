@@ -13,9 +13,9 @@
   --atz-cyan-tint: rgba(0, 163, 224, 0.08);
   --atz-cyan-border: rgba(0, 163, 224, 0.35);
 
-  --atz-header-bg: #001A30;
-  --atz-header-border: #0A2B4C;
-  --atz-navy-deep: #0B2545;
+  --atz-header-bg: #000000;
+  --atz-header-border: #1F2430;
+  --atz-navy-deep: #050B14;
 
   /* Status Colors */
   --color-success: #059669;
@@ -194,7 +194,7 @@ h1, h2, h3, h4, h5, h6 {
    ========================================================================== */
 .app-header {
   height: 64px;
-  background-color: var(--atz-header-bg);
+  background-color: #000000;
   border-bottom: 2px solid var(--atz-cyan);
   display: flex;
   align-items: center;
@@ -203,7 +203,7 @@ h1, h2, h3, h4, h5, h6 {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
 }
 
 .header-brand-section {
@@ -220,6 +220,22 @@ h1, h2, h3, h4, h5, h6 {
   user-select: none;
 }
 
+.andritz-brand-logo-img {
+  height: 32px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+}
+
+.andritz-brand-logo-img-lg {
+  height: 42px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+  display: block;
+}
+
 .andritz-logotype {
   font-family: var(--font-heading);
   font-size: 1.4rem;
@@ -230,13 +246,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .andritz-logotype-cyan {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
   color: var(--atz-cyan);
+  line-height: 1;
 }
 
 .brand-divider {
   width: 1px;
   height: 26px;
-  background-color: var(--atz-header-border);
+  background-color: #27272A;
 }
 
 .brand-meta-group {
@@ -283,8 +304,8 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #0A223B;
-  border: 1px solid #14355A;
+  background-color: #121214;
+  border: 1px solid #27272A;
   padding: 5px 12px;
   border-radius: var(--radius-sm);
   color: #FFFFFF;
@@ -313,7 +334,7 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer;
 }
 .filter-select option {
-  background-color: #001A30;
+  background-color: #121214;
   color: #FFFFFF;
 }
 

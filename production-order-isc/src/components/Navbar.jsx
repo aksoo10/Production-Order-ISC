@@ -5,6 +5,7 @@ import {
   Layers,
   UserCheck
 } from 'lucide-react';
+import andritzLogo from '../assets/andritz-logo.png';
 
 export default function Navbar({
   isAdmin,
@@ -19,13 +20,12 @@ export default function Navbar({
       {/* Brand & Title: Official ANDRITZ Corporate Identity */}
       <div className="header-brand-section">
         <div className="andritz-logo-container">
-          <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" rx="14" fill="#00A3E0"/>
-            <path d="M50 18L77 78H62.5L56.5 63H43.5L37.5 78H23L50 18ZM50 36L46.5 52H53.5L50 36Z" fill="white"/>
-          </svg>
-          <div className="andritz-logotype">
-            ANDRITZ <span className="andritz-logotype-cyan">ISC</span>
-          </div>
+          <img
+            src={andritzLogo}
+            alt="ANDRITZ"
+            className="andritz-brand-logo-img"
+          />
+          <span className="andritz-logotype-cyan">ISC</span>
         </div>
 
         <div className="brand-divider"></div>

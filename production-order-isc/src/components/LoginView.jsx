@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import andritzBg from '../assets/andritz-workshop-bg.png';
+import andritzLogo from '../assets/andritz-logo.png';
 import {
   ShieldCheck,
   User,
@@ -150,14 +151,13 @@ export default function LoginView({
       <div className="login-card-container">
         {/* Card Header with Official ANDRITZ Brand */}
         <div className="login-card-header">
-          <div className="andritz-logo-container justify-center mb-2">
-            <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="100" height="100" rx="16" fill="#00A3E0"/>
-              <path d="M50 18L77 78H62.5L56.5 63H43.5L37.5 78H23L50 18ZM50 36L46.5 52H53.5L50 36Z" fill="white"/>
-            </svg>
-            <div className="andritz-logotype" style={{ fontSize: '1.7rem' }}>
-              ANDRITZ <span className="andritz-logotype-cyan">ISC</span>
-            </div>
+          <div className="andritz-logo-container justify-center mb-3">
+            <img
+              src={andritzLogo}
+              alt="ANDRITZ"
+              className="andritz-brand-logo-img-lg"
+            />
+            <span className="andritz-logotype-cyan" style={{ fontSize: '1.6rem', fontWeight: 800 }}>ISC</span>
           </div>
 
           <h2 className="login-title font-heading">Portal Masuk Bengkel Produksi</h2>
