@@ -5,15 +5,10 @@ import {
   Users,
   Upload,
   Download,
-  FileSpreadsheet,
-  Key,
   LogOut,
-  ShieldCheck,
-  Shield,
   ChevronLeft,
   ChevronRight,
-  UserCheck,
-  Cloud
+  UserCheck
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -141,17 +136,6 @@ export default function Sidebar({
                 <button
                   type="button"
                   className="sidebar-action-btn primary"
-                  onClick={onSyncCloud}
-                  disabled={isLoadingCloud}
-                  title="Tarik seluruh data order produksi dari SharePoint Cloud (Power Automate)"
-                >
-                  <Cloud size={16} className={isLoadingCloud ? 'animate-spin text-cyan' : ''} />
-                  {!collapsed && <span>{isLoadingCloud ? 'Sinkronisasi...' : 'Tarik SharePoint'}</span>}
-                </button>
-
-                <button
-                  type="button"
-                  className="sidebar-action-btn"
                   onClick={onOpenImport}
                   title="Impor file Excel dari SAP"
                 >
@@ -167,26 +151,6 @@ export default function Sidebar({
                 >
                   <Download size={16} />
                   {!collapsed && <span>Unduh Order (Excel)</span>}
-                </button>
-
-                <button
-                  type="button"
-                  className="sidebar-action-btn"
-                  onClick={onDownloadTemplate}
-                  title="Unduh format template Excel"
-                >
-                  <FileSpreadsheet size={16} />
-                  {!collapsed && <span>Format Template</span>}
-                </button>
-
-                <button
-                  type="button"
-                  className="sidebar-action-btn"
-                  onClick={onOpenChangePassword}
-                  title="Ganti sandi administrator"
-                >
-                  <Key size={16} />
-                  {!collapsed && <span>Ganti Sandi</span>}
                 </button>
               </div>
             </>
