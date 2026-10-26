@@ -10,11 +10,9 @@ import {
   ChevronRight,
   Filter,
   FileSpreadsheet,
-  RefreshCw,
   Plus,
   Trash2,
   Edit3,
-  Cloud,
   Loader2,
   AlertTriangle
 } from 'lucide-react';
@@ -181,18 +179,6 @@ export default function OrdersListView({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-
-          {/* Sync Cloud Button (GET) */}
-          <button
-            type="button"
-            className="btn btn-outline flex items-center gap-1 text-xs"
-            onClick={onSyncCloud}
-            disabled={isLoadingCloud}
-            title="Tarik data terbaru dari SharePoint Power Automate"
-          >
-            <RefreshCw size={14} className={isLoadingCloud ? 'animate-spin text-cyan' : ''} />
-            <span>{isLoadingCloud ? 'Menyinkronkan...' : 'Tarik Cloud'}</span>
-          </button>
 
           {/* Add Order Button (CREATE) */}
           {isAdmin && (
