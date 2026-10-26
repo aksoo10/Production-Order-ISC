@@ -1,0 +1,8 @@
+{
+  "name": "production-order-isc-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix production-order-isc run dev",
+    "build": "npm --prefix production-order-isc run build"
+  }
+}
