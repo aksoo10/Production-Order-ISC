@@ -7,8 +7,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || './api';
 
 // Helper to determine URL path whether ending with .php or directory
 function getEndpointUrl(action) {
-  // If API_BASE is relative or absolute, route through orders.php with action query
   const cleanBase = API_BASE.replace(/\/+$/, '');
+  const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+  if (isVercel) {
+    return `${cleanBase}/orders?action=${encodeURIComponent(action)}`;
+  }
   return `${cleanBase}/orders.php?action=${encodeURIComponent(action)}`;
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Layers,
   Search,
@@ -445,7 +446,7 @@ export default function OrdersListView({
       />
 
       {/* DELETE CONFIRMATION MODAL */}
-      {orderToDelete && (
+      {orderToDelete && typeof document !== 'undefined' && createPortal(
         <div className="modal-backdrop" onClick={() => setOrderToDelete(null)}>
           <div className="modal-card" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -492,7 +493,8 @@ export default function OrdersListView({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

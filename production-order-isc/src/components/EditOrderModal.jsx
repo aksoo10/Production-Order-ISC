@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, AlertCircle, Loader2, Edit3 } from 'lucide-react';
 
 export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoading }) {
@@ -68,7 +69,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
     onSubmit(formData);
   };
 
-  return (
+  const modalContent = (
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-card"
@@ -278,4 +279,6 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
