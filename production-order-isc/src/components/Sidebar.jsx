@@ -12,8 +12,6 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  Sun,
-  Moon,
   UserCheck,
   Cloud
 } from 'lucide-react';
@@ -214,7 +212,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Sidebar Footer: Logout & Theme */}
+      {/* Sidebar Footer: Logout */}
       <div className="sidebar-footer">
         <button
           type="button"
@@ -225,18 +223,6 @@ export default function Sidebar({
           <LogOut size={16} />
           {!collapsed && <span>Keluar ({isAdmin ? 'Admin' : 'Operator'})</span>}
         </button>
-
-        <div className="sidebar-footer-controls">
-          <button
-            type="button"
-            className="sidebar-theme-btn"
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            title={theme === 'light' ? 'Ubah ke Mode Gelap' : 'Ubah ke Mode Terang'}
-          >
-            {theme === 'light' ? <Moon size={15} color="#38BDF8" /> : <Sun size={15} color="#FBBF24" />}
-            {!collapsed && <span>{theme === 'light' ? 'Tema Gelap' : 'Tema Terang'}</span>}
-          </button>
-        </div>
       </div>
     </aside>
   );
