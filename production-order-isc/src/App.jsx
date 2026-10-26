@@ -5,10 +5,8 @@ import LoginView from './components/LoginView';
 import ScannerView from './components/views/ScannerView';
 import OrdersListView from './components/views/OrdersListView';
 import PersonnelListView from './components/views/PersonnelListView';
-import GuideView from './components/views/GuideView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ExcelImportModal from './components/ExcelImportModal';
-import HelpModal from './components/HelpModal';
 import { INITIAL_PERSONNEL, INITIAL_ORDERS } from './utils/initialData';
 import { exportToExcel, downloadTemplateExcel } from './utils/excelHelper';
 import { orderApiService } from './services/orderApiService';
@@ -451,10 +449,21 @@ export default function App() {
             selectedGroup={selectedGroup}
           />
         );
-      case 'guide':
-        return <GuideView />;
       default:
-        return null;
+        return (
+          <ScannerView
+            personnel={personnel}
+            selectedOperator={selectedOperator}
+            onSelectOperator={setSelectedOperator}
+            orders={orders}
+            selectedOrderNo={selectedOrderNo}
+            onSelectOrderNo={setSelectedOrderNo}
+            onMarkStepFinished={handleMarkStepFinished}
+            onResetOrderSteps={handleResetOrderSteps}
+            isAdmin={isAdmin}
+            selectedGroup={selectedGroup}
+          />
+        );
     }
   };
 
@@ -469,7 +478,6 @@ export default function App() {
         onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
         onExportExcel={handleExportExcel}
         onDownloadTemplate={handleDownloadTemplate}
-        onOpenHelp={() => setActiveTab('guide')}
         selectedGroup={selectedGroup}
         setSelectedGroup={setSelectedGroup}
         availableGroups={availableGroups}
@@ -527,11 +535,6 @@ export default function App() {
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={handleImportSuccess}
         currentPersonnel={personnel}
-      />
-
-      <HelpModal
-        isOpen={isHelpModalOpen}
-        onClose={() => setIsHelpModalOpen(false)}
       />
 
       {/* Toast Notification Banner */}

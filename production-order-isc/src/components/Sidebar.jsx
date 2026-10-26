@@ -3,7 +3,6 @@ import {
   Scan,
   Layers,
   Users,
-  BookOpen,
   Upload,
   Download,
   FileSpreadsheet,
@@ -65,14 +64,6 @@ export default function Sidebar({
       badge: personnelCount,
       badgeColor: '#8B5CF6',
       desc: 'Katalog No. Personal & Barcode'
-    },
-    {
-      id: 'guide',
-      label: 'Panduan & SOP Bengkel',
-      shortLabel: 'Panduan',
-      icon: BookOpen,
-      badge: null,
-      desc: 'Petunjuk A s/d H & Troubleshooting'
     }
   ];
 
