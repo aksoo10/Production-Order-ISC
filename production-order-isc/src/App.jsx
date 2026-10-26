@@ -37,13 +37,20 @@ export default function App() {
     return arr.some((o) => dummyNos.includes(String(o.NoProduksi || o.orderNo || '').trim()));
   };
 
+  const DUMMY_PERSONNEL_IDS = ['530617', '109842', '442190', '331088', '550123'];
+
   // Personnel state with localStorage persistence (Defaults to INITIAL_PERSONNEL)
   const [personnel, setPersonnel] = useState(() => {
     try {
       const saved = localStorage.getItem('isc_production_personnel');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleanPersonnel = parsed.filter(
+            (p) => !DUMMY_PERSONNEL_IDS.includes(String(p.NoPersonal).trim()) && p.Nama !== 'Renan Aldi'
+          );
+          if (cleanPersonnel.length > 0) return cleanPersonnel;
+        }
       }
       return INITIAL_PERSONNEL;
     } catch {

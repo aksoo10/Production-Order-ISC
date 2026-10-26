@@ -4,12 +4,7 @@
  */
 
 export const INITIAL_PERSONNEL = [
-  { NoPersonal: '2324', Nama: 'Dudi', ProductGroup: 'PKW' },
-  { NoPersonal: '530617', Nama: 'Renan Aldi', ProductGroup: 'PKW' },
-  { NoPersonal: '109842', Nama: 'Agus Pratama', ProductGroup: 'PKF' },
-  { NoPersonal: '442190', Nama: 'Siti Rahma', ProductGroup: 'PES' },
-  { NoPersonal: '331088', Nama: 'Budi Santoso', ProductGroup: 'PEW' },
-  { NoPersonal: '550123', Nama: 'Hendrik Wijaya', ProductGroup: 'PKW' }
+  { NoPersonal: '2324', Nama: 'Dudi', ProductGroup: 'PKW' }
 ];
 
 export const INITIAL_ORDERS = [
