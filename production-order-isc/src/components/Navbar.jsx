@@ -1,20 +1,8 @@
 import React from 'react';
 import {
-  Shield,
   ShieldCheck,
   LogOut,
-  Upload,
-  Download,
-  Key,
-  FileSpreadsheet,
-  HelpCircle,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
   Layers,
-  Monitor,
-  Sun,
-  Moon,
   UserCheck
 } from 'lucide-react';
 
@@ -22,18 +10,9 @@ export default function Navbar({
   isAdmin,
   currentUser,
   onLogout,
-  onOpenImport,
-  onOpenChangePassword,
-  onExportExcel,
-  onDownloadTemplate,
-  onOpenHelp,
   selectedGroup,
   setSelectedGroup,
-  availableGroups,
-  zoomLevel,
-  setZoomLevel,
-  theme,
-  setTheme
+  availableGroups
 }) {
   return (
     <header className="app-header">
@@ -54,7 +33,6 @@ export default function Navbar({
         <div className="brand-meta-group">
           <div className="brand-unit-title">
             <span>INDONESIA SERVICE CENTER</span>
-            <span className="brand-tag-bengkel">BENGKEL PRODUKSI</span>
           </div>
           <div className="brand-unit-sub font-mono">
             Production Order Tracking & SAP Confirmation Barcode System
@@ -62,7 +40,7 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Middle Controls: Filter, Zoom, and Theme Toggle */}
+      {/* Middle Controls: Filter */}
       <div className="header-center-controls">
         {/* Product Group Filter */}
         <div className="filter-pill-group">
@@ -82,49 +60,6 @@ export default function Navbar({
             ))}
           </select>
         </div>
-
-        {/* Display Zoom Level */}
-        <div className="zoom-controls-wrapper" title="Sesuaikan ukuran tampilan layar monitor bengkel">
-          <Monitor size={14} color="#94A3B8" />
-          <button
-            type="button"
-            className="zoom-btn"
-            onClick={() => setZoomLevel((z) => Math.max(85, z - 10))}
-            title="Perkecil layar"
-          >
-            <ZoomOut size={13} />
-          </button>
-          <span className="zoom-value font-mono">{zoomLevel}%</span>
-          <button
-            type="button"
-            className="zoom-btn"
-            onClick={() => setZoomLevel((z) => Math.min(150, z + 10))}
-            title="Perbesar layar (Ctrl +)"
-          >
-            <ZoomIn size={13} />
-          </button>
-          {zoomLevel !== 100 && (
-            <button
-              type="button"
-              className="zoom-reset-btn"
-              onClick={() => setZoomLevel(100)}
-              title="Reset ke 100%"
-            >
-              <RotateCcw size={12} />
-            </button>
-          )}
-        </div>
-
-        {/* Theme Toggle (Light / Dark) */}
-        <button
-          type="button"
-          className="theme-toggle-btn"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          title={theme === 'light' ? 'Ubah ke Mode Gelap' : 'Ubah ke Mode Terang (Standar ANDRITZ)'}
-        >
-          {theme === 'light' ? <Moon size={14} color="#38BDF8" /> : <Sun size={14} color="#FBBF24" />}
-          <span>{theme === 'light' ? 'Gelap' : 'Terang'}</span>
-        </button>
       </div>
 
       {/* Right Controls: User Profile Info & Logout */}
