@@ -258,7 +258,7 @@ export default function OrderPanel({
                     <th>Nama Langkah</th>
                     <th style={{ width: '180px' }}>No. Konfirmasi</th>
                     <th style={{ width: '150px' }}>Status</th>
-                    <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>
+                    {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -320,35 +320,35 @@ export default function OrderPanel({
                           )}
                         </td>
 
-                        {/* Action Column */}
-                        <td className="step-action-cell" style={{ textAlign: 'center' }}>
-                          {!isStepComplete ? (
-                            <button
-                              type="button"
-                              className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'} flex items-center justify-center gap-1 mx-auto`}
-                              onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
-                              title={`Tandai Langkah ${st.Langkah} Selesai`}
-                            >
-                              <CheckCircle2 size={12} />
-                              <span>Selesai</span>
-                            </button>
-                          ) : isAdmin ? (
-                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                              <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                        {/* Action Column (Only shown for Admin, hidden for Operator) */}
+                        {isAdmin && (
+                          <td className="step-action-cell" style={{ textAlign: 'center' }}>
+                            {!isStepComplete ? (
                               <button
                                 type="button"
-                                className="btn btn-xs btn-outline-warning flex items-center gap-1"
-                                onClick={() => onRevertStep && onRevertStep(currentOrder.NoProduksi, st.Langkah, st.id || st.ID)}
-                                title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                                className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'} flex items-center justify-center gap-1 mx-auto`}
+                                onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
+                                title={`Tandai Langkah ${st.Langkah} Selesai`}
                               >
-                                <RotateCcw size={11} />
-                                <span>Belum Selesai</span>
+                                <CheckCircle2 size={12} />
+                                <span>Selesai</span>
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted font-mono">Terverifikasi</span>
-                          )}
-                        </td>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-outline-warning flex items-center gap-1"
+                                  onClick={() => onRevertStep && onRevertStep(currentOrder.NoProduksi, st.Langkah, st.id || st.ID)}
+                                  title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                                >
+                                  <RotateCcw size={11} />
+                                  <span>Belum Selesai</span>
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
