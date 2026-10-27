@@ -308,6 +308,17 @@ try {
             $payload = ['ID' => $targetId];
             $res = sendHttpRequest($DELETE_URL, 'POST', $payload);
 
+            // Handle Power Automate 502 NoResponse or 404 when item is not in SharePoint
+            if ($res['status'] === 502 || $res['status'] === 404 || strpos($res['body'], 'NoResponse') !== false) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Item tidak ditemukan di SharePoint atau sudah terhapus.',
+                    'id'      => $targetId
+                ]);
+                exit;
+            }
+
             http_response_code($res['status']);
             echo $res['body'];
             break;

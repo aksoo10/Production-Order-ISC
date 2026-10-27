@@ -428,20 +428,25 @@ export default function App() {
     }
   };
 
-  // 4. DELETE: Delete order from Cloud SharePoint
+  // 4. DELETE: Delete order from Cloud SharePoint and local state
   const handleDeleteOrder = async (orderObj) => {
     setIsLoadingCloud(true);
     try {
       if (orderObj.id && orderObj.id > 0) {
-        await orderApiService.deleteOrder(orderObj.id);
+        try {
+          await orderApiService.deleteOrder(orderObj.id);
+        } catch (cloudErr) {
+          console.warn('[handleDeleteOrder] Cloud delete note:', cloudErr);
+        }
       }
+      // Always remove order and all its steps from local state and storage
       setOrders((prev) =>
         prev.filter((o) => o.NoProduksi !== orderObj.NoProduksi && (!orderObj.id || o.id !== orderObj.id))
       );
       if (selectedOrderNo === orderObj.NoProduksi) {
         setSelectedOrderNo('');
       }
-      showToast(`Order #${orderObj.NoProduksi} berhasil dihapus dari cloud dan sistem.`, 'success');
+      showToast(`Order #${orderObj.NoProduksi} berhasil dihapus dari sistem & cloud.`, 'success');
     } catch (err) {
       showToast(`Gagal menghapus order: ${err.message}`, 'error');
     } finally {

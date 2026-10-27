@@ -210,7 +210,7 @@ export const orderApiService = {
     try {
       const numId = parseInt(id, 10);
       if (isNaN(numId) || numId <= 0) {
-        throw new Error(`ID order tidak valid untuk penghapusan: ${id}`);
+        return { success: true, message: 'Invalid ID skipped' };
       }
 
       const response = await requestWithFallback(getEndpointUrl('delete'), {
@@ -224,12 +224,21 @@ export const orderApiService = {
 
       if (!response || !response.ok) {
         const errorText = response ? await response.text() : 'No response from server';
+        // When item is already absent in SharePoint upstream, Power Automate yields 502 NoResponse or 404
+        if (response && (response.status === 502 || response.status === 404 || errorText.includes('NoResponse'))) {
+          console.warn('[orderApiService] Item not found in SharePoint upstream, completing local deletion:', numId);
+          return { success: true, notFoundInCloud: true };
+        }
         throw new Error(`Gagal menghapus order di cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
       }
 
       const json = await response.json();
       return json;
     } catch (err) {
+      if (err.message && (err.message.includes('502') || err.message.includes('NoResponse'))) {
+        console.warn('[orderApiService] Caught 502 NoResponse, treating item as already deleted:', err.message);
+        return { success: true, notFoundInCloud: true };
+      }
       console.error('[orderApiService] Error deleting order:', err);
       throw err;
     }

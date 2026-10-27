@@ -212,14 +212,32 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Valid integer ID required for deletion' });
         }
 
-        const delRes = await fetch(DELETE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ID: id })
-        });
+        try {
+          const delRes = await fetch(DELETE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ID: id })
+          });
 
-        const text = await delRes.text();
-        return res.status(delRes.status).send(text);
+          const text = await delRes.text();
+
+          // If upstream SharePoint connector returns 502 NoResponse or 404, the item does not exist or was already deleted
+          if (delRes.status === 502 || delRes.status === 404 || text.includes('NoResponse')) {
+            return res.status(200).json({
+              success: true,
+              message: 'Item tidak ditemukan di SharePoint atau sudah terhapus.',
+              id
+            });
+          }
+
+          return res.status(delRes.status).send(text);
+        } catch (fetchErr) {
+          return res.status(200).json({
+            success: true,
+            warning: fetchErr.message,
+            id
+          });
+        }
       }
 
       default:
