@@ -13,9 +13,6 @@ import {
   Users,
   Cpu,
   ArrowRight,
-  Link as LinkIcon,
-  Copy,
-  Check,
   Sparkles
 } from 'lucide-react';
 
@@ -41,11 +38,6 @@ export default function LoginView({
 
   // Operator direct access state (No username or password required)
   const [selectedOperatorNo, setSelectedOperatorNo] = useState(cleanPersonnel[0]?.NoPersonal || '');
-  const [copiedLink, setCopiedLink] = useState(false);
-
-  const directOperatorUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}${window.location.pathname}?role=operator`
-    : 'https://production-order-isc.vercel.app/?role=operator';
 
   // UI state
   const [errorMsg, setErrorMsg] = useState('');
@@ -86,14 +78,6 @@ export default function LoginView({
       username: op ? op.Nama : 'Operator Bengkel',
       operator: op || null
     });
-  };
-
-  const handleCopyLink = () => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(directOperatorUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    }
   };
 
   return (
@@ -263,36 +247,6 @@ export default function LoginView({
               <span>Masuk Langsung sebagai Operator</span>
               <ArrowRight size={18} />
             </button>
-
-            {/* Direct Link Shareable Box */}
-            <div className="operator-direct-link-box">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-main">
-                  <LinkIcon size={14} className="text-cyan" />
-                  <span>Tautan Langsung Operator:</span>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-cyan flex items-center gap-1 text-xs py-1 px-2"
-                  onClick={handleCopyLink}
-                  title="Salin tautan untuk dibagikan ke operator"
-                >
-                  {copiedLink ? <Check size={13} color="#10B981" /> : <Copy size={13} />}
-                  <span>{copiedLink ? 'Link Tersalin!' : 'Salin Link'}</span>
-                </button>
-              </div>
-
-              <div
-                className="direct-link-display"
-                onClick={handleCopyLink}
-                title="Klik untuk menyalin tautan ini"
-              >
-                {directOperatorUrl}
-              </div>
-              <div className="direct-link-hint">
-                💡 Cukup simpan atau bagikan tautan ini ke operator agar bisa langsung membuka scanner dari perangkat mana pun tanpa login.
-              </div>
-            </div>
           </div>
         )}
       </div>
