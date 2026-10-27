@@ -1,24 +1,42 @@
 /**
  * ANDRITZ ISC - LocalStorage Helper with TTL (Time To Live) Expiration
- * Default TTL: 1 Menit (60.000 ms)
+ * Default Data Cache TTL: 1 Menit (60.000 ms)
+ * Catatan: Sesi login pengguna dan konfigurasi aplikasi TIDAK boleh kedaluwarsa otomatis.
  */
 
-export const STORAGE_EXPIRY_MS = 60 * 1000; // 1 menit (60 detik)
+export const STORAGE_EXPIRY_MS = 60 * 1000; // 1 menit (60 detik) untuk cache data
 
 /**
- * Menyimpan data ke localStorage dengan batas waktu kedaluwarsa 1 menit
+ * Daftar key yang TIDAK BOLEH kedaluwarsa secara otomatis (Persistent Keys).
+ * Sesi login, pengaturan sandi, dan preferensi tampilan tetap aktif sampai pengguna klik "Keluar".
+ */
+export const PERSISTENT_KEYS = [
+  'isc_production_session',
+  'isc_production_admin_password',
+  'isc_production_user_password',
+  'isc_production_theme',
+  'isc_production_sidebar',
+  'isc_production_zoom'
+];
+
+/**
+ * Menyimpan data ke localStorage.
+ * - Key persisten (sesi pengguna, tema, password) disimpan tanpa kedaluwarsa.
+ * - Data cache lainnya diberi batas kedaluwarsa 1 menit (ttlMs).
  * @param {string} key
  * @param {any} value
- * @param {number} ttlMs - Durasi dalam milidetik (default: 60000 / 1 menit)
+ * @param {number} ttlMs - Durasi kedaluwarsa dalam ms (default: 1 menit untuk cache)
  */
 export function setStorageItem(key, value, ttlMs = STORAGE_EXPIRY_MS) {
   if (typeof window === 'undefined' || !window.localStorage) return;
 
   try {
+    const isPersistent = PERSISTENT_KEYS.includes(key);
     const envelope = {
       value,
-      expiry: Date.now() + ttlMs,
-      savedAt: Date.now()
+      expiry: isPersistent ? null : Date.now() + ttlMs,
+      savedAt: Date.now(),
+      persistent: isPersistent
     };
     window.localStorage.setItem(key, JSON.stringify(envelope));
   } catch (err) {
@@ -27,8 +45,9 @@ export function setStorageItem(key, value, ttlMs = STORAGE_EXPIRY_MS) {
 }
 
 /**
- * Mengambil data dari localStorage dengan verifikasi masa berlaku (1 menit).
- * Jika data sudah melewati 1 menit, data otomatis dihapus dan mengembalikan defaultValue.
+ * Mengambil data dari localStorage dengan verifikasi masa berlaku.
+ * - Key persisten (sesi pengguna) tidak pernah kedaluwarsa.
+ * - Data cache yang melebihi 1 menit akan dibersihkan otomatis.
  * @param {string} key
  * @param {any} defaultValue
  * @returns {any}
@@ -42,17 +61,21 @@ export function getStorageItem(key, defaultValue = null) {
 
     const parsed = JSON.parse(raw);
 
-    // Cek apakah data memiliki amplop expiry
-    if (parsed && typeof parsed === 'object' && 'expiry' in parsed && 'value' in parsed) {
-      if (Date.now() > parsed.expiry) {
-        // Sudah kedaluwarsa (> 1 menit)! Hapus dari localStorage
+    // Cek apakah data memiliki amplop format
+    if (parsed && typeof parsed === 'object' && 'value' in parsed) {
+      // Key persisten tidak pernah kedaluwarsa
+      if (PERSISTENT_KEYS.includes(key) || parsed.persistent || parsed.expiry === null) {
+        return parsed.value;
+      }
+
+      // Verifikasi expiry untuk cache data
+      if (parsed.expiry && Date.now() > parsed.expiry) {
         window.localStorage.removeItem(key);
         return defaultValue;
       }
       return parsed.value;
     }
 
-    // Jika data lama belum beramplop expiry, perlakukan sebagai data baru dengan expiry 1 menit
     return parsed;
   } catch {
     const raw = window.localStorage.getItem(key);
@@ -75,11 +98,13 @@ export function removeStorageItem(key) {
 
 /**
  * Memeriksa apakah data di localStorage sudah kedaluwarsa (> 1 menit)
+ * Key persisten (sesi, preferensi) selalu mengembalikan false (tidak pernah kedaluwarsa otomatis).
  * @param {string} key
  * @returns {boolean}
  */
 export function isStorageItemExpired(key) {
   if (typeof window === 'undefined' || !window.localStorage) return true;
+  if (PERSISTENT_KEYS.includes(key)) return false;
 
   try {
     const raw = window.localStorage.getItem(key);
@@ -87,6 +112,7 @@ export function isStorageItemExpired(key) {
 
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object' && 'expiry' in parsed) {
+      if (parsed.expiry === null || parsed.persistent) return false;
       return Date.now() > parsed.expiry;
     }
     return false;
@@ -96,7 +122,8 @@ export function isStorageItemExpired(key) {
 }
 
 /**
- * Membersihkan semua data aplikasi ISC di localStorage yang sudah melewati batas kedaluwarsa 1 menit
+ * Membersihkan semua data cache aplikasi ISC di localStorage yang sudah melewati batas kedaluwarsa 1 menit.
+ * Key persisten (sesi pengguna, password, tema) TIDAK AKAN PERNAH dihapus.
  * @returns {string[]} daftar key yang telah dibersihkan
  */
 export function purgeExpiredStorage() {
@@ -106,6 +133,11 @@ export function purgeExpiredStorage() {
   try {
     const keys = Object.keys(window.localStorage);
     for (const key of keys) {
+      // Lewati key persisten agar sesi pengguna tidak keluar
+      if (PERSISTENT_KEYS.includes(key)) {
+        continue;
+      }
+
       if (key.startsWith('isc_')) {
         if (isStorageItemExpired(key)) {
           window.localStorage.removeItem(key);

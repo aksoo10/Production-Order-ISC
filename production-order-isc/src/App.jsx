@@ -245,29 +245,22 @@ export default function App() {
     setStorageItem('isc_production_sidebar', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  // 1-Minute LocalStorage Expiration Watcher:
-  // Automatically purges expired items and triggers fresh cloud re-sync
+  // 1-Minute LocalStorage Cache Watcher:
+  // Automatically purges expired cache and triggers background cloud re-sync without logging out the user
   useEffect(() => {
     const checkInterval = setInterval(() => {
-      // 1. Session expiration check
-      if (currentUserSession && isStorageItemExpired('isc_production_session')) {
-        setCurrentUserSession(null);
-        removeStorageItem('isc_production_session');
-        showToast('Sesi penyimpanan lokal telah kedaluwarsa (1 menit). Silakan masuk kembali.', 'info');
-      }
-
-      // 2. Orders cache expiration check: automatically sync latest data from cloud
+      // 1. Orders cache expiration check: automatically sync latest data from cloud
       if (isStorageItemExpired('isc_production_orders')) {
         console.log('[StorageTTL] Cache order di localStorage telah melewati 1 menit. Mengambil data terbaru dari SharePoint...');
         handleSyncCloud(true);
       }
 
-      // 3. Purge any other expired isc_ keys
+      // 2. Purge any other expired temporary cache keys (session and settings are protected)
       purgeExpiredStorage();
-    }, 5000); // Check every 5 seconds
+    }, 15000);
 
     return () => clearInterval(checkInterval);
-  }, [currentUserSession]);
+  }, []);
 
   // Extract unique ProductGroups
   const availableGroups = useMemo(() => {
