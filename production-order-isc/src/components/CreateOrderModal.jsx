@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, AlertCircle, Loader2, CloudUpload } from 'lucide-react';
+import {
+  X,
+  Plus,
+  AlertCircle,
+  Loader2,
+  CloudUpload,
+  Minus,
+  Trash2,
+  Layers
+} from 'lucide-react';
 
 export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading }) {
   const [formData, setFormData] = useState({
@@ -18,6 +27,15 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
     status: 0
   });
 
+  const [steps, setSteps] = useState([
+    {
+      Langkah: 1,
+      NamaLangkah: 'Persiapan & Pengerjaan Komponen',
+      NoKonfirmasi: '',
+      Status: 'Berjalan'
+    }
+  ]);
+
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
@@ -28,6 +46,44 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
       ...prev,
       [name]: type === 'number' ? (parseFloat(value) || 0) : value
     }));
+  };
+
+  const handleAddStep = () => {
+    setSteps((prev) => {
+      const nextNum = prev.length + 1;
+      const baseKonf = prev[0]?.NoKonfirmasi || formData.orderNo || '1000000';
+      return [
+        ...prev,
+        {
+          Langkah: nextNum,
+          NamaLangkah: `${formData.title || 'Pekerjaan'} - Langkah ${nextNum}`,
+          NoKonfirmasi: baseKonf,
+          Status: 'Berjalan'
+        }
+      ];
+    });
+  };
+
+  const handleRemoveStep = (indexToRemove) => {
+    if (steps.length <= 1) return;
+    setSteps((prev) => {
+      const filtered = prev.filter((_, idx) => idx !== indexToRemove);
+      return filtered.map((st, idx) => ({
+        ...st,
+        Langkah: idx + 1
+      }));
+    });
+  };
+
+  const handleStepChange = (index, field, value) => {
+    setSteps((prev) =>
+      prev.map((st, idx) => {
+        if (idx === index) {
+          return { ...st, [field]: value };
+        }
+        return st;
+      })
+    );
   };
 
   const handleSubmit = (e) => {
@@ -44,14 +100,22 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
       return;
     }
 
-    onSubmit(formData);
+    if (steps.length === 0) {
+      setError('Minimal harus ada 1 langkah pengerjaan.');
+      return;
+    }
+
+    onSubmit({
+      ...formData,
+      steps: steps
+    });
   };
 
   const modalContent = (
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-card"
-        style={{ maxWidth: '640px', width: '90%' }}
+        style={{ maxWidth: '680px', width: '92%' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -67,7 +131,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
         {/* Form Body */}
         <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <div className="modal-body" style={{ maxHeight: '72vh', overflowY: 'auto' }}>
             {error && (
               <div className="alert-box alert-error mb-4">
                 <AlertCircle size={16} />
@@ -101,7 +165,10 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                   value={formData.orderDivision}
                   onChange={handleChange}
                 >
-                  <option value="PKW">PKW (Workshop Bengkel)</option>
+                  <option value="PKW">PKW (Wood Process.Ser)</option>
+                  <option value="PULP">PULP (Pulp Process)</option>
+                  <option value="SERVICE">SERVICE (Field Service)</option>
+                  <option value="WORKSHOP">WORKSHOP (Machining & Fab)</option>
                   <option value="MCH">MCH (Machining)</option>
                   <option value="WLD">WLD (Welding)</option>
                   <option value="ASY">ASY (Assembly)</option>
@@ -186,6 +253,93 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
               </div>
             </div>
 
+            {/* JUMLAH LANGKAH: FLEKSIBEL DENGAN TOMBOL '+' */}
+            <div className="mb-3 p-3 bg-slate-900/60 rounded-md border border-slate-700">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Layers size={16} className="text-cyan" />
+                  <label className="input-label font-bold text-xs text-white uppercase tracking-wider mb-0">
+                    Jumlah Langkah: <span className="text-cyan font-mono text-sm ml-1">{steps.length} Langkah</span>
+                  </label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-outline flex items-center justify-center p-1 text-xs"
+                    onClick={() => handleRemoveStep(steps.length - 1)}
+                    disabled={steps.length <= 1}
+                    title="Kurangi langkah terakhir (-)"
+                  >
+                    <Minus size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-primary flex items-center gap-1 font-bold text-xs px-2.5 py-1"
+                    onClick={handleAddStep}
+                    title="Tambah satu langkah (+)"
+                  >
+                    <Plus size={14} />
+                    <span>Tambah Langkah (+)</span>
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted mb-2.5">
+                Jumlah langkah fleksibel dapat ditambah satu per satu dengan tombol <strong>+</strong> sesuai alur pengerjaan bengkel.
+              </p>
+
+              <div className="space-y-2">
+                {steps.map((st, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 p-2 bg-slate-800/90 rounded border border-slate-700/80"
+                  >
+                    <span className="font-mono font-bold text-xs px-2 py-1 bg-cyan/20 text-cyan rounded border border-cyan/40 flex-shrink-0">
+                      Step {idx + 1}
+                    </span>
+
+                    <input
+                      type="text"
+                      className="modal-input text-xs flex-1"
+                      placeholder={`Nama Langkah ${idx + 1}`}
+                      value={st.NamaLangkah}
+                      onChange={(e) => handleStepChange(idx, 'NamaLangkah', e.target.value)}
+                      required
+                    />
+
+                    <input
+                      type="text"
+                      className="modal-input text-xs font-mono w-32 flex-shrink-0"
+                      placeholder="No. Konfirmasi"
+                      value={st.NoKonfirmasi}
+                      onChange={(e) => handleStepChange(idx, 'NoKonfirmasi', e.target.value)}
+                      title="Nomor Konfirmasi SAP"
+                    />
+
+                    <select
+                      className="modal-input text-xs w-28 font-semibold flex-shrink-0"
+                      value={st.Status}
+                      onChange={(e) => handleStepChange(idx, 'Status', e.target.value)}
+                    >
+                      <option value="Berjalan">Berjalan</option>
+                      <option value="Selesai">Selesai</option>
+                    </select>
+
+                    {steps.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-danger p-1 flex-shrink-0"
+                        onClick={() => handleRemoveStep(idx)}
+                        title="Hapus langkah ini"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
@@ -250,7 +404,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
               </label>
               <select
                 name="status"
-                className="modal-input"
+                className="modal-input font-bold"
                 value={formData.status}
                 onChange={handleChange}
               >
@@ -278,12 +432,12 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Mengirim ke Cloud...</span>
+                  <span>Menyimpan ke Cloud...</span>
                 </>
               ) : (
                 <>
                   <Plus size={16} />
-                  <span>Simpan ke SharePoint</span>
+                  <span>Simpan Order Baru</span>
                 </>
               )}
             </button>

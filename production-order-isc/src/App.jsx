@@ -402,8 +402,19 @@ export default function App() {
   const handleCreateOrder = async (orderData) => {
     setIsLoadingCloud(true);
     try {
-      await orderApiService.createOrders(orderData);
-      showToast(`Order #${orderData.orderNo} berhasil disimpan ke SharePoint Cloud!`, 'success');
+      const itemsToCreate = (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0)
+        ? orderData.steps.map((st, idx) => ({
+            ...orderData,
+            Langkah: idx + 1,
+            NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
+            NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
+            Status: st.Status || 'Berjalan',
+            status: st.Status === 'Selesai' ? 1 : 0
+          }))
+        : [orderData];
+
+      await orderApiService.createOrders(itemsToCreate);
+      showToast(`Order #${orderData.orderNo} (${itemsToCreate.length} langkah) berhasil disimpan ke SharePoint Cloud!`, 'success');
       await handleSyncCloud();
     } catch (err) {
       showToast(`Gagal membuat order: ${err.message}`, 'error');
@@ -417,8 +428,33 @@ export default function App() {
     try {
       await orderApiService.updateOrder(orderData);
       showToast(`Perubahan Order #${orderData.orderNo} berhasil diupdate ke SharePoint!`, 'success');
-      setOrders((prev) =>
-        prev.map((o) => {
+      setOrders((prev) => {
+        if (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0) {
+          const targetNo = String(orderData.orderNo || '').trim();
+          const otherOrders = prev.filter((o) => {
+            const oNo = String(o.NoProduksi || o.orderNo || '').trim();
+            const oId = o.id || o.ID;
+            return oNo !== targetNo && (!orderData.id || oId !== orderData.id);
+          });
+
+          const updatedSteps = orderData.steps.map((st, idx) => ({
+            id: st.id || (idx === 0 ? orderData.id : Date.now() + idx),
+            ID: st.id || (idx === 0 ? orderData.id : Date.now() + idx),
+            ...orderData,
+            NoProduksi: targetNo,
+            orderNo: targetNo,
+            title: orderData.title,
+            Langkah: idx + 1,
+            NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
+            NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
+            Status: st.Status || (orderData.status === 1 ? 'Selesai' : 'Berjalan'),
+            status: st.Status === 'Selesai' ? 1 : (orderData.status || 0)
+          }));
+
+          return [...otherOrders, ...updatedSteps];
+        }
+
+        return prev.map((o) => {
           if ((orderData.id && o.id === orderData.id) || o.NoProduksi === orderData.orderNo) {
             return {
               ...o,
@@ -427,8 +463,8 @@ export default function App() {
             };
           }
           return o;
-        })
-      );
+        });
+      });
     } catch (err) {
       showToast(`Gagal mengupdate order: ${err.message}`, 'error');
     } finally {
