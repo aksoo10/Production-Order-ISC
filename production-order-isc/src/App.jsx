@@ -10,11 +10,19 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { INITIAL_PERSONNEL, INITIAL_ORDERS, isDummyPersonnel } from './utils/initialData';
 import { exportToExcel, downloadTemplateExcel } from './utils/excelHelper';
 import { orderApiService } from './services/orderApiService';
+import {
+  setStorageItem,
+  getStorageItem,
+  removeStorageItem,
+  isStorageItemExpired,
+  purgeExpiredStorage,
+  STORAGE_EXPIRY_MS
+} from './utils/storageHelper';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import './index.css';
 
 export default function App() {
-  // Authentication & Session state
+  // Authentication & Session state (Expires after 1 minute)
   const [currentUserSession, setCurrentUserSession] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -27,18 +35,17 @@ export default function App() {
             username: 'Operator Bengkel',
             operator: null
           };
-          localStorage.setItem('isc_production_session', JSON.stringify(directSession));
+          setStorageItem('isc_production_session', directSession);
           return directSession;
         }
       }
 
-      const saved = localStorage.getItem('isc_production_session');
+      const saved = getStorageItem('isc_production_session');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.operator && isDummyPersonnel(parsed.operator)) {
-          parsed.operator = null;
+        if (saved?.operator && isDummyPersonnel(saved.operator)) {
+          saved.operator = null;
         }
-        return parsed;
+        return saved;
       }
       return null;
     } catch {
@@ -59,7 +66,7 @@ export default function App() {
           operator: null
         };
         setCurrentUserSession(directSession);
-        localStorage.setItem('isc_production_session', JSON.stringify(directSession));
+        setStorageItem('isc_production_session', directSession);
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
@@ -71,7 +78,8 @@ export default function App() {
     if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
       return true;
     }
-    return localStorage.getItem('isc_production_sidebar') === 'true';
+    const val = getStorageItem('isc_production_sidebar');
+    return val === true || val === 'true';
   });
 
   // Automatically collapse sidebar on window resize if split into 2 (width <= 1024px)
@@ -92,16 +100,13 @@ export default function App() {
     return arr.some((o) => dummyNos.includes(String(o.NoProduksi || o.orderNo || '').trim()));
   };
 
-  // Personnel state with localStorage persistence (Defaults to empty, excluding all dummy operators)
+  // Personnel state with 1-minute localStorage persistence
   const [personnel, setPersonnel] = useState(() => {
     try {
-      const saved = localStorage.getItem('isc_production_personnel');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleanPersonnel = parsed.filter((p) => !isDummyPersonnel(p));
-          if (cleanPersonnel.length > 0) return cleanPersonnel;
-        }
+      const saved = getStorageItem('isc_production_personnel');
+      if (saved && Array.isArray(saved) && saved.length > 0) {
+        const cleanPersonnel = saved.filter((p) => !isDummyPersonnel(p));
+        if (cleanPersonnel.length > 0) return cleanPersonnel;
       }
       return INITIAL_PERSONNEL.filter((p) => !isDummyPersonnel(p));
     } catch {
@@ -109,13 +114,12 @@ export default function App() {
     }
   });
 
-  // Orders state with localStorage persistence (Defaults to INITIAL_ORDERS)
+  // Orders state with 1-minute localStorage persistence
   const [orders, setOrders] = useState(() => {
     try {
-      const saved = localStorage.getItem('isc_production_orders');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && !isDummyOrders(parsed)) return parsed;
+      const saved = getStorageItem('isc_production_orders');
+      if (saved && Array.isArray(saved) && saved.length > 0 && !isDummyOrders(saved)) {
+        return saved;
       }
       return INITIAL_ORDERS;
     } catch {
@@ -123,14 +127,14 @@ export default function App() {
     }
   });
 
-  // Admin password with localStorage persistence (Default: 'isc-admin')
+  // Admin password with 1-minute localStorage persistence (Default: 'isc-admin')
   const [adminPassword, setAdminPassword] = useState(() => {
-    return localStorage.getItem('isc_production_admin_password') || 'isc-admin';
+    return getStorageItem('isc_production_admin_password') || 'isc-admin';
   });
 
-  // User password with localStorage persistence (Default: 'isc-operator')
+  // User password with 1-minute localStorage persistence (Default: 'isc-operator')
   const [userPassword, setUserPassword] = useState(() => {
-    return localStorage.getItem('isc_production_user_password') || 'isc-operator';
+    return getStorageItem('isc_production_user_password') || 'isc-operator';
   });
 
   // Mode: Admin vs User (Derived from current user session)
@@ -152,12 +156,12 @@ export default function App() {
 
   // Theme state ('light' by default for authentic ANDRITZ engineering standard)
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('isc_production_theme') || 'light';
+    return getStorageItem('isc_production_theme') || 'light';
   });
 
   // Display zoom level
   const [zoomLevel, setZoomLevel] = useState(() => {
-    const saved = localStorage.getItem('isc_production_zoom');
+    const saved = getStorageItem('isc_production_zoom');
     return saved ? parseInt(saved, 10) : 100;
   });
 
@@ -183,76 +187,86 @@ export default function App() {
 
   // Startup scrub: proactively purge any dummy personnel from localStorage and session
   useEffect(() => {
-    const savedP = localStorage.getItem('isc_production_personnel');
-    if (savedP) {
-      try {
-        const parsed = JSON.parse(savedP);
-        if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter((p) => !isDummyPersonnel(p));
-          if (cleaned.length !== parsed.length) {
-            localStorage.setItem('isc_production_personnel', JSON.stringify(cleaned));
-            setPersonnel(cleaned);
-          }
-        }
-      } catch {
-        localStorage.removeItem('isc_production_personnel');
+    const savedP = getStorageItem('isc_production_personnel');
+    if (savedP && Array.isArray(savedP)) {
+      const cleaned = savedP.filter((p) => !isDummyPersonnel(p));
+      if (cleaned.length !== savedP.length) {
+        setStorageItem('isc_production_personnel', cleaned);
+        setPersonnel(cleaned);
       }
     }
 
-    const savedSession = localStorage.getItem('isc_production_session');
-    if (savedSession) {
-      try {
-        const parsedSession = JSON.parse(savedSession);
-        if (parsedSession?.operator && isDummyPersonnel(parsedSession.operator)) {
-          parsedSession.operator = null;
-          localStorage.setItem('isc_production_session', JSON.stringify(parsedSession));
-          setCurrentUserSession(parsedSession);
-          setSelectedOperator(null);
-        }
-      } catch {
-        // ignore
-      }
+    const savedSession = getStorageItem('isc_production_session');
+    if (savedSession?.operator && isDummyPersonnel(savedSession.operator)) {
+      savedSession.operator = null;
+      setStorageItem('isc_production_session', savedSession);
+      setCurrentUserSession(savedSession);
+      setSelectedOperator(null);
     }
   }, []);
 
-  // Sync session to localStorage
+  // Sync session to localStorage with 1-minute expiry
   useEffect(() => {
     if (currentUserSession) {
-      localStorage.setItem('isc_production_session', JSON.stringify(currentUserSession));
+      setStorageItem('isc_production_session', currentUserSession);
     } else {
-      localStorage.removeItem('isc_production_session');
+      removeStorageItem('isc_production_session');
     }
   }, [currentUserSession]);
 
-  // Sync state to localStorage
+  // Sync state to localStorage with 1-minute expiry
   useEffect(() => {
-    localStorage.setItem('isc_production_personnel', JSON.stringify(personnel));
+    setStorageItem('isc_production_personnel', personnel);
   }, [personnel]);
 
   useEffect(() => {
-    localStorage.setItem('isc_production_orders', JSON.stringify(orders));
+    setStorageItem('isc_production_orders', orders);
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('isc_production_admin_password', adminPassword);
+    setStorageItem('isc_production_admin_password', adminPassword);
   }, [adminPassword]);
 
   useEffect(() => {
-    localStorage.setItem('isc_production_user_password', userPassword);
+    setStorageItem('isc_production_user_password', userPassword);
   }, [userPassword]);
 
   useEffect(() => {
-    localStorage.setItem('isc_production_zoom', String(zoomLevel));
+    setStorageItem('isc_production_zoom', String(zoomLevel));
   }, [zoomLevel]);
 
   useEffect(() => {
-    localStorage.setItem('isc_production_theme', theme);
+    setStorageItem('isc_production_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem('isc_production_sidebar', String(sidebarCollapsed));
+    setStorageItem('isc_production_sidebar', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
+
+  // 1-Minute LocalStorage Expiration Watcher:
+  // Automatically purges expired items and triggers fresh cloud re-sync
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      // 1. Session expiration check
+      if (currentUserSession && isStorageItemExpired('isc_production_session')) {
+        setCurrentUserSession(null);
+        removeStorageItem('isc_production_session');
+        showToast('Sesi penyimpanan lokal telah kedaluwarsa (1 menit). Silakan masuk kembali.', 'info');
+      }
+
+      // 2. Orders cache expiration check: automatically sync latest data from cloud
+      if (isStorageItemExpired('isc_production_orders')) {
+        console.log('[StorageTTL] Cache order di localStorage telah melewati 1 menit. Mengambil data terbaru dari SharePoint...');
+        handleSyncCloud(true);
+      }
+
+      // 3. Purge any other expired isc_ keys
+      purgeExpiredStorage();
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(checkInterval);
+  }, [currentUserSession]);
 
   // Extract unique ProductGroups
   const availableGroups = useMemo(() => {
@@ -287,7 +301,7 @@ export default function App() {
   // Logout handler
   const handleLogout = () => {
     setCurrentUserSession(null);
-    localStorage.removeItem('isc_production_session');
+    removeStorageItem('isc_production_session');
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', window.location.pathname);
     }
