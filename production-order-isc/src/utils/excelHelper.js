@@ -266,9 +266,9 @@ export function exportToExcel(orders, personnel) {
  */
 export function downloadTemplateExcel() {
   const samplePersonnel = [
-    { NoPersonal: "2324", Nama: "Dudi", ProductGroup: "PKW" },
-    { NoPersonal: "530617", Nama: "Renan Aldi", ProductGroup: "PKW" },
-    { NoPersonal: "109842", Nama: "Agus Pratama", ProductGroup: "PULP" }
+    { NoPersonal: "1001", Nama: "Operator 1", ProductGroup: "PKW" },
+    { NoPersonal: "1002", Nama: "Operator 2", ProductGroup: "PKW" },
+    { NoPersonal: "1003", Nama: "Operator 3", ProductGroup: "PULP" }
   ];
 
   const sampleOrders = [

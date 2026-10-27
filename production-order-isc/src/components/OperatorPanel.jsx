@@ -1,18 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { Search, UserCheck, Users, BadgeCheck, ShieldAlert, X } from 'lucide-react';
+import { isDummyPersonnel } from '../utils/initialData';
 import BarcodeCard from './BarcodeCard';
 
 export default function OperatorPanel({
-  personnel,
+  personnel = [],
   selectedOperator,
   onSelectOperator,
   selectedGroup
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Filter out any dummy operators
+  const cleanPersonnel = useMemo(() => {
+    return (personnel || []).filter((p) => !isDummyPersonnel(p));
+  }, [personnel]);
+
+  // Safeguard selectedOperator from showing dummy data
+  const activeOperator = selectedOperator && !isDummyPersonnel(selectedOperator) ? selectedOperator : null;
+
   // Filter personnel by search term and selectedGroup
   const filteredPersonnel = useMemo(() => {
-    return personnel.filter((person) => {
+    return cleanPersonnel.filter((person) => {
       // Group filter check
       const matchesGroup =
         selectedGroup === 'ALL' ||
@@ -28,7 +37,7 @@ export default function OperatorPanel({
 
       return matchName || matchNo;
     });
-  }, [personnel, searchTerm, selectedGroup]);
+  }, [cleanPersonnel, searchTerm, selectedGroup]);
 
   // Generate initials for avatar
   const getInitials = (name) => {
@@ -49,7 +58,7 @@ export default function OperatorPanel({
         </div>
         <span className="panel-count-badge">
           <Users size={13} />
-          {filteredPersonnel.length} Operator
+          {cleanPersonnel.length} Operator
         </span>
       </div>
 
@@ -75,20 +84,42 @@ export default function OperatorPanel({
         )}
       </div>
 
+      {/* Direct entry action if searching for an unregistered No. Personal */}
+      {searchTerm.trim() && (
+        <div className="px-3 pt-1 pb-2">
+          <button
+            type="button"
+            className="btn btn-outline-cyan btn-sm w-full flex items-center justify-center gap-1.5 text-xs"
+            onClick={() => {
+              const term = searchTerm.trim();
+              const customOp = {
+                NoPersonal: term,
+                Nama: isNaN(Number(term)) ? term : `Operator (${term})`,
+                ProductGroup: selectedGroup !== 'ALL' ? selectedGroup : 'PKW'
+              };
+              onSelectOperator(customOp);
+            }}
+          >
+            <UserCheck size={14} />
+            <span>Gunakan No. Personal "{searchTerm.trim()}"</span>
+          </button>
+        </div>
+      )}
+
       {/* Selected Operator Highlight & Barcode (High Priority for Scanner) */}
-      {selectedOperator ? (
+      {activeOperator ? (
         <div className="selected-operator-showcase">
           <div className="showcase-header">
             <div className="showcase-avatar">
-              {getInitials(selectedOperator.Nama)}
+              {getInitials(activeOperator.Nama)}
             </div>
             <div className="showcase-meta">
               <div className="showcase-name-row">
-                <h3 className="showcase-name">{selectedOperator.Nama}</h3>
-                <span className="group-tag">{selectedOperator.ProductGroup || 'UMUM'}</span>
+                <h3 className="showcase-name">{activeOperator.Nama}</h3>
+                <span className="group-tag">{activeOperator.ProductGroup || 'UMUM'}</span>
               </div>
               <div className="showcase-no font-mono">
-                No. Personal: <strong>{selectedOperator.NoPersonal}</strong>
+                No. Personal: <strong>{activeOperator.NoPersonal}</strong>
               </div>
             </div>
             <button
@@ -104,9 +135,9 @@ export default function OperatorPanel({
           {/* Barcode of NoPersonal */}
           <div className="showcase-barcode-section">
             <BarcodeCard
-              value={selectedOperator.NoPersonal}
+              value={activeOperator.NoPersonal}
               label="BARCODE NO. PERSONAL"
-              subtitle={`Operator: ${selectedOperator.Nama} (${selectedOperator.ProductGroup || '-'})`}
+              subtitle={`Operator: ${activeOperator.Nama} (${activeOperator.ProductGroup || '-'})`}
               badgeText="1. Scan No. Personal ke SAP"
               highlightColor="#00A3E0"
               height={64}
@@ -119,7 +150,7 @@ export default function OperatorPanel({
           <UserCheck size={32} className="text-cyan mb-2" />
           <div className="prompt-title">Pilih Operator di Bawah</div>
           <div className="prompt-subtitle">
-            Klik nama operator untuk menampilkan Barcode No. Personal yang akan di-scan ke SAP.
+            Ketik No. Personal pada pencarian di atas atau pilih operator untuk menampilkan Barcode yang akan di-scan ke SAP.
           </div>
         </div>
       )}
@@ -128,7 +159,15 @@ export default function OperatorPanel({
       <div className="operator-list-section">
         <div className="section-label">Daftar Operator Terdaftar:</div>
         <div className="operator-cards-scroll">
-          {filteredPersonnel.length === 0 ? (
+          {cleanPersonnel.length === 0 ? (
+            <div className="empty-state-small">
+              <UserCheck size={22} className="text-muted mb-1" />
+              <div className="font-semibold text-xs text-white mb-0.5">Belum Ada Operator Terdaftar</div>
+              <span className="text-muted text-xs">
+                Ketik No. Personal pada kolom pencarian di atas untuk membuat barcode langsung.
+              </span>
+            </div>
+          ) : filteredPersonnel.length === 0 ? (
             <div className="empty-state-small">
               <ShieldAlert size={20} className="text-warning mb-1" />
               <span>Tidak ada operator yang cocok dengan filter.</span>
@@ -136,7 +175,7 @@ export default function OperatorPanel({
           ) : (
             filteredPersonnel.map((op, idx) => {
               const isSelected =
-                selectedOperator && String(selectedOperator.NoPersonal) === String(op.NoPersonal);
+                activeOperator && String(activeOperator.NoPersonal) === String(op.NoPersonal);
 
               return (
                 <div

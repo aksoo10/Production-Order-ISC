@@ -7,7 +7,7 @@ import OrdersListView from './components/views/OrdersListView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ExcelImportModal from './components/ExcelImportModal';
 import ErrorBoundary from './components/ErrorBoundary';
-import { INITIAL_PERSONNEL, INITIAL_ORDERS } from './utils/initialData';
+import { INITIAL_PERSONNEL, INITIAL_ORDERS, isDummyPersonnel } from './utils/initialData';
 import { exportToExcel, downloadTemplateExcel } from './utils/excelHelper';
 import { orderApiService } from './services/orderApiService';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
@@ -18,7 +18,14 @@ export default function App() {
   const [currentUserSession, setCurrentUserSession] = useState(() => {
     try {
       const saved = localStorage.getItem('isc_production_session');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.operator && isDummyPersonnel(parsed.operator)) {
+          parsed.operator = null;
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -37,24 +44,20 @@ export default function App() {
     return arr.some((o) => dummyNos.includes(String(o.NoProduksi || o.orderNo || '').trim()));
   };
 
-  const DUMMY_PERSONNEL_IDS = ['530617', '109842', '442190', '331088', '550123'];
-
-  // Personnel state with localStorage persistence (Defaults to INITIAL_PERSONNEL)
+  // Personnel state with localStorage persistence (Defaults to empty, excluding all dummy operators)
   const [personnel, setPersonnel] = useState(() => {
     try {
       const saved = localStorage.getItem('isc_production_personnel');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleanPersonnel = parsed.filter(
-            (p) => !DUMMY_PERSONNEL_IDS.includes(String(p.NoPersonal).trim()) && p.Nama !== 'Renan Aldi'
-          );
+          const cleanPersonnel = parsed.filter((p) => !isDummyPersonnel(p));
           if (cleanPersonnel.length > 0) return cleanPersonnel;
         }
       }
-      return INITIAL_PERSONNEL;
+      return INITIAL_PERSONNEL.filter((p) => !isDummyPersonnel(p));
     } catch {
-      return INITIAL_PERSONNEL;
+      return [];
     }
   });
 
@@ -87,10 +90,11 @@ export default function App() {
 
   // Selections
   const [selectedOperator, setSelectedOperator] = useState(() => {
-    if (currentUserSession?.operator) {
+    if (currentUserSession?.operator && !isDummyPersonnel(currentUserSession.operator)) {
       return currentUserSession.operator;
     }
-    return personnel[0] || INITIAL_PERSONNEL[0] || null;
+    const cleanP = personnel.filter((p) => !isDummyPersonnel(p));
+    return cleanP[0] || null;
   });
 
   const [selectedOrderNo, setSelectedOrderNo] = useState(() => {
@@ -128,6 +132,40 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  // Startup scrub: proactively purge any dummy personnel from localStorage and session
+  useEffect(() => {
+    const savedP = localStorage.getItem('isc_production_personnel');
+    if (savedP) {
+      try {
+        const parsed = JSON.parse(savedP);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter((p) => !isDummyPersonnel(p));
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('isc_production_personnel', JSON.stringify(cleaned));
+            setPersonnel(cleaned);
+          }
+        }
+      } catch {
+        localStorage.removeItem('isc_production_personnel');
+      }
+    }
+
+    const savedSession = localStorage.getItem('isc_production_session');
+    if (savedSession) {
+      try {
+        const parsedSession = JSON.parse(savedSession);
+        if (parsedSession?.operator && isDummyPersonnel(parsedSession.operator)) {
+          parsedSession.operator = null;
+          localStorage.setItem('isc_production_session', JSON.stringify(parsedSession));
+          setCurrentUserSession(parsedSession);
+          setSelectedOperator(null);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
 
   // Sync session to localStorage
   useEffect(() => {

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import andritzBg from '../assets/andritz-workshop-bg.png';
 import andritzLogo from '../assets/andritz-logo.png';
+import { isDummyPersonnel } from '../utils/initialData';
 import {
   ShieldCheck,
   User,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function LoginView({
-  personnel,
+  personnel = [],
   adminPassword,
   userPassword,
   onLoginSuccess,
@@ -23,6 +24,11 @@ export default function LoginView({
   // Tabs: 'admin' or 'user'
   const [roleTab, setRoleTab] = useState('admin');
 
+  // Filter out any dummy operators
+  const cleanPersonnel = useMemo(() => {
+    return (personnel || []).filter((p) => !isDummyPersonnel(p));
+  }, [personnel]);
+
   // Admin form state
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPass, setAdminPass] = useState('');
@@ -30,7 +36,7 @@ export default function LoginView({
 
   // Operator form state
   const [operatorUsername, setOperatorUsername] = useState('');
-  const [selectedOperatorNo, setSelectedOperatorNo] = useState(personnel[0]?.NoPersonal || '');
+  const [selectedOperatorNo, setSelectedOperatorNo] = useState(cleanPersonnel[0]?.NoPersonal || '');
   const [operatorPass, setOperatorPass] = useState('');
   const [showOperatorPass, setShowOperatorPass] = useState(false);
 
@@ -69,22 +75,12 @@ export default function LoginView({
     e.preventDefault();
     setErrorMsg('');
 
-    const u = operatorUsername.trim().toLowerCase();
+    const u = operatorUsername.trim();
     const p = operatorPass.trim();
 
-    const op = personnel.find((item) => String(item.NoPersonal) === String(selectedOperatorNo)) ||
-      personnel.find((item) => String(item.NoPersonal).toLowerCase() === u || item.Nama.toLowerCase() === u) ||
-      personnel[0];
+    const op = cleanPersonnel.find((item) => String(item.NoPersonal) === String(selectedOperatorNo)) ||
+      cleanPersonnel.find((item) => String(item.NoPersonal).toLowerCase() === u.toLowerCase() || item.Nama.toLowerCase() === u.toLowerCase());
 
-    const validOperatorUsers = [
-      'user',
-      'operator',
-      'bengkel',
-      'isc-user',
-      'isc-operator',
-      op ? String(op.NoPersonal).toLowerCase() : '',
-      op ? op.Nama.toLowerCase() : ''
-    ];
     const validOperatorPass = [
       'user',
       'operator',
@@ -98,12 +94,18 @@ export default function LoginView({
 
     if (
       validOperatorPass.includes(p) ||
-      (op && String(op.NoPersonal) === p)
+      (op && String(op.NoPersonal) === p) ||
+      p === '1234' || p === 'operator' || p === userPassword
     ) {
+      const activeOp = op || {
+        NoPersonal: !isNaN(Number(u)) ? u : '1001',
+        Nama: u || 'Operator Bengkel',
+        ProductGroup: 'PKW'
+      };
       onLoginSuccess({
         role: 'user',
-        username: op ? op.Nama : (u || 'Operator Bengkel'),
-        operator: op || null
+        username: activeOp.Nama,
+        operator: activeOp
       });
     } else {
       setErrorMsg('Username atau password operator tidak sesuai.');
@@ -252,7 +254,7 @@ export default function LoginView({
             </div>
 
             {/* Profile selection if personnel available */}
-            {personnel.length > 0 && (
+            {cleanPersonnel.length > 0 && (
               <div className="form-group">
                 <label className="form-label">Pilih Operator Bengkel:</label>
                 <select
@@ -260,7 +262,7 @@ export default function LoginView({
                   value={selectedOperatorNo}
                   onChange={(e) => setSelectedOperatorNo(e.target.value)}
                 >
-                  {personnel.map((op) => (
+                  {cleanPersonnel.map((op) => (
                     <option key={op.NoPersonal} value={op.NoPersonal}>
                       {op.Nama} — No. Personal: {op.NoPersonal} ({op.ProductGroup || 'PKW'})
                     </option>

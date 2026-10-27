@@ -83,7 +83,7 @@ export default function HelpModal({ isOpen, onClose }) {
                   <li><strong>Format kolom nomor:</strong> Wajib diformat sebagai <strong className="text-white">Text</strong> di Excel supaya angka nol di depan (seperti 00123) tidak hilang.</li>
                   <li><strong>Sheet Personel:</strong> Buat sheet bernama persis <code className="font-mono">Personel</code> dengan kolom:
                     <div className="code-snippet font-mono">NoPersonal, Nama, ProductGroup</div>
-                    <em>Contoh: Dudi (2324, PKW), Renan Aldi (530617, PKW).</em>
+                    <em>Contoh: NoPersonal (1001, PKW), NoPersonal (1002, PULP).</em>
                   </li>
                   <li><strong>Perhatian:</strong> Huruf besar-kecil dan ejaan nama sheet dan kolom harus sama persis, jika tidak impor akan otomatis ditolak sistem.</li>
                 </ul>
