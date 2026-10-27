@@ -301,6 +301,11 @@ export default function OrderPanel({
                               <CheckCircle2 size={12} />
                               Selesai
                             </span>
+                          ) : String(st.Status).toLowerCase() === 'not started' ? (
+                            <span className="status-badge status-pending">
+                              <Clock size={12} />
+                              Not Started
+                            </span>
                           ) : isActive ? (
                             <span className="status-badge status-berjalan active">
                               <span className="pulse-dot-small"></span>

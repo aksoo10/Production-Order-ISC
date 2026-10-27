@@ -345,10 +345,11 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                     />
 
                     <select
-                      className="modal-input text-xs w-28 font-semibold flex-shrink-0"
+                      className="modal-input text-xs w-32 font-semibold flex-shrink-0"
                       value={st.Status}
                       onChange={(e) => handleStepChange(idx, 'Status', e.target.value)}
                     >
+                      <option value="Not Started">Not Started</option>
                       <option value="Berjalan">Berjalan</option>
                       <option value="Selesai">Selesai</option>
                     </select>

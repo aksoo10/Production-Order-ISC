@@ -289,6 +289,11 @@ export default function OrdersListView({
                               <CheckCircle2 size={13} />
                               Selesai
                             </span>
+                          ) : ord.steps.length > 0 && ord.steps.every((s) => String(s.Status).toLowerCase() === 'not started') ? (
+                            <span className="status-badge status-pending">
+                              <Clock size={13} />
+                              Not Started
+                            </span>
                           ) : (
                             <span className="status-badge status-berjalan active">
                               <Clock size={13} />
@@ -365,6 +370,7 @@ export default function OrdersListView({
                                 <tbody>
                                   {ord.steps.map((st) => {
                                     const isDone = String(st.Status).toLowerCase() === 'selesai';
+                                    const isNotStarted = String(st.Status).toLowerCase() === 'not started';
                                     const isActive =
                                       ord.activeStep && Number(ord.activeStep.Langkah) === Number(st.Langkah);
 
@@ -376,6 +382,8 @@ export default function OrdersListView({
                                         <td>
                                           {isDone ? (
                                             <span className="status-badge status-selesai">Selesai</span>
+                                          ) : isNotStarted ? (
+                                            <span className="status-badge status-pending">Not Started</span>
                                           ) : isActive ? (
                                             <span className="status-badge status-berjalan active">Langkah Aktif</span>
                                           ) : (
