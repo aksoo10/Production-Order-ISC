@@ -7,7 +7,13 @@ import OrdersListView from './components/views/OrdersListView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ExcelImportModal from './components/ExcelImportModal';
 import ErrorBoundary from './components/ErrorBoundary';
-import { INITIAL_PERSONNEL, INITIAL_ORDERS, isDummyPersonnel } from './utils/initialData';
+import {
+  INITIAL_PERSONNEL,
+  INITIAL_ORDERS,
+  isDummyPersonnel,
+  DEFAULT_DELETED_ORDERS,
+  DEFAULT_ORDER_STEPS
+} from './utils/initialData';
 import { exportToExcel, downloadTemplateExcel } from './utils/excelHelper';
 import { orderApiService } from './services/orderApiService';
 import {
@@ -120,16 +126,20 @@ export default function App() {
   const [orders, setOrders] = useState(() => {
     try {
       const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
-      const deletedSet = new Set((deletedList || []).map((s) => String(s).trim()));
-      // Explicitly ensure the deleted order S-10-P84786-643 is in the blacklist
-      deletedSet.add('S-10-P84786-643');
+      const deletedSet = new Set([
+        ...DEFAULT_DELETED_ORDERS,
+        ...(deletedList || []).map((s) => String(s).trim())
+      ]);
       setStorageItem('isc_production_deleted_orders', Array.from(deletedSet));
 
-      const registry = getStorageItem('isc_production_order_steps', {}) || {};
-      if (registry['S-10-P84786-643']) {
-        delete registry['S-10-P84786-643'];
-        setStorageItem('isc_production_order_steps', registry);
-      }
+      const savedRegistry = getStorageItem('isc_production_order_steps', {}) || {};
+      const registry = { ...DEFAULT_ORDER_STEPS, ...savedRegistry };
+      DEFAULT_DELETED_ORDERS.forEach((delNo) => {
+        if (registry[delNo]) {
+          delete registry[delNo];
+        }
+      });
+      setStorageItem('isc_production_order_steps', registry);
 
       const saved = getStorageItem('isc_production_orders');
       const rawBase = (saved && Array.isArray(saved) && saved.length > 0 && !isDummyOrders(saved))
@@ -188,7 +198,7 @@ export default function App() {
       setStorageItem('isc_production_orders', finalOrders);
       return finalOrders;
     } catch {
-      return INITIAL_ORDERS.filter((o) => String(o.NoProduksi || o.orderNo || '').trim() !== 'S-10-P84786-643');
+      return INITIAL_ORDERS.filter((o) => !DEFAULT_DELETED_ORDERS.includes(String(o.NoProduksi || o.orderNo || '').trim()));
     }
   });
 
@@ -371,7 +381,8 @@ export default function App() {
 
   // Helper to read and save persistent custom order steps registry
   const getCustomStepsRegistry = () => {
-    return getStorageItem('isc_production_order_steps', {}) || {};
+    const saved = getStorageItem('isc_production_order_steps', {}) || {};
+    return { ...DEFAULT_ORDER_STEPS, ...saved };
   };
 
   const saveCustomStepsRegistry = (registry) => {
@@ -512,8 +523,10 @@ export default function App() {
       const res = await orderApiService.getAllOrders();
       if (res && res.success && Array.isArray(res.data)) {
         const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
-        const deletedSet = new Set((deletedList || []).map((s) => String(s).trim()));
-        deletedSet.add('S-10-P84786-643');
+        const deletedSet = new Set([
+          ...DEFAULT_DELETED_ORDERS,
+          ...(deletedList || []).map((s) => String(s).trim())
+        ]);
 
         const validOrders = res.data.filter(
           (o) => o && o.NoProduksi && o.NoProduksi !== '-' && (o.customers || o.title || o.materialDescription) && !deletedSet.has(String(o.NoProduksi || o.orderNo || '').trim())

@@ -133,38 +133,99 @@ try {
 
             $rawItems = $res['json']['data'] ?? [];
             $mappedOrders = [];
+            $deletedOrders = ['S-10-P84786-643', '102910210'];
+            $multiStepConfig = [
+                '4800115516' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'SPARE PART - BEDKNIFE', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'SPARE PART - BEDKNIFE - Langkah 2', 'Status' => 'Berjalan', 'status' => 0]
+                ],
+                '53072677' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO', 'Status' => 'Selesai', 'status' => 1],
+                    ['Langkah' => 2, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', 'Status' => 'Berjalan', 'status' => 0]
+                ],
+                '53028923' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board', 'Status' => 'Selesai', 'status' => 1],
+                    ['Langkah' => 2, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board - Langkah 2', 'Status' => 'Berjalan', 'status' => 0]
+                ],
+                'S-10-P82990-643' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'WEAR PLATE', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'WEAR PLATE - Langkah 2', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 3, 'NamaLangkah' => 'WEAR PLATE - Langkah 3', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 4, 'NamaLangkah' => 'WEAR PLATE - Langkah 4', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 5, 'NamaLangkah' => 'WEAR PLATE - Langkah 5', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 6, 'NamaLangkah' => 'WEAR PLATE - Langkah 6', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 7, 'NamaLangkah' => 'WEAR PLATE - Langkah 7', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 8, 'NamaLangkah' => 'WEAR PLATE - Langkah 8', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 9, 'NamaLangkah' => 'WEAR PLATE - Langkah 9', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 10, 'NamaLangkah' => 'WEAR PLATE - Langkah 10', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 11, 'NamaLangkah' => 'WEAR PLATE - Langkah 11', 'Status' => 'Berjalan', 'status' => 0]
+                ],
+                'S-10-P94014-643' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'BED KNIFE EWR', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'ANVIL BRUCKS CS2000', 'Status' => 'Berjalan', 'status' => 0]
+                ]
+            ];
+            $seenMulti = [];
 
             foreach ($rawItems as $sp) {
-                $statusNum = isset($sp['field_12']) ? (int)$sp['field_12'] : 0;
+                $rawProdOrder = trim((string)($sp['field_4'] ?? ''));
+                $rawTitle = trim((string)($sp['Title'] ?? ''));
+                $orderNo = !empty($rawProdOrder) && $rawProdOrder !== '-' ? $rawProdOrder : (!empty($rawTitle) && $rawTitle !== '-' ? $rawTitle : ('ORD-' . ($sp['ID'] ?? '0')));
+                $idVal = (int)($sp['ID'] ?? 0);
+
+                if (in_array($orderNo, $deletedOrders, true) || in_array($rawProdOrder, $deletedOrders, true) || in_array($rawTitle, $deletedOrders, true) || $idVal === 99 || $rawTitle === 'jkjsasa') {
+                    continue;
+                }
+
+                $isOrder53072678 = ($orderNo === '53072678');
+                $statusNum = ($isOrder53072678 || (isset($sp['field_12']) && (int)$sp['field_12'] === 1)) ? 1 : 0;
                 $statusText = ($statusNum === 1) ? 'Selesai' : 'Berjalan';
 
-                $mappedOrders[] = [
-                    'id'                  => (int)($sp['ID'] ?? 0),
-                    'ID'                  => (int)($sp['ID'] ?? 0),
-                    'orderNo'             => (string)($sp['field_4'] ?? $sp['Title'] ?? ''),
-                    'NoProduksi'          => (string)($sp['field_4'] ?? $sp['Title'] ?? ''),
-                    'title'               => (string)($sp['Title'] ?? ''),
-                    'NamaLangkah'         => (string)($sp['Title'] ?? 'Proses Produksi'),
-                    'customers'           => (string)($sp['field_1'] ?? ''),
-                    'soDocument'          => (string)($sp['field_2'] ?? ''),
-                    'wbsProdNo'           => (string)($sp['field_3'] ?? ''),
-                    'prodOrderNo'         => (string)($sp['field_4'] ?? ''),
-                    'orderDivision'       => (string)($sp['field_5'] ?? 'PKW'),
-                    'ProductGroup'        => (string)($sp['field_5'] ?? 'PKW'),
-                    'shortDescSO'         => (string)($sp['field_6'] ?? ''),
-                    'materialNo'          => (string)($sp['field_7'] ?? ''),
-                    'materialDescription' => (string)($sp['field_8'] ?? ''),
+                $baseItem = [
+                    'id'                  => $idVal,
+                    'ID'                  => $idVal,
+                    'orderNo'             => $orderNo,
+                    'NoProduksi'          => $orderNo,
+                    'title'               => !empty($sp['Title']) ? (string)$sp['Title'] : 'Proses Produksi',
+                    'NamaLangkah'         => !empty($sp['Title']) ? (string)$sp['Title'] : 'Proses Produksi',
+                    'customers'           => (string)($sp['field_1'] ?? 'ANDRITZ ISC Internal'),
+                    'soDocument'          => (string)($sp['field_2'] ?? '-'),
+                    'wbsProdNo'           => (string)($sp['field_3'] ?? '-'),
+                    'prodOrderNo'         => !empty($rawProdOrder) ? $rawProdOrder : '-',
+                    'orderDivision'       => (string)($sp['field_5'] ?? 'PKW Wood Process.Ser'),
+                    'ProductGroup'        => !empty($sp['field_5']) ? strtoupper(explode(' ', trim($sp['field_5']))[0]) : 'PKW',
+                    'shortDescSO'         => (string)($sp['field_6'] ?? '-'),
+                    'materialNo'          => (string)($sp['field_7'] ?? '-'),
+                    'materialDescription' => (string)($sp['field_8'] ?? ($sp['Title'] ?? '-')),
                     'qtyOrder'            => isset($sp['field_9']) ? (float)$sp['field_9'] : 1.0,
-                    'planStart'           => (string)($sp['field_10'] ?? ''),
-                    'planFinish'          => (string)($sp['field_11'] ?? ''),
+                    'planStart'           => !empty($sp['field_10']) ? explode('T', (string)$sp['field_10'])[0] : '2026-10-26',
+                    'planFinish'          => !empty($sp['field_11']) ? explode('T', (string)$sp['field_11'])[0] : '2026-11-15',
                     'status'              => $statusNum,
                     'Status'              => $statusText,
-                    'Langkah'             => 1, // Default baseline step for scanner
-                    'NoKonfirmasi'        => !empty($sp['field_4']) ? ('1000' . substr((string)$sp['field_4'], -4)) : ('1000' . ($sp['ID'] ?? '1')),
+                    'Langkah'             => 1,
+                    'NoKonfirmasi'        => !empty($rawProdOrder) ? ('1000' . substr($rawProdOrder, -4)) : ('1000' . ($sp['ID'] ?? '1')),
                     'Created'             => (string)($sp['Created'] ?? ''),
                     'Modified'            => (string)($sp['Modified'] ?? ''),
                     'Author'              => $sp['Author']['DisplayName'] ?? ''
                 ];
+
+                if (isset($multiStepConfig[$orderNo])) {
+                    if (isset($seenMulti[$orderNo])) continue;
+                    $seenMulti[$orderNo] = true;
+                    $steps = $multiStepConfig[$orderNo];
+                    foreach ($steps as $idx => $st) {
+                        $stepItem = $baseItem;
+                        $stepItem['id'] = ($idx === 0) ? $baseItem['id'] : ($baseItem['id'] * 1000 + $idx);
+                        $stepItem['ID'] = ($idx === 0) ? $baseItem['ID'] : ($baseItem['ID'] * 1000 + $idx);
+                        $stepItem['Langkah'] = $st['Langkah'] ?? ($idx + 1);
+                        $stepItem['NamaLangkah'] = $st['NamaLangkah'] ?? ($baseItem['title'] . ' - Langkah ' . ($idx + 1));
+                        $stepItem['Status'] = $st['Status'] ?? 'Berjalan';
+                        $stepItem['status'] = isset($st['status']) ? $st['status'] : ($st['Status'] === 'Selesai' ? 1 : 0);
+                        $mappedOrders[] = $stepItem;
+                    }
+                } else {
+                    $mappedOrders[] = $baseItem;
+                }
             }
 
             echo json_encode([
