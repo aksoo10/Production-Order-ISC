@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   CheckCircle2,
@@ -99,6 +99,27 @@ export default function OrderPanel({
     return ordersGrouped.find((o) => o.NoProduksi === selectedOrderNo) || null;
   }, [ordersGrouped, selectedOrderNo]);
 
+  // Operator-selected step state (defaults to null to auto-follow activeStep)
+  const [selectedStepNum, setSelectedStepNum] = useState(null);
+
+  // Reset selected step when selectedOrderNo changes
+  useEffect(() => {
+    setSelectedStepNum(null);
+  }, [selectedOrderNo]);
+
+  // Determine step to display in Spotlight card and dropdown
+  const displayStep = useMemo(() => {
+    if (!currentOrder) return null;
+    if (selectedStepNum !== null) {
+      const found = currentOrder.steps.find((s) => Number(s.Langkah) === Number(selectedStepNum));
+      if (found) return found;
+    }
+    if (currentOrder.isComplete) {
+      return null;
+    }
+    return currentOrder.activeStep || currentOrder.steps[0] || null;
+  }, [currentOrder, selectedStepNum]);
+
   return (
     <div className="panel-container order-panel">
       {/* Panel Header */}
@@ -162,19 +183,52 @@ export default function OrderPanel({
             </div>
 
             <div className="ribbon-right">
-              <div className="progress-stat-block">
-                <span className="progress-text font-mono">
-                  {currentOrder.completedSteps} dari {currentOrder.totalSteps} Langkah Selesai
-                </span>
-                <div className="progress-bar-track">
-                  <div
-                    className="progress-bar-fill"
-                    style={{
-                      width: `${(currentOrder.completedSteps / Math.max(1, currentOrder.totalSteps)) * 100}%`
-                    }}
-                  ></div>
+              {!isAdmin ? (
+                <div className="operator-step-select-wrapper flex items-center gap-2">
+                  <span className="text-xs font-mono text-muted font-semibold whitespace-nowrap">
+                    {currentOrder.completedSteps} dari {currentOrder.totalSteps} Selesai:
+                  </span>
+                  <select
+                    className="order-quick-dropdown font-mono"
+                    value={displayStep?.Langkah || ''}
+                    onChange={(e) => setSelectedStepNum(Number(e.target.value))}
+                    title="Pilih Langkah Kerja"
+                    style={{ minWidth: '220px', height: '36px', fontSize: '0.8rem', padding: '0 8px' }}
+                  >
+                    {currentOrder.steps.map((st) => {
+                      const isStepComplete = String(st.Status).toLowerCase() === 'selesai';
+                      const isActive =
+                        currentOrder.activeStep &&
+                        Number(currentOrder.activeStep.Langkah) === Number(st.Langkah);
+                      const statusTag = isStepComplete
+                        ? 'Selesai'
+                        : isActive
+                        ? 'Langkah Aktif'
+                        : 'Menunggu';
+
+                      return (
+                        <option key={st.Langkah} value={st.Langkah}>
+                          Langkah {st.Langkah}: {st.NamaLangkah} ({statusTag})
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
-              </div>
+              ) : (
+                <div className="progress-stat-block">
+                  <span className="progress-text font-mono">
+                    {currentOrder.completedSteps} dari {currentOrder.totalSteps} Langkah Selesai
+                  </span>
+                  <div className="progress-bar-track">
+                    <div
+                      className="progress-bar-fill"
+                      style={{
+                        width: `${(currentOrder.completedSteps / Math.max(1, currentOrder.totalSteps)) * 100}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
 
               {currentOrder.isComplete && (
                 <div className="completed-badge-pill">
@@ -185,16 +239,22 @@ export default function OrderPanel({
             </div>
           </div>
 
-          {/* ACTIVE STEP SPOTLIGHT (The Core Requirement for the Workshop Screen) */}
-          {currentOrder.activeStep ? (
+          {/* ACTIVE / SELECTED STEP SPOTLIGHT (The Core Requirement for the Workshop Screen) */}
+          {displayStep ? (
             <div className="active-step-spotlight-card">
               <div className="spotlight-top-badge">
                 <div className="flex items-center gap-2">
                   <span className="active-pulse-dot"></span>
-                  <span className="font-heading font-bold text-cyan tracking-wider">LANGKAH AKTIF SAAT INI</span>
+                  <span className="font-heading font-bold text-cyan tracking-wider">
+                    {currentOrder.activeStep && Number(currentOrder.activeStep.Langkah) === Number(displayStep.Langkah)
+                      ? 'LANGKAH AKTIF SAAT INI'
+                      : String(displayStep.Status).toLowerCase() === 'selesai'
+                      ? 'LANGKAH TELAH SELESAI'
+                      : `LANGKAH KE-${displayStep.Langkah}`}
+                  </span>
                 </div>
                 <span className="step-seq-pill">
-                  Langkah ke-{currentOrder.activeStep.Langkah} dari {currentOrder.totalSteps}
+                  Langkah ke-{displayStep.Langkah} dari {currentOrder.totalSteps}
                 </span>
               </div>
 
@@ -203,13 +263,13 @@ export default function OrderPanel({
                 <div className="spotlight-header-meta">
                   <div className="step-name-box">
                     <span className="text-muted text-xs tracking-wider uppercase font-semibold">Nama Langkah:</span>
-                    <h4 className="active-step-title">{currentOrder.activeStep.NamaLangkah}</h4>
+                    <h4 className="active-step-title">{displayStep.NamaLangkah}</h4>
                   </div>
 
                   <div className="konfirmasi-meta-box">
                     <span className="text-muted text-xs tracking-wider uppercase font-semibold">No. Konfirmasi SAP:</span>
                     <div className="konfirmasi-display font-mono">
-                      <span>{currentOrder.activeStep.NoKonfirmasi || currentOrder.NoProduksi}</span>
+                      <span>{displayStep.NoKonfirmasi || currentOrder.NoProduksi}</span>
                     </div>
                   </div>
                 </div>
@@ -217,9 +277,9 @@ export default function OrderPanel({
                 {/* Always Prominently Displayed Barcode for Scanning into SAP (Admin & Operator) */}
                 <div className="spotlight-barcode-wrapper">
                   <BarcodeCard
-                    value={currentOrder.activeStep.NoKonfirmasi || currentOrder.NoProduksi}
+                    value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
                     label="BARCODE NO. KONFIRMASI"
-                    subtitle={`Langkah ${currentOrder.activeStep.Langkah}: ${currentOrder.activeStep.NamaLangkah}`}
+                    subtitle={`Langkah ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
                     badgeText="2. Scan No. Konfirmasi ke SAP"
                     highlightColor="#00A3E0"
                     height={80}
@@ -239,123 +299,125 @@ export default function OrderPanel({
             </div>
           )}
 
-          {/* ALL STEPS SEQUENCE TABLE */}
-          <div className="steps-sequence-section">
-            <div className="steps-section-header">
-              <h4 className="steps-section-title font-heading">
-                Rangkaian Seluruh Langkah ({currentOrder.steps.length} Langkah):
-              </h4>
-              <span className="text-xs text-muted">
-                Daftar langkah kerja dan verifikasi nomor konfirmasi SAP
-              </span>
-            </div>
+          {/* ALL STEPS SEQUENCE TABLE (Only shown for Admin, hidden for Operator) */}
+          {isAdmin && (
+            <div className="steps-sequence-section">
+              <div className="steps-section-header">
+                <h4 className="steps-section-title font-heading">
+                  Rangkaian Seluruh Langkah ({currentOrder.steps.length} Langkah):
+                </h4>
+                <span className="text-xs text-muted">
+                  Daftar langkah kerja dan verifikasi nomor konfirmasi SAP
+                </span>
+              </div>
 
-            <div className="steps-table-container">
-              <table className="steps-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '80px' }}>Langkah</th>
-                    <th>Nama Langkah</th>
-                    <th style={{ width: '180px' }}>No. Konfirmasi</th>
-                    <th style={{ width: '150px' }}>Status</th>
-                    {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentOrder.steps.map((st) => {
-                    const isStepComplete = String(st.Status).toLowerCase() === 'selesai';
-                    const isActive =
-                      currentOrder.activeStep &&
-                      Number(currentOrder.activeStep.Langkah) === Number(st.Langkah);
+              <div className="steps-table-container">
+                <table className="steps-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '80px' }}>Langkah</th>
+                      <th>Nama Langkah</th>
+                      <th style={{ width: '180px' }}>No. Konfirmasi</th>
+                      <th style={{ width: '150px' }}>Status</th>
+                      {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentOrder.steps.map((st) => {
+                      const isStepComplete = String(st.Status).toLowerCase() === 'selesai';
+                      const isActive =
+                        currentOrder.activeStep &&
+                        Number(currentOrder.activeStep.Langkah) === Number(st.Langkah);
 
-                    return (
-                      <tr
-                        key={st.Langkah}
-                        className={`step-row ${isActive ? 'row-active' : ''} ${isStepComplete ? 'row-completed' : ''}`}
-                      >
-                        {/* Step Number */}
-                        <td className="step-num-cell">
-                          <span className={`step-badge-number ${isActive ? 'active' : ''} ${isStepComplete ? 'done' : ''}`}>
-                            {isStepComplete ? <CheckCircle2 size={13} /> : st.Langkah}
-                          </span>
-                        </td>
-
-                        {/* Step Name */}
-                        <td className="step-name-cell">
-                          <div className="step-name-text">{st.NamaLangkah}</div>
-                          {isActive && (
-                            <span className="active-tag-inline">
-                              <span className="active-pulse-mini"></span> Langkah Aktif
+                      return (
+                        <tr
+                          key={st.Langkah}
+                          className={`step-row ${isActive ? 'row-active' : ''} ${isStepComplete ? 'row-completed' : ''}`}
+                        >
+                          {/* Step Number */}
+                          <td className="step-num-cell">
+                            <span className={`step-badge-number ${isActive ? 'active' : ''} ${isStepComplete ? 'done' : ''}`}>
+                              {isStepComplete ? <CheckCircle2 size={13} /> : st.Langkah}
                             </span>
-                          )}
-                        </td>
+                          </td>
 
-                        {/* No Konfirmasi */}
-                        <td className="step-konf-cell font-mono">
-                          <span className="konf-number">{st.NoKonfirmasi}</span>
-                        </td>
-
-                        {/* Status Badge */}
-                        <td className="step-status-cell">
-                          {isStepComplete ? (
-                            <span className="status-badge status-selesai">
-                              <CheckCircle2 size={12} />
-                              Selesai
-                            </span>
-                          ) : String(st.Status).toLowerCase() === 'not started' ? (
-                            <span className="status-badge status-pending">
-                              <Clock size={12} />
-                              Not Started
-                            </span>
-                          ) : isActive ? (
-                            <span className="status-badge status-berjalan active">
-                              <span className="pulse-dot-small"></span>
-                              Langkah Aktif
-                            </span>
-                          ) : (
-                            <span className="status-badge status-pending">
-                              <Clock size={12} />
-                              Menunggu
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Action Column (Only shown for Admin, hidden for Operator) */}
-                        {isAdmin && (
-                          <td className="step-action-cell" style={{ textAlign: 'center' }}>
-                            {!isStepComplete ? (
-                              <button
-                                type="button"
-                                className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'} flex items-center justify-center gap-1 mx-auto`}
-                                onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
-                                title={`Tandai Langkah ${st.Langkah} Selesai`}
-                              >
-                                <CheckCircle2 size={12} />
-                                <span>Selesai</span>
-                              </button>
-                            ) : (
-                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                <span className="text-xs text-muted font-mono">Terverifikasi</span>
-                                <button
-                                  type="button"
-                                  className="btn btn-xs btn-outline-warning flex items-center gap-1"
-                                  onClick={() => onRevertStep && onRevertStep(currentOrder.NoProduksi, st.Langkah, st.id || st.ID)}
-                                  title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
-                                >
-                                  <RotateCcw size={11} />
-                                  <span>Belum Selesai</span>
-                                </button>
-                              </div>
+                          {/* Step Name */}
+                          <td className="step-name-cell">
+                            <div className="step-name-text">{st.NamaLangkah}</div>
+                            {isActive && (
+                              <span className="active-tag-inline">
+                                <span className="active-pulse-mini"></span> Langkah Aktif
+                              </span>
                             )}
                           </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+
+                          {/* No Konfirmasi */}
+                          <td className="step-konf-cell font-mono">
+                            <span className="konf-number">{st.NoKonfirmasi}</span>
+                          </td>
+
+                          {/* Status Badge */}
+                          <td className="step-status-cell">
+                            {isStepComplete ? (
+                              <span className="status-badge status-selesai">
+                                <CheckCircle2 size={12} />
+                                Selesai
+                              </span>
+                            ) : String(st.Status).toLowerCase() === 'not started' ? (
+                              <span className="status-badge status-pending">
+                                <Clock size={12} />
+                                Not Started
+                              </span>
+                            ) : isActive ? (
+                              <span className="status-badge status-berjalan active">
+                                <span className="pulse-dot-small"></span>
+                                Langkah Aktif
+                              </span>
+                            ) : (
+                              <span className="status-badge status-pending">
+                                <Clock size={12} />
+                                Menunggu
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Action Column (Only shown for Admin, hidden for Operator) */}
+                          {isAdmin && (
+                            <td className="step-action-cell" style={{ textAlign: 'center' }}>
+                              {!isStepComplete ? (
+                                <button
+                                  type="button"
+                                  className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'} flex items-center justify-center gap-1 mx-auto`}
+                                  onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
+                                  title={`Tandai Langkah ${st.Langkah} Selesai`}
+                                >
+                                  <CheckCircle2 size={12} />
+                                  <span>Selesai</span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                  <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs btn-outline-warning flex items-center gap-1"
+                                    onClick={() => onRevertStep && onRevertStep(currentOrder.NoProduksi, st.Langkah, st.id || st.ID)}
+                                    title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                                  >
+                                    <RotateCcw size={11} />
+                                    <span>Belum Selesai</span>
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       ) : (
         /* Empty / Select Prompt */
