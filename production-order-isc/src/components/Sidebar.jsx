@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Scan,
   Layers,
-  Upload,
   Download,
   LogOut,
   ChevronLeft,
@@ -123,16 +122,6 @@ export default function Sidebar({
                 </div>
               )}
               <div className="sidebar-admin-actions">
-                <button
-                  type="button"
-                  className="sidebar-action-btn"
-                  onClick={onOpenImport}
-                  title="Impor order dari file Excel"
-                >
-                  <Upload size={16} />
-                  {!collapsed && <span>Impor Order (Excel)</span>}
-                </button>
-
                 <button
                   type="button"
                   className="sidebar-action-btn"
