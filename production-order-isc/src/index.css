@@ -2355,41 +2355,149 @@ select.modal-input option {
 
 /* Import Modal */
 .import-modal {
-  max-width: 620px;
+  max-width: 720px;
 }
 
-.import-spec-card {
-  background-color: var(--atz-cyan-light);
-  border: 1px solid var(--atz-cyan-border);
-  border-radius: var(--radius-xs);
+.import-format-guide {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-left: 4px solid var(--atz-cyan);
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-[data-theme="dark"] .import-spec-card {
-  background-color: rgba(0, 163, 224, 0.12);
+  gap: 10px;
 }
 
-.spec-card-title {
+.guide-header-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.guide-rule-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: var(--atz-cyan-light);
+  color: var(--atz-cyan-dark);
+}
+[data-theme="dark"] .guide-rule-badge {
+  background-color: rgba(0, 163, 224, 0.2);
+  color: #38BDF8;
+}
+
+.guide-rules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .guide-rules-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.guide-rule-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guide-rule-card strong {
+  font-size: 0.8rem;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
+}
+
+.guide-rule-card p {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.guide-rule-card code {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  background-color: var(--bg-surface-elevated);
+  padding: 1px 4px;
+  border-radius: 3px;
   color: var(--atz-cyan-dark);
 }
-[data-theme="dark"] .spec-card-title {
+[data-theme="dark"] .guide-rule-card code {
+  color: #38BDF8;
+}
+
+.guide-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface);
+}
+
+.guide-sample-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  text-align: left;
+}
+
+.guide-sample-table th {
+  background-color: var(--atz-header-bg);
+  color: #FFFFFF;
+  padding: 6px 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.guide-sample-table td {
+  padding: 5px 8px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.guide-step-tag {
+  display: inline-block;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  background-color: rgba(0, 163, 224, 0.15);
   color: var(--atz-cyan);
 }
 
-.spec-rules-list {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.guide-conf-tag {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #059669;
+}
+[data-theme="dark"] .guide-conf-tag {
+  color: #34D399;
+}
+
+.preview-sample-table-wrap {
+  max-height: 130px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface);
 }
 
 .import-dropzone {

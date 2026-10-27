@@ -73,19 +73,18 @@ export default function HelpModal({ isOpen, onClose }) {
               <div className="help-section-card">
                 <h4 className="help-section-title">A. Persiapan Data (Ekspor SAP ke Excel)</h4>
                 <ul className="help-bullet-list">
-                  <li><strong>Ekspor dari SAP ke Excel:</strong> Ambil nomor produksi, langkah, nomor konfirmasi, dan status.</li>
-                  <li><strong>Pembersihan baris:</strong> Satu baris = satu langkah dari satu order. Buang langkah yang tidak dipakai (contoh saat rapat: dari 26 langkah disederhanakan jadi 5 langkah utama).</li>
+                  <li><strong>Format Baris Langkah:</strong> Wajib <strong>1 baris per langkah</strong> (<code className="font-mono">Step 1</code>, <code className="font-mono">Step 2</code>, <code className="font-mono">Step 3</code>, dst. atau angka 1, 2, 3). <em>Bukan total langkah dalam satu baris.</em></li>
+                  <li><strong>Nomor Konfirmasi Tetap Sama:</strong> Seluruh baris langkah untuk No. Produksi yang sama harus menggunakan <strong>NoKonfirmasi yang sama</strong> agar sinkron dengan tiket barcode pengerjaan.</li>
                   <li><strong>Sheet Order:</strong> Buat sheet bernama persis <code className="font-mono">Order</code> dengan kolom:
                     <div className="code-snippet font-mono">NoProduksi, ProductGroup, Langkah, NamaLangkah, NoKonfirmasi, Status</div>
                   </li>
-                  <li><strong>Langkah:</strong> Diisi angka urut berurutan (1, 2, 3, dan seterusnya).</li>
                   <li><strong>Status:</strong> Diisi <code className="font-mono text-emerald-400">Selesai</code> atau <code className="font-mono text-cyan-400">Berjalan</code>. Isi apa pun selain "Selesai" dianggap belum selesai.</li>
                   <li><strong>Format kolom nomor:</strong> Wajib diformat sebagai <strong className="text-white">Text</strong> di Excel supaya angka nol di depan (seperti 00123) tidak hilang.</li>
                   <li><strong>Sheet Personel:</strong> Buat sheet bernama persis <code className="font-mono">Personel</code> dengan kolom:
                     <div className="code-snippet font-mono">NoPersonal, Nama, ProductGroup</div>
                     <em>Contoh: NoPersonal (1001, PKW), NoPersonal (1002, PULP).</em>
                   </li>
-                  <li><strong>Perhatian:</strong> Huruf besar-kecil dan ejaan nama sheet dan kolom harus sama persis, jika tidak impor akan otomatis ditolak sistem.</li>
+                  <li><strong>Pembersihan baris:</strong> Buang langkah SAP yang tidak dipakai bengkel (contoh saat rapat: dari 26 langkah disederhanakan jadi langkah-langkah utama pengerjaan).</li>
                 </ul>
               </div>
             )}

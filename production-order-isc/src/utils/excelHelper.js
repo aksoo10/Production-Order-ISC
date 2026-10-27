@@ -118,8 +118,9 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
       };
     }
 
-    // Track sequential steps per order if langkah column missing
+    // Track sequential steps and confirmation numbers per order
     const orderStepCounters = {};
+    const orderConfirmationMap = {};
 
     const orders = rawOrder.map((row, idx) => {
       // 1. Order Number
@@ -134,7 +135,7 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
         'workcenter', 'arbpl', 'plant', 'werks', 'divisi', 'line'
       ], 'PKW');
 
-      // 3. Step Number
+      // 3. Step Number (Supports 'Step 1', 'step 2', 'Langkah 3', or numeric 1, 2, 3)
       if (!orderStepCounters[noProduksi]) {
         orderStepCounters[noProduksi] = 1;
       }
@@ -142,7 +143,13 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
         'langkah', 'step', 'vornr', 'operasi', 'operation', 'activity', 'no', 'nomor', 'urutan'
       ], null);
 
-      let stepNum = parseInt(stepVal, 10);
+      let stepNum = NaN;
+      if (stepVal !== null && stepVal !== undefined && stepVal !== '') {
+        const match = String(stepVal).match(/\d+/);
+        if (match) {
+          stepNum = parseInt(match[0], 10);
+        }
+      }
       if (isNaN(stepNum) || stepNum <= 0) {
         stepNum = orderStepCounters[noProduksi];
       }
@@ -154,15 +161,28 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
         'description', 'kegiatan', 'pekerjaan', 'aktivitas', 'stepname', 'text'
       ], `Langkah Produksi ${stepNum}`);
 
-      // 5. Confirmation Number (Crucial for Barcode)
-      let noKonfirmasi = findValue(row, [
+      // 5. Confirmation Number (Remains identical for all steps in the same production order)
+      let rawKonfirmasi = findValue(row, [
         'nokonfirmasi', 'no. konfirmasi', 'no konfirmasi', 'konfirmasi',
         'confirmation', 'confirmationno', 'rueck', 'confno', 'noconfirmation', 'barcode'
       ], '');
 
-      if (!noKonfirmasi) {
-        // Fallback: generate valid confirmation number from order & step
-        noKonfirmasi = `90${String(noProduksi).replace(/\D/g, '').slice(-4)}${String(stepNum).padStart(2, '0')}`;
+      let noKonfirmasi = '';
+      if (rawKonfirmasi) {
+        if (!orderConfirmationMap[noProduksi]) {
+          orderConfirmationMap[noProduksi] = String(rawKonfirmasi).trim();
+        }
+        // Enforce the same confirmation number across all steps of this order
+        noKonfirmasi = orderConfirmationMap[noProduksi];
+      } else if (orderConfirmationMap[noProduksi]) {
+        // Inherit identical confirmation number from previous steps of this order
+        noKonfirmasi = orderConfirmationMap[noProduksi];
+      } else {
+        // Fallback: generate uniform confirmation number for this order (same for all steps)
+        const cleanDigits = String(noProduksi).replace(/\D/g, '');
+        const fallbackConf = `1000${cleanDigits.slice(-4).padStart(4, '0')}`;
+        orderConfirmationMap[noProduksi] = fallbackConf;
+        noKonfirmasi = fallbackConf;
       }
 
       // 6. Status
@@ -324,22 +344,95 @@ export function downloadTemplateExcel() {
     { NoPersonal: "1003", Nama: "Operator 3", ProductGroup: "PULP" }
   ];
 
+  // Format langkah: 1 baris per langkah (Step 1, Step 2, dst.), NoKonfirmasi tetap sama per NoProduksi
   const sampleOrders = [
-    { NoProduksi: "10048291", ProductGroup: "PKW", Langkah: 1, NamaLangkah: "Persiapan Material & Disassembly", NoKonfirmasi: "90124401", Status: "Selesai" },
-    { NoProduksi: "10048291", ProductGroup: "PKW", Langkah: 2, NamaLangkah: "Inspeksi Dimensi & NDT", NoKonfirmasi: "90124402", Status: "Selesai" },
-    { NoProduksi: "10048291", ProductGroup: "PKW", Langkah: 3, NamaLangkah: "Machining & Dynamic Balancing", NoKonfirmasi: "90124403", Status: "Berjalan" },
-    { NoProduksi: "10048291", ProductGroup: "PKW", Langkah: 4, NamaLangkah: "Assembly & Alignment", NoKonfirmasi: "90124404", Status: "Berjalan" },
-    { NoProduksi: "10048291", ProductGroup: "PKW", Langkah: 5, NamaLangkah: "Final Testing & Packing", NoKonfirmasi: "90124405", Status: "Berjalan" }
+    {
+      NoProduksi: "4800115516",
+      ProductGroup: "PKW",
+      Langkah: "Step 1",
+      NamaLangkah: "Persiapan Material & Disassembly",
+      NoKonfirmasi: "100014",
+      Status: "Selesai"
+    },
+    {
+      NoProduksi: "4800115516",
+      ProductGroup: "PKW",
+      Langkah: "Step 2",
+      NamaLangkah: "Machining & Dynamic Balancing",
+      NoKonfirmasi: "100014",
+      Status: "Berjalan"
+    },
+    {
+      NoProduksi: "4800115516",
+      ProductGroup: "PKW",
+      Langkah: "Step 3",
+      NamaLangkah: "Final QC & Packaging",
+      NoKonfirmasi: "100014",
+      Status: "Berjalan"
+    },
+    {
+      NoProduksi: "53072677",
+      ProductGroup: "PKW",
+      Langkah: "Step 1",
+      NamaLangkah: "Rough Turning & Dimension Check",
+      NoKonfirmasi: "100015",
+      Status: "Berjalan"
+    },
+    {
+      NoProduksi: "53072677",
+      ProductGroup: "PKW",
+      Langkah: "Step 2",
+      NamaLangkah: "Precision Grinding & Polishing",
+      NoKonfirmasi: "100015",
+      Status: "Berjalan"
+    }
   ];
 
   const wb = XLSX.utils.book_new();
+
+  // 1. Sheet Order
   const orderWs = XLSX.utils.json_to_sheet(sampleOrders, { header: ORDER_COLUMNS });
-  orderWs['!cols'] = [{ wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 38 }, { wch: 18 }, { wch: 14 }];
+  orderWs['!cols'] = [
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 12 },
+    { wch: 38 },
+    { wch: 18 },
+    { wch: 14 }
+  ];
   XLSX.utils.book_append_sheet(wb, orderWs, 'Order');
 
+  // 2. Sheet Personel
   const personnelWs = XLSX.utils.json_to_sheet(samplePersonnel, { header: PERSONNEL_COLUMNS });
   personnelWs['!cols'] = [{ wch: 16 }, { wch: 28 }, { wch: 16 }];
   XLSX.utils.book_append_sheet(wb, personnelWs, 'Personel');
+
+  // 3. Sheet Panduan Format
+  const guideData = [
+    {
+      "Ketentuan Format": "1. Format Langkah (Step)",
+      "Aturan Wajib": "Wajib 1 baris per langkah (BUKAN total langkah). Ditulis 'Step 1', 'Step 2', dst. atau angka 1, 2, 3.",
+      "Contoh": "Order dengan 3 langkah dibuat menjadi 3 baris terpisah dengan NoProduksi yang sama."
+    },
+    {
+      "Ketentuan Format": "2. Nomor Konfirmasi",
+      "Aturan Wajib": "Nomor Konfirmasi (NoKonfirmasi) TETAP SAMA untuk seluruh langkah pada satu No. Produksi yang sama.",
+      "Contoh": "Order 4800115516: Step 1 = 100014, Step 2 = 100014, Step 3 = 100014 (nomor konfirmasi seragam)."
+    },
+    {
+      "Ketentuan Format": "3. Nama Sheet",
+      "Aturan Wajib": "Nama sheet data order harus persis 'Order' dan data personel harus persis 'Personel'.",
+      "Contoh": "Sheet 1: Order, Sheet 2: Personel"
+    },
+    {
+      "Ketentuan Format": "4. Status Pengerjaan",
+      "Aturan Wajib": "Isi dengan 'Selesai' untuk langkah yang tuntas, atau 'Berjalan' untuk yang sedang/belum selesai.",
+      "Contoh": "Selesai / Berjalan"
+    }
+  ];
+  const guideWs = XLSX.utils.json_to_sheet(guideData);
+  guideWs['!cols'] = [{ wch: 26 }, { wch: 65 }, { wch: 65 }];
+  XLSX.utils.book_append_sheet(wb, guideWs, 'Panduan_Format');
 
   XLSX.writeFile(wb, 'Format_Template_Order_Personel_ISC.xlsx');
 }

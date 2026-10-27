@@ -122,7 +122,80 @@ export default function ExcelImportModal({
         </div>
 
         {/* Modal Body */}
-        <div className="modal-body">
+        <div className="modal-body flex flex-col gap-4">
+          {/* Format Specification Guide */}
+          <div className="import-format-guide">
+            <div className="guide-header-title">
+              <div className="flex items-center gap-2">
+                <Info size={16} className="text-cyan flex-shrink-0" />
+                <span>Format Langkah & Nomor Konfirmasi:</span>
+              </div>
+              <span className="guide-rule-badge">Wajib 1 Baris per Langkah</span>
+            </div>
+
+            <div className="guide-rules-grid">
+              <div className="guide-rule-card">
+                <strong>
+                  <span className="text-cyan">①</span> 1 Baris per Langkah (Step)
+                </strong>
+                <p>
+                  Bukan total langkah dalam 1 baris. Setiap langkah pengerjaan ditulis pada baris tersendiri: <code>Step 1</code>, <code>Step 2</code>, <code>Step 3</code>, dst. (atau angka <code>1</code>, <code>2</code>, <code>3</code>).
+                </p>
+              </div>
+
+              <div className="guide-rule-card">
+                <strong>
+                  <span className="text-emerald-500">②</span> Nomor Konfirmasi Tetap Sama
+                </strong>
+                <p>
+                  Seluruh langkah pada No. Produksi yang sama memiliki <strong>No. Konfirmasi yang identik</strong> untuk verifikasi barcode tiket pengerjaan.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Table Example */}
+            <div className="guide-table-wrap">
+              <table className="guide-sample-table">
+                <thead>
+                  <tr>
+                    <th>NoProduksi</th>
+                    <th>ProductGroup</th>
+                    <th>Langkah</th>
+                    <th>NamaLangkah</th>
+                    <th>NoKonfirmasi</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="font-mono font-bold">4800115516</td>
+                    <td>PKW</td>
+                    <td><span className="guide-step-tag">Step 1</span></td>
+                    <td>Persiapan Material & Disassembly</td>
+                    <td><span className="guide-conf-tag">100014</span></td>
+                    <td><span className="status-badge status-selesai text-xs">Selesai</span></td>
+                  </tr>
+                  <tr>
+                    <td className="font-mono font-bold">4800115516</td>
+                    <td>PKW</td>
+                    <td><span className="guide-step-tag">Step 2</span></td>
+                    <td>Machining & Dynamic Balancing</td>
+                    <td><span className="guide-conf-tag">100014</span></td>
+                    <td><span className="status-badge status-berjalan text-xs">Berjalan</span></td>
+                  </tr>
+                  <tr>
+                    <td className="font-mono font-bold">4800115516</td>
+                    <td>PKW</td>
+                    <td><span className="guide-step-tag">Step 3</span></td>
+                    <td>Final QC & Packaging</td>
+                    <td><span className="guide-conf-tag">100014</span></td>
+                    <td><span className="status-badge status-berjalan text-xs">Berjalan</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Upload Dropzone */}
           <div
             className={`import-dropzone ${isDragOver ? 'drag-over' : ''} ${file ? 'has-file' : ''}`}
@@ -154,7 +227,7 @@ export default function ExcelImportModal({
               ) : (
                 <>
                   <div className="dropzone-title">Klik atau Seret File Excel (.xlsx) ke Sini</div>
-                  <div className="dropzone-sub">Mendukung ekspor langsung dari SAP</div>
+                  <div className="dropzone-sub">Mendukung file ekspor SAP dan template ISC</div>
                 </>
               )}
             </div>
@@ -186,7 +259,7 @@ export default function ExcelImportModal({
                 </div>
                 <div className="preview-metric-card">
                   <div className="metric-val text-cyan font-mono">{previewData.totalSteps}</div>
-                  <div className="metric-lbl">Total Langkah Kerja</div>
+                  <div className="metric-lbl">Total Baris Langkah</div>
                 </div>
                 <div className="preview-metric-card">
                   <div className="metric-val font-mono" style={{ color: '#059669' }}>
@@ -195,6 +268,45 @@ export default function ExcelImportModal({
                   <div className="metric-lbl">Personel Operator</div>
                 </div>
               </div>
+
+              <div className="text-xs text-muted flex items-center justify-between px-1">
+                <span>✓ Format terverifikasi: 1 baris per langkah (No. Konfirmasi seragam)</span>
+                <span className="font-mono text-cyan">
+                  {(previewData.totalSteps / (previewData.uniqueOrders || 1)).toFixed(1)} langkah/order
+                </span>
+              </div>
+
+              {/* Sample preview table of first 4 parsed rows */}
+              {previewData.orders && previewData.orders.length > 0 && (
+                <div className="preview-sample-table-wrap">
+                  <table className="guide-sample-table">
+                    <thead>
+                      <tr>
+                        <th>NoProduksi</th>
+                        <th>Langkah</th>
+                        <th>NamaLangkah</th>
+                        <th>NoKonfirmasi</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewData.orders.slice(0, 4).map((o, idx) => (
+                        <tr key={idx}>
+                          <td className="font-mono font-bold">{o.NoProduksi}</td>
+                          <td><span className="guide-step-tag">Step {o.Langkah}</span></td>
+                          <td className="truncate" style={{ maxWidth: 160 }}>{o.NamaLangkah}</td>
+                          <td><span className="guide-conf-tag">{o.NoKonfirmasi}</span></td>
+                          <td>
+                            <span className={`status-badge text-xs ${o.Status === 'Selesai' ? 'status-selesai' : 'status-berjalan'}`}>
+                              {o.Status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
