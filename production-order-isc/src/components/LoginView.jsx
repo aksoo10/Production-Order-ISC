@@ -137,9 +137,6 @@ export default function LoginView({
           </div>
 
           <h2 className="login-title font-heading">Portal Masuk Bengkel Produksi</h2>
-          <p className="login-subtitle">
-            Sistem Pelacak Order Produksi & Barcode Konfirmasi SAP
-          </p>
         </div>
 
         {/* Role Switcher Tabs */}
