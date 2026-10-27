@@ -119,12 +119,30 @@ export default function App() {
   // Orders state with localStorage persistence and custom steps hydration
   const [orders, setOrders] = useState(() => {
     try {
+      const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
+      const deletedSet = new Set((deletedList || []).map((s) => String(s).trim()));
+      // Explicitly ensure the deleted order S-10-P84786-643 is in the blacklist
+      deletedSet.add('S-10-P84786-643');
+      setStorageItem('isc_production_deleted_orders', Array.from(deletedSet));
+
       const registry = getStorageItem('isc_production_order_steps', {}) || {};
+      if (registry['S-10-P84786-643']) {
+        delete registry['S-10-P84786-643'];
+        setStorageItem('isc_production_order_steps', registry);
+      }
+
       const saved = getStorageItem('isc_production_orders');
-      const baseOrders = (saved && Array.isArray(saved) && saved.length > 0 && !isDummyOrders(saved))
+      const rawBase = (saved && Array.isArray(saved) && saved.length > 0 && !isDummyOrders(saved))
         ? saved
         : INITIAL_ORDERS;
 
+      // Filter out deleted orders from the base list
+      const baseOrders = rawBase.filter((item) => {
+        const num = String(item.NoProduksi || item.orderNo || '').trim();
+        return num && !deletedSet.has(num);
+      });
+
+      let finalOrders = baseOrders;
       if (registry && Object.keys(registry).length > 0) {
         const expanded = [];
         const processed = new Set();
@@ -149,12 +167,14 @@ export default function App() {
             expanded.push(item);
           }
         });
-        return expanded;
+        finalOrders = expanded;
       }
 
-      return baseOrders;
+      // Persist the clean list so localStorage immediately reflects the deletion
+      setStorageItem('isc_production_orders', finalOrders);
+      return finalOrders;
     } catch {
-      return INITIAL_ORDERS;
+      return INITIAL_ORDERS.filter((o) => String(o.NoProduksi || o.orderNo || '').trim() !== 'S-10-P84786-643');
     }
   });
 
@@ -416,9 +436,14 @@ export default function App() {
     try {
       const res = await orderApiService.getAllOrders();
       if (res && res.success && Array.isArray(res.data)) {
+        const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
+        const deletedSet = new Set((deletedList || []).map((s) => String(s).trim()));
+        deletedSet.add('S-10-P84786-643');
+
         const validOrders = res.data.filter(
-          (o) => o && o.NoProduksi && o.NoProduksi !== '-' && (o.customers || o.title || o.materialDescription)
+          (o) => o && o.NoProduksi && o.NoProduksi !== '-' && (o.customers || o.title || o.materialDescription) && !deletedSet.has(String(o.NoProduksi || o.orderNo || '').trim())
         );
+
         if (validOrders.length > 0) {
           const registry = getCustomStepsRegistry();
 
@@ -427,20 +452,30 @@ export default function App() {
             const localStepsByOrder = new Map();
             (prevOrders || []).forEach((item) => {
               const num = String(item.NoProduksi || item.orderNo || '').trim();
-              if (!num) return;
+              if (!num || deletedSet.has(num)) return;
               if (!localStepsByOrder.has(num)) {
                 localStepsByOrder.set(num, []);
               }
               localStepsByOrder.get(num).push(item);
             });
 
+            // Group cloud valid orders by unique orderNo so each order is processed ONCE
+            const cloudOrdersByNum = new Map();
+            validOrders.forEach((cloudOrder) => {
+              const num = String(cloudOrder.NoProduksi || cloudOrder.orderNo || '').trim();
+              if (!num || deletedSet.has(num)) return;
+              if (!cloudOrdersByNum.has(num)) {
+                cloudOrdersByNum.set(num, []);
+              }
+              cloudOrdersByNum.get(num).push(cloudOrder);
+            });
+
             const expandedOrders = [];
             const cloudOrderNos = new Set();
 
-            validOrders.forEach((cloudOrder) => {
-              const orderNo = String(cloudOrder.NoProduksi || cloudOrder.orderNo || '').trim();
+            cloudOrdersByNum.forEach((cloudItems, orderNo) => {
               cloudOrderNos.add(orderNo);
-
+              const primaryCloud = cloudItems[0];
               const registeredSteps = registry[orderNo];
               const prevStepItems = localStepsByOrder.get(orderNo);
 
@@ -448,36 +483,50 @@ export default function App() {
                 // Expand order with persistently saved custom steps
                 registeredSteps.forEach((st, idx) => {
                   expandedOrders.push({
-                    ...cloudOrder,
-                    id: st.id || (idx === 0 ? cloudOrder.id : (cloudOrder.id ? cloudOrder.id * 1000 + idx : Date.now() + idx)),
-                    ID: st.id || (idx === 0 ? cloudOrder.ID : (cloudOrder.ID ? cloudOrder.ID * 1000 + idx : Date.now() + idx)),
+                    ...primaryCloud,
+                    id: st.id || (idx === 0 ? primaryCloud.id : (primaryCloud.id ? primaryCloud.id * 1000 + idx : Date.now() + idx)),
+                    ID: st.id || (idx === 0 ? primaryCloud.ID : (primaryCloud.ID ? primaryCloud.ID * 1000 + idx : Date.now() + idx)),
                     Langkah: idx + 1,
-                    NamaLangkah: st.NamaLangkah || `${cloudOrder.title || 'Langkah'} ${idx + 1}`,
-                    NoKonfirmasi: st.NoKonfirmasi || cloudOrder.NoKonfirmasi || cloudOrder.NoProduksi,
+                    NamaLangkah: st.NamaLangkah || `${primaryCloud.title || 'Langkah'} ${idx + 1}`,
+                    NoKonfirmasi: st.NoKonfirmasi || primaryCloud.NoKonfirmasi || primaryCloud.NoProduksi,
                     Status: st.Status || 'Berjalan',
                     status: String(st.Status).toLowerCase() === 'selesai' ? 1 : 0
+                  });
+                });
+              } else if (cloudItems.length > 1) {
+                // Cloud already has multiple steps for this order (e.g. from SharePoint/SAP rows)
+                // Use each row as a step and preserve local completion status without duplicating
+                cloudItems.forEach((cItem, idx) => {
+                  const matchingPrev = prevStepItems?.find(
+                    (p) => Number(p.Langkah) === (cItem.Langkah ? Number(cItem.Langkah) : idx + 1) || (p.id && p.id === cItem.id)
+                  );
+                  expandedOrders.push({
+                    ...cItem,
+                    Langkah: cItem.Langkah || idx + 1,
+                    Status: matchingPrev?.Status || cItem.Status || 'Berjalan',
+                    status: matchingPrev ? matchingPrev.status : (cItem.status !== undefined ? cItem.status : (String(cItem.Status).toLowerCase() === 'selesai' ? 1 : 0))
                   });
                 });
               } else if (prevStepItems && prevStepItems.length > 1) {
                 // Keep previously added local steps for this order
                 prevStepItems.forEach((st, idx) => {
                   expandedOrders.push({
-                    ...cloudOrder,
+                    ...primaryCloud,
                     ...st,
-                    id: st.id || (idx === 0 ? cloudOrder.id : (cloudOrder.id ? cloudOrder.id * 1000 + idx : Date.now() + idx)),
-                    ID: st.ID || (idx === 0 ? cloudOrder.ID : (cloudOrder.ID ? cloudOrder.ID * 1000 + idx : Date.now() + idx)),
+                    id: st.id || (idx === 0 ? primaryCloud.id : (primaryCloud.id ? primaryCloud.id * 1000 + idx : Date.now() + idx)),
+                    ID: st.ID || (idx === 0 ? primaryCloud.ID : (primaryCloud.ID ? primaryCloud.ID * 1000 + idx : Date.now() + idx)),
                     Langkah: idx + 1
                   });
                 });
               } else {
-                // Baseline order from cloud
-                expandedOrders.push(cloudOrder);
+                // Single baseline order from cloud
+                expandedOrders.push(primaryCloud);
               }
             });
 
-            // Keep any locally created/imported orders that have not yet synced to cloud
+            // Keep any locally created/imported orders that have not yet synced to cloud, excluding deleted
             const pendingLocal = (prevOrders || []).filter(
-              (lo) => lo && lo.NoProduksi && !cloudOrderNos.has(String(lo.NoProduksi).trim())
+              (lo) => lo && lo.NoProduksi && !cloudOrderNos.has(String(lo.NoProduksi).trim()) && !deletedSet.has(String(lo.NoProduksi).trim())
             );
 
             const merged = [...expandedOrders, ...pendingLocal];
@@ -486,7 +535,7 @@ export default function App() {
           });
 
           setSelectedOrderNo((prev) =>
-            prev && validOrders.some((o) => o.NoProduksi === prev) ? prev : validOrders[0].NoProduksi
+            prev && validOrders.some((o) => o.NoProduksi === prev) ? prev : (validOrders[0]?.NoProduksi || '')
           );
         }
         if (!silent) {
@@ -522,6 +571,13 @@ export default function App() {
       const targetNo = String(orderData.orderNo || '').trim();
       const divGroup = orderData.orderDivision ? orderData.orderDivision.split(/[\s&/]+/)[0].toUpperCase() : 'PKW';
       const prodGroup = orderData.ProductGroup || divGroup || 'PKW';
+
+      // Un-delete if this orderNo was previously in the deleted registry
+      const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
+      if (deletedList.includes(targetNo)) {
+        const nextDeleted = deletedList.filter((n) => n !== targetNo);
+        setStorageItem('isc_production_deleted_orders', nextDeleted);
+      }
 
       // Persist custom steps
       if (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0) {
@@ -646,23 +702,56 @@ export default function App() {
         saveCustomStepsRegistry(registry);
       }
 
-      if (orderObj.id && orderObj.id > 0) {
+      // Add to persistent deleted orders registry so it never comes back
+      const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
+      if (!deletedList.includes(targetNo)) {
+        deletedList.push(targetNo);
+        setStorageItem('isc_production_deleted_orders', deletedList);
+      }
+
+      // Collect all IDs for this order to delete in SharePoint
+      const idsToDelete = new Set();
+      if (orderObj.id && orderObj.id > 0) idsToDelete.add(orderObj.id);
+      if (orderObj.ID && orderObj.ID > 0) idsToDelete.add(orderObj.ID);
+      if (orderObj.steps && Array.isArray(orderObj.steps)) {
+        orderObj.steps.forEach((st) => {
+          if (st.id && st.id > 0) idsToDelete.add(st.id);
+          if (st.ID && st.ID > 0) idsToDelete.add(st.ID);
+        });
+      }
+      // Also check current orders state for any step with this targetNo
+      orders.forEach((o) => {
+        if (String(o.NoProduksi || o.orderNo || '').trim() === targetNo) {
+          if (o.id && o.id > 0) idsToDelete.add(o.id);
+          if (o.ID && o.ID > 0) idsToDelete.add(o.ID);
+        }
+      });
+
+      // Call delete in cloud for each ID
+      for (const id of idsToDelete) {
         try {
-          await orderApiService.deleteOrder(orderObj.id);
+          await orderApiService.deleteOrder(id);
         } catch (cloudErr) {
-          console.warn('[handleDeleteOrder] Cloud delete note:', cloudErr);
+          console.warn('[handleDeleteOrder] Cloud delete note for ID', id, cloudErr);
         }
       }
+
       // Always remove order and all its steps from local state and storage
       setOrders((prev) => {
-        const nextList = prev.filter((o) => o.NoProduksi !== orderObj.NoProduksi && (!orderObj.id || o.id !== orderObj.id));
+        const nextList = prev.filter((o) => {
+          const num = String(o.NoProduksi || o.orderNo || '').trim();
+          const matchesNo = num === targetNo;
+          const matchesId = (orderObj.id && o.id === orderObj.id) || idsToDelete.has(o.id) || idsToDelete.has(o.ID);
+          return !matchesNo && !matchesId;
+        });
         setStorageItem('isc_production_orders', nextList);
         return nextList;
       });
-      if (selectedOrderNo === orderObj.NoProduksi) {
+
+      if (selectedOrderNo === targetNo) {
         setSelectedOrderNo('');
       }
-      showToast(`Order #${orderObj.NoProduksi} berhasil dihapus dari sistem & cloud.`, 'success');
+      showToast(`Order #${targetNo} berhasil dihapus dari sistem & cloud.`, 'success');
     } catch (err) {
       showToast(`Gagal menghapus order: ${err.message}`, 'error');
     } finally {
@@ -698,6 +787,14 @@ export default function App() {
 
     if (newPersonnel && newPersonnel.length > 0) {
       setPersonnel(newPersonnel);
+    }
+
+    // Un-delete any imported orders from deleted registry
+    const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
+    if (deletedList.length > 0) {
+      const importedNos = new Set(newOrders.map((o) => String(o.NoProduksi || o.orderNo || '').trim()));
+      const nextDeleted = deletedList.filter((n) => !importedNos.has(n));
+      setStorageItem('isc_production_deleted_orders', nextDeleted);
     }
 
     // Match existing orders to preserve existing SharePoint IDs if any match
