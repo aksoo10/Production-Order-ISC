@@ -143,32 +143,46 @@ export default function App() {
       });
 
       let finalOrders = baseOrders;
-      if (registry && Object.keys(registry).length > 0) {
-        const expanded = [];
-        const processed = new Set();
-        baseOrders.forEach((item) => {
-          const num = String(item.NoProduksi || item.orderNo || '').trim();
-          if (processed.has(num)) return;
-          processed.add(num);
+      const topOrders = [];
+      const normalOrders = [];
+      const processed = new Set();
 
-          const customSteps = registry[num];
-          if (customSteps && Array.isArray(customSteps) && customSteps.length > 0) {
-            customSteps.forEach((st, idx) => {
-              expanded.push({
-                ...item,
-                Langkah: idx + 1,
-                NamaLangkah: st.NamaLangkah || `${item.title || 'Langkah'} ${idx + 1}`,
-                NoKonfirmasi: st.NoKonfirmasi || item.NoKonfirmasi || item.NoProduksi,
-                Status: st.Status || 'Berjalan',
-                status: String(st.Status).toLowerCase() === 'selesai' ? 1 : 0
-              });
+      const stepsCountByOrder = new Map();
+      const hasFinishedByOrder = new Map();
+      baseOrders.forEach((item) => {
+        const num = String(item.NoProduksi || item.orderNo || '').trim();
+        stepsCountByOrder.set(num, (stepsCountByOrder.get(num) || 0) + 1);
+        if (String(item.Status).toLowerCase() === 'selesai' || item.status === 1) {
+          hasFinishedByOrder.set(num, true);
+        }
+      });
+
+      baseOrders.forEach((item) => {
+        const num = String(item.NoProduksi || item.orderNo || '').trim();
+        if (processed.has(num)) return;
+        processed.add(num);
+
+        const customSteps = registry ? registry[num] : null;
+        if (customSteps && Array.isArray(customSteps) && customSteps.length > 0) {
+          customSteps.forEach((st, idx) => {
+            topOrders.push({
+              ...item,
+              Langkah: idx + 1,
+              NamaLangkah: st.NamaLangkah || `${item.title || 'Langkah'} ${idx + 1}`,
+              NoKonfirmasi: st.NoKonfirmasi || item.NoKonfirmasi || item.NoProduksi,
+              Status: st.Status || 'Berjalan',
+              status: String(st.Status).toLowerCase() === 'selesai' ? 1 : 0
             });
-          } else {
-            expanded.push(item);
-          }
-        });
-        finalOrders = expanded;
-      }
+          });
+        } else if ((stepsCountByOrder.get(num) || 0) > 1 || hasFinishedByOrder.get(num)) {
+          baseOrders.filter((b) => String(b.NoProduksi || b.orderNo || '').trim() === num).forEach((b) => {
+            topOrders.push(b);
+          });
+        } else {
+          normalOrders.push(item);
+        }
+      });
+      finalOrders = [...topOrders, ...normalOrders];
 
       // Persist the clean list so localStorage immediately reflects the deletion
       setStorageItem('isc_production_orders', finalOrders);
@@ -423,8 +437,13 @@ export default function App() {
         }).catch((err) => console.warn('[AutoSync] Cloud update failed:', err));
       }
 
-      setStorageItem('isc_production_orders', updated);
-      return updated;
+      // Move the active working order to the top of the list
+      const matchingOrderSteps = updated.filter((s) => String(s.NoProduksi).trim() === sOrderNo);
+      const otherOrderSteps = updated.filter((s) => String(s.NoProduksi).trim() !== sOrderNo);
+      const reordered = [...matchingOrderSteps, ...otherOrderSteps];
+
+      setStorageItem('isc_production_orders', reordered);
+      return reordered;
     });
   };
 
@@ -470,7 +489,8 @@ export default function App() {
               cloudOrdersByNum.get(num).push(cloudOrder);
             });
 
-            const expandedOrders = [];
+            const customStepOrders = [];
+            const regularOrders = [];
             const cloudOrderNos = new Set();
 
             cloudOrdersByNum.forEach((cloudItems, orderNo) => {
@@ -482,7 +502,7 @@ export default function App() {
               if (registeredSteps && Array.isArray(registeredSteps) && registeredSteps.length > 0) {
                 // Expand order with persistently saved custom steps
                 registeredSteps.forEach((st, idx) => {
-                  expandedOrders.push({
+                  customStepOrders.push({
                     ...primaryCloud,
                     id: st.id || (idx === 0 ? primaryCloud.id : (primaryCloud.id ? primaryCloud.id * 1000 + idx : Date.now() + idx)),
                     ID: st.id || (idx === 0 ? primaryCloud.ID : (primaryCloud.ID ? primaryCloud.ID * 1000 + idx : Date.now() + idx)),
@@ -500,7 +520,7 @@ export default function App() {
                   const matchingPrev = prevStepItems?.find(
                     (p) => Number(p.Langkah) === (cItem.Langkah ? Number(cItem.Langkah) : idx + 1) || (p.id && p.id === cItem.id)
                   );
-                  expandedOrders.push({
+                  customStepOrders.push({
                     ...cItem,
                     Langkah: cItem.Langkah || idx + 1,
                     Status: matchingPrev?.Status || cItem.Status || 'Berjalan',
@@ -510,7 +530,7 @@ export default function App() {
               } else if (prevStepItems && prevStepItems.length > 1) {
                 // Keep previously added local steps for this order
                 prevStepItems.forEach((st, idx) => {
-                  expandedOrders.push({
+                  customStepOrders.push({
                     ...primaryCloud,
                     ...st,
                     id: st.id || (idx === 0 ? primaryCloud.id : (primaryCloud.id ? primaryCloud.id * 1000 + idx : Date.now() + idx)),
@@ -520,7 +540,12 @@ export default function App() {
                 });
               } else {
                 // Single baseline order from cloud
-                expandedOrders.push(primaryCloud);
+                const isFinished = String(primaryCloud.Status).toLowerCase() === 'selesai' || primaryCloud.status === 1;
+                if (isFinished) {
+                  customStepOrders.push(primaryCloud);
+                } else {
+                  regularOrders.push(primaryCloud);
+                }
               }
             });
 
@@ -529,7 +554,8 @@ export default function App() {
               (lo) => lo && lo.NoProduksi && !cloudOrderNos.has(String(lo.NoProduksi).trim()) && !deletedSet.has(String(lo.NoProduksi).trim())
             );
 
-            const merged = [...expandedOrders, ...pendingLocal];
+            // Place custom-step orders and newly created local orders at the top
+            const merged = [...customStepOrders, ...pendingLocal, ...regularOrders];
             setStorageItem('isc_production_orders', merged);
             return merged;
           });
@@ -606,6 +632,12 @@ export default function App() {
 
       await orderApiService.createOrders(itemsToCreate);
       showToast(`Order #${orderData.orderNo} (${itemsToCreate.length} langkah) berhasil disimpan ke SharePoint Cloud!`, 'success');
+      setOrders((prev) => {
+        const filtered = prev.filter((o) => String(o.NoProduksi || o.orderNo || '').trim() !== targetNo);
+        const next = [...itemsToCreate, ...filtered];
+        setStorageItem('isc_production_orders', next);
+        return next;
+      });
       await handleSyncCloud(true);
     } catch (err) {
       showToast(`Gagal membuat order: ${err.message}`, 'error');
@@ -665,22 +697,26 @@ export default function App() {
             status: st.Status === 'Selesai' ? 1 : (orderData.status || 0)
           }));
 
-          const nextList = [...otherOrders, ...updatedSteps];
+          const nextList = [...updatedSteps, ...otherOrders];
           setStorageItem('isc_production_orders', nextList);
           return nextList;
         }
 
-        const nextList = prev.map((o) => {
+        const matchingOrders = [];
+        const otherOrders = [];
+        prev.forEach((o) => {
           if ((orderData.id && o.id === orderData.id) || o.NoProduksi === orderData.orderNo) {
-            return {
+            matchingOrders.push({
               ...o,
               ...orderData,
               ProductGroup: prodGroup,
               Status: orderData.status === 1 ? 'Selesai' : 'Berjalan'
-            };
+            });
+          } else {
+            otherOrders.push(o);
           }
-          return o;
         });
+        const nextList = [...matchingOrders, ...otherOrders];
         setStorageItem('isc_production_orders', nextList);
         return nextList;
       });
