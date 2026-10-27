@@ -3,20 +3,19 @@
  * Baseline Data - Synced from SharePoint 'Production Planning ISC'
  */
 
-export const DUMMY_PERSONNEL_IDS = ['2324', '530617', '109842', '442190', '331088', '550123'];
-export const DUMMY_PERSONNEL_NAMES = ['Dudi', 'Renan Aldi', 'Agus Pratama', 'Siti Rahma', 'Budi Santoso', 'Hendrik Wijaya'];
+export const DUMMY_PERSONNEL_IDS = [];
+export const DUMMY_PERSONNEL_NAMES = [];
 
-export const isDummyPersonnel = (p) => {
-  if (!p) return false;
-  const no = String(p.NoPersonal || '').trim();
-  const name = String(p.Nama || '').trim().toLowerCase();
-  return (
-    DUMMY_PERSONNEL_IDS.includes(no) ||
-    DUMMY_PERSONNEL_NAMES.some((dn) => dn.toLowerCase() === name)
-  );
-};
+export const isDummyPersonnel = () => false;
 
-export const INITIAL_PERSONNEL = [];
+export const INITIAL_PERSONNEL = [
+  { NoPersonal: "2324", Nama: "Dudi", ProductGroup: "PKW" },
+  { NoPersonal: "530617", Nama: "Renan Aldi", ProductGroup: "PKW" },
+  { NoPersonal: "109842", Nama: "Agus Pratama", ProductGroup: "PULP" },
+  { NoPersonal: "442190", Nama: "Siti Rahma", ProductGroup: "SERVICE" },
+  { NoPersonal: "331088", Nama: "Budi Santoso", ProductGroup: "WORKSHOP" },
+  { NoPersonal: "550123", Nama: "Hendrik Wijaya", ProductGroup: "PKW" }
+];
 
 export const INITIAL_ORDERS = [
   {

@@ -4,6 +4,7 @@ import {
   Layers
 } from 'lucide-react';
 import andritzLogo from '../assets/andritz-logo.png';
+import SearchableOperatorSelect from './SearchableOperatorSelect';
 
 export default function Navbar({
   isAdmin,
@@ -11,7 +12,10 @@ export default function Navbar({
   onLogout,
   selectedGroup,
   setSelectedGroup,
-  availableGroups
+  availableGroups = [],
+  personnel = [],
+  selectedOperator = null,
+  onSelectOperator = () => {}
 }) {
   return (
     <header className="app-header">
@@ -38,7 +42,7 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Right Controls: Filter + Logout */}
+      {/* Right Controls: Filters + Logout */}
       <div className="header-right-controls">
         {/* Product Group Filter */}
         <div className="filter-pill-group">
@@ -58,6 +62,15 @@ export default function Navbar({
             ))}
           </select>
         </div>
+
+        {/* Operator Filter / Dropdown Pill */}
+        <SearchableOperatorSelect
+          personnel={personnel}
+          selectedOperator={selectedOperator}
+          onSelectOperator={onSelectOperator}
+          variant="navbar"
+          selectedGroup={selectedGroup}
+        />
 
         {/* Logout Button */}
         <button

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import andritzBg from '../assets/andritz-workshop-bg.png';
 import andritzLogo from '../assets/andritz-logo.png';
-import { isDummyPersonnel } from '../utils/initialData';
+import { isDummyPersonnel, INITIAL_PERSONNEL } from '../utils/initialData';
 import {
   ShieldCheck,
   User,
@@ -26,9 +26,21 @@ export default function LoginView({
   // Tabs: 'admin' or 'user'
   const [roleTab, setRoleTab] = useState('admin');
 
-  // Filter out any dummy operators
+  // Ensure all personnel are loaded without exception
   const cleanPersonnel = useMemo(() => {
-    return (personnel || []).filter((p) => !isDummyPersonnel(p));
+    const list = Array.isArray(personnel) && personnel.length > 0 ? personnel : INITIAL_PERSONNEL;
+    const map = new Map();
+    list.forEach((p) => {
+      if (p && (p.NoPersonal || p.Nama)) {
+        map.set(String(p.NoPersonal || p.Nama), p);
+      }
+    });
+    INITIAL_PERSONNEL.forEach((base) => {
+      if (!map.has(String(base.NoPersonal))) {
+        map.set(String(base.NoPersonal), base);
+      }
+    });
+    return Array.from(map.values());
   }, [personnel]);
 
   // Admin form state

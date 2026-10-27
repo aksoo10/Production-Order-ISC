@@ -105,12 +105,14 @@ export default function App() {
     try {
       const saved = getStorageItem('isc_production_personnel');
       if (saved && Array.isArray(saved) && saved.length > 0) {
-        const cleanPersonnel = saved.filter((p) => !isDummyPersonnel(p));
-        if (cleanPersonnel.length > 0) return cleanPersonnel;
+        const map = new Map();
+        INITIAL_PERSONNEL.forEach((p) => map.set(String(p.NoPersonal), p));
+        saved.forEach((p) => map.set(String(p.NoPersonal), p));
+        return Array.from(map.values());
       }
-      return INITIAL_PERSONNEL.filter((p) => !isDummyPersonnel(p));
+      return INITIAL_PERSONNEL;
     } catch {
-      return [];
+      return INITIAL_PERSONNEL;
     }
   });
 
@@ -142,11 +144,10 @@ export default function App() {
 
   // Selections
   const [selectedOperator, setSelectedOperator] = useState(() => {
-    if (currentUserSession?.operator && !isDummyPersonnel(currentUserSession.operator)) {
+    if (currentUserSession?.operator) {
       return currentUserSession.operator;
     }
-    const cleanP = personnel.filter((p) => !isDummyPersonnel(p));
-    return cleanP[0] || null;
+    return personnel[0] || INITIAL_PERSONNEL[0] || null;
   });
 
   const [selectedOrderNo, setSelectedOrderNo] = useState(() => {
@@ -688,6 +689,9 @@ export default function App() {
         selectedGroup={selectedGroup}
         setSelectedGroup={setSelectedGroup}
         availableGroups={availableGroups}
+        personnel={personnel}
+        selectedOperator={selectedOperator}
+        onSelectOperator={setSelectedOperator}
         zoomLevel={zoomLevel}
         setZoomLevel={setZoomLevel}
         theme={theme}
