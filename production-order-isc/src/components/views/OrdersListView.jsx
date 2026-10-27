@@ -359,7 +359,7 @@ export default function OrdersListView({
                                     <th>Nama Langkah</th>
                                     <th style={{ width: '160px' }}>No. Konfirmasi</th>
                                     <th style={{ width: '140px' }}>Status</th>
-                                    {isAdmin && <th style={{ width: '120px' }}>Aksi Admin</th>}
+                                    <th style={{ width: '120px', textAlign: 'center' }}>Aksi</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -382,21 +382,21 @@ export default function OrdersListView({
                                             <span className="status-badge status-pending">Menunggu</span>
                                           )}
                                         </td>
-                                        {isAdmin && (
-                                          <td>
-                                            {isActive ? (
-                                              <button
-                                                type="button"
-                                                className="btn btn-xs btn-success"
-                                                onClick={() => onMarkStepFinished(ord.NoProduksi, st.Langkah)}
-                                              >
-                                                Selesai
-                                              </button>
-                                            ) : (
-                                              <span className="text-xs text-muted">-</span>
-                                            )}
-                                          </td>
-                                        )}
+                                        <td style={{ textAlign: 'center' }}>
+                                          {isActive ? (
+                                            <button
+                                              type="button"
+                                              className="btn btn-xs btn-success"
+                                              onClick={() => onMarkStepFinished(ord.NoProduksi, st.Langkah)}
+                                            >
+                                              Selesai
+                                            </button>
+                                          ) : isDone ? (
+                                            <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                                          ) : (
+                                            <span className="text-xs text-muted">-</span>
+                                          )}
+                                        </td>
                                       </tr>
                                     );
                                   })}

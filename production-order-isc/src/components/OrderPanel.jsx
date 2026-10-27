@@ -257,6 +257,7 @@ export default function OrderPanel({
                     <th>Nama Langkah</th>
                     <th style={{ width: '180px' }}>No. Konfirmasi</th>
                     <th style={{ width: '150px' }}>Status</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,6 +311,25 @@ export default function OrderPanel({
                               <Clock size={12} />
                               Menunggu
                             </span>
+                          )}
+                        </td>
+
+                        {/* Action Column */}
+                        <td className="step-action-cell" style={{ textAlign: 'center' }}>
+                          {isActive ? (
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-success flex items-center justify-center gap-1 mx-auto"
+                              onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
+                              title="Tandai Selesai"
+                            >
+                              <CheckCircle2 size={12} />
+                              <span>Selesai</span>
+                            </button>
+                          ) : isStepComplete ? (
+                            <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                          ) : (
+                            <span className="text-xs text-muted">-</span>
                           )}
                         </td>
                       </tr>
