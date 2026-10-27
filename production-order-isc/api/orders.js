@@ -146,7 +146,7 @@ export default async function handler(req, res) {
             qtyOrder: parseFloat(it.qtyOrder) || 1.0,
             planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
             planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-            status: parseInt(it.status, 10) || 0
+            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0)
           });
         }
 
@@ -188,7 +188,7 @@ export default async function handler(req, res) {
             qtyOrder: parseFloat(it.qtyOrder) || 1.0,
             planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
             planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-            status: parseInt(it.status, 10) || 0
+            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0)
           });
         }
 

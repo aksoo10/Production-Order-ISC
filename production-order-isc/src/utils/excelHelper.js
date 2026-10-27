@@ -173,13 +173,66 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
       const isCompleted = statusRaw.includes('selesai') || statusRaw.includes('cnf') || statusRaw.includes('done') || statusRaw.includes('comp');
       const normalizedStatus = isCompleted ? 'Selesai' : 'Berjalan';
 
+      // 7. Extended Fields from SAP/Excel if present
+      const customers = findValue(row, [
+        'customer', 'customers', 'kustomer', 'pelanggan', 'client', 'pemesan'
+      ], 'ANDRITZ ISC Internal');
+
+      const soDocument = findValue(row, [
+        'sodocument', 'so', 'salesorder', 'dokumenso', 'sonumber', 'vbeln'
+      ], '-');
+
+      const wbsProdNo = findValue(row, [
+        'wbsprodno', 'wbs', 'wbselement', 'nowbs', 'posid'
+      ], '-');
+
+      const materialNo = findValue(row, [
+        'materialno', 'material', 'matnr', 'nomaterial', 'partno'
+      ], '-');
+
+      const materialDescription = findValue(row, [
+        'materialdescription', 'materialdesc', 'matdesc', 'maktx', 'deskripsimaterial', 'namamaterial'
+      ], namaLangkah);
+
+      const shortDescSO = findValue(row, [
+        'shortdescso', 'shortdesc', 'deskripsiso', 'soitemtext'
+      ], namaLangkah);
+
+      const qtyOrder = parseFloat(findValue(row, [
+        'qtyorder', 'qty', 'quantity', 'jumlah', 'menge'
+      ], 1)) || 1.0;
+
+      const planStart = findValue(row, [
+        'planstart', 'start', 'tanggalmulai', 'mulai', 'gstrp'
+      ], new Date().toISOString().split('T')[0]);
+
+      const planFinish = findValue(row, [
+        'planfinish', 'finish', 'tanggalselesai', 'selesai', 'gltrp'
+      ], new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
+
       return {
+        id: 0,
+        ID: 0,
+        orderNo: String(noProduksi).trim(),
         NoProduksi: String(noProduksi).trim(),
+        prodOrderNo: String(noProduksi).trim(),
         ProductGroup: String(productGroup).trim().toUpperCase(),
+        orderDivision: String(productGroup).trim().toUpperCase(),
         Langkah: stepNum,
         NamaLangkah: String(namaLangkah).trim(),
+        title: String(namaLangkah).trim(),
         NoKonfirmasi: String(noKonfirmasi).trim(),
-        Status: normalizedStatus
+        Status: normalizedStatus,
+        status: isCompleted ? 1 : 0,
+        customers: String(customers).trim(),
+        soDocument: String(soDocument).trim(),
+        wbsProdNo: String(wbsProdNo).trim(),
+        materialNo: String(materialNo).trim(),
+        materialDescription: String(materialDescription).trim(),
+        shortDescSO: String(shortDescSO).trim(),
+        qtyOrder: qtyOrder,
+        planStart: String(planStart).split('T')[0],
+        planFinish: String(planFinish).split('T')[0]
       };
     }).filter(o => o.NoProduksi && o.NoKonfirmasi);
 

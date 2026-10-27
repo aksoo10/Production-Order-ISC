@@ -300,7 +300,15 @@ export default function App() {
           (o) => o && o.NoProduksi && o.NoProduksi !== '-' && (o.customers || o.title || o.materialDescription)
         );
         if (validOrders.length > 0) {
-          setOrders(validOrders);
+          setOrders((prevOrders) => {
+            // Keep any locally created/imported orders that have not yet synced to cloud
+            const cloudOrderNos = new Set(validOrders.map((o) => String(o.NoProduksi).trim()));
+            const pendingLocal = (prevOrders || []).filter(
+              (lo) => lo && lo.NoProduksi && !cloudOrderNos.has(String(lo.NoProduksi).trim())
+            );
+            return [...validOrders, ...pendingLocal];
+          });
+
           setSelectedOrderNo((prev) =>
             prev && validOrders.some((o) => o.NoProduksi === prev) ? prev : validOrders[0].NoProduksi
           );
@@ -403,19 +411,81 @@ export default function App() {
     showToast(`Status seluruh langkah Order ${orderNo} dikembalikan ke Berjalan.`, 'info');
   };
 
-  // Excel Import Success Handler
-  const handleImportSuccess = (newOrders, newPersonnel) => {
-    setOrders(newOrders);
+  // Excel Import Success Handler: Saves to Local State AND Persists to Cloud Database (SharePoint via Power Automate)
+  const handleImportSuccess = async (newOrders, newPersonnel) => {
+    setIsLoadingCloud(true);
+
     if (newPersonnel && newPersonnel.length > 0) {
       setPersonnel(newPersonnel);
     }
-    if (newOrders.length > 0) {
-      setSelectedOrderNo(newOrders[0].NoProduksi);
+
+    // Match existing orders to preserve existing SharePoint IDs if any match
+    const existingMap = new Map();
+    orders.forEach((o) => {
+      if (o.id && o.id > 0) {
+        existingMap.set(String(o.NoProduksi).trim(), o.id);
+      }
+    });
+
+    const preparedOrders = newOrders.map((no) => {
+      const existingId = existingMap.get(String(no.NoProduksi).trim());
+      if (existingId) {
+        return { ...no, id: existingId, ID: existingId };
+      }
+      return no;
+    });
+
+    // Immediately update local state and localStorage so user sees imported data right away
+    setOrders(preparedOrders);
+    if (preparedOrders.length > 0) {
+      setSelectedOrderNo(preparedOrders[0].NoProduksi);
     }
+
+    // Group into items to create (new) vs update (existing)
+    const toCreate = [];
+    const toUpdate = [];
+    preparedOrders.forEach((o) => {
+      if (o.id && o.id > 0) {
+        toUpdate.push(o);
+      } else {
+        toCreate.push(o);
+      }
+    });
+
     showToast(
-      `Berhasil mengimpor ${newOrders.length} langkah order ke dalam sistem.`,
-      'success'
+      `Menyimpan ${preparedOrders.length} order ke database SharePoint Cloud...`,
+      'info'
     );
+
+    try {
+      if (toCreate.length > 0) {
+        await orderApiService.createOrders(toCreate);
+      }
+      if (toUpdate.length > 0) {
+        await orderApiService.updateOrder(toUpdate);
+      }
+
+      showToast(
+        `Sukses! ${preparedOrders.length} order berhasil diimpor & disimpan permanen ke SharePoint Database.`,
+        'success'
+      );
+
+      // Re-fetch cloud orders after short delay to retrieve real SharePoint IDs
+      setTimeout(async () => {
+        await handleSyncCloud(true);
+      }, 1500);
+
+      return { success: true, count: preparedOrders.length };
+    } catch (cloudErr) {
+      console.error('[handleImportSuccess] Error saving to cloud:', cloudErr);
+      showToast(
+        `Order tersimpan lokal, namun gagal sync ke cloud: ${cloudErr.message}`,
+        'warning'
+      );
+      throw cloudErr;
+    } finally {
+      setIsLoadingCloud(false);
+    }
   };
 
   // Excel Export Handler

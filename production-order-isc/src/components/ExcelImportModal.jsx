@@ -6,7 +6,8 @@ import {
   CheckCircle2,
   Download,
   Info,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import { parseExcelFile, downloadTemplateExcel } from '../utils/excelHelper';
 
@@ -18,6 +19,7 @@ export default function ExcelImportModal({
 }) {
   const [file, setFile] = useState(null);
   const [parsing, setParsing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [previewData, setPreviewData] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -81,15 +83,22 @@ export default function ExcelImportModal({
     reader.readAsArrayBuffer(fileObj);
   };
 
-  const handleConfirmImport = () => {
-    if (previewData) {
-      onImportSuccess(previewData.orders, previewData.personnel);
+  const handleConfirmImport = async () => {
+    if (!previewData || isSubmitting) return;
+    setIsSubmitting(true);
+    setErrorMsg('');
+    try {
+      await onImportSuccess(previewData.orders, previewData.personnel);
       onClose();
+    } catch (err) {
+      setErrorMsg(`Gagal menyimpan ke database cloud: ${err.message || 'Terjadi kesalahan sistem'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={isSubmitting ? undefined : onClose}>
       <div className="modal-content import-modal" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="modal-header">
@@ -99,10 +108,15 @@ export default function ExcelImportModal({
             </div>
             <div>
               <h3 className="modal-title font-heading">Impor Data Excel SAP</h3>
-              <p className="modal-desc">Pilih file Excel ekspor SAP untuk memperbarui data order bengkel</p>
+              <p className="modal-desc">Pilih file Excel ekspor SAP untuk memperbarui data order bengkel & cloud</p>
             </div>
           </div>
-          <button type="button" className="modal-close-btn" onClick={onClose}>
+          <button
+            type="button"
+            className="modal-close-btn"
+            disabled={isSubmitting}
+            onClick={onClose}
+          >
             &times;
           </button>
         </div>
@@ -183,6 +197,19 @@ export default function ExcelImportModal({
               </div>
             </div>
           )}
+
+          {/* Submitting Progress Banner */}
+          {isSubmitting && (
+            <div className="alert-box alert-info flex items-center gap-3 mt-3">
+              <Loader2 size={20} className="animate-spin text-cyan flex-shrink-0" />
+              <div className="alert-content">
+                <strong>Menyimpan ke Database Cloud...</strong>
+                <div className="text-xs">
+                  Sedang mengirim dan menyinkronkan data order ke SharePoint via Power Automate. Mohon jangan menutup halaman.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal Footer */}
@@ -190,6 +217,7 @@ export default function ExcelImportModal({
           <button
             type="button"
             className="btn btn-sm btn-outline"
+            disabled={isSubmitting}
             onClick={downloadTemplateExcel}
             title="Unduh contoh template format Excel"
           >
@@ -198,17 +226,31 @@ export default function ExcelImportModal({
           </button>
 
           <div className="flex gap-2">
-            <button type="button" className="btn btn-outline" onClick={onClose}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={isSubmitting}
+              onClick={onClose}
+            >
               Batal
             </button>
             <button
               type="button"
               className="btn btn-primary-gradient"
-              disabled={!previewData || parsing}
+              disabled={!previewData || parsing || isSubmitting}
               onClick={handleConfirmImport}
             >
-              <Upload size={16} />
-              <span>Terapkan & Simpan Data</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Menyimpan ke Cloud...</span>
+                </>
+              ) : (
+                <>
+                  <Upload size={16} />
+                  <span>Terapkan & Simpan ke Cloud</span>
+                </>
+              )}
             </button>
           </div>
         </div>
