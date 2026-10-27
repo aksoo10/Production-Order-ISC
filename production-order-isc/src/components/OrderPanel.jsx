@@ -21,6 +21,7 @@ export default function OrderPanel({
   onSelectOrderNo,
   onMarkStepFinished,
   onResetOrderSteps,
+  onRevertStep,
   isAdmin,
   selectedGroup
 }) {
@@ -257,7 +258,7 @@ export default function OrderPanel({
                     <th>Nama Langkah</th>
                     <th style={{ width: '180px' }}>No. Konfirmasi</th>
                     <th style={{ width: '150px' }}>Status</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Aksi</th>
+                    <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -331,6 +332,19 @@ export default function OrderPanel({
                               <CheckCircle2 size={12} />
                               <span>Selesai</span>
                             </button>
+                          ) : isAdmin ? (
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-outline-warning flex items-center gap-1"
+                                onClick={() => onRevertStep && onRevertStep(currentOrder.NoProduksi, st.Langkah, st.id || st.ID)}
+                                title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                              >
+                                <RotateCcw size={11} />
+                                <span>Belum Selesai</span>
+                              </button>
+                            </div>
                           ) : (
                             <span className="text-xs text-muted font-mono">Terverifikasi</span>
                           )}

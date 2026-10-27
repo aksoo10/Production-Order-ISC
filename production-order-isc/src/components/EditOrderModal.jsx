@@ -109,14 +109,26 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
   };
 
   const handleStepChange = (index, field, value) => {
-    setSteps((prev) =>
-      prev.map((st, idx) => {
+    setSteps((prev) => {
+      const nextSteps = prev.map((st, idx) => {
         if (idx === index) {
           return { ...st, [field]: value };
         }
         return st;
-      })
-    );
+      });
+
+      if (field === 'Status') {
+        const allCompleted = nextSteps.every(
+          (s) => String(s.Status).toLowerCase() === 'selesai'
+        );
+        setFormData((prevForm) => ({
+          ...prevForm,
+          status: allCompleted ? 1 : 0
+        }));
+      }
+
+      return nextSteps;
+    });
   };
 
   const handleSubmit = (e) => {
@@ -138,8 +150,13 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
       return;
     }
 
+    const allCompleted = steps.every(
+      (s) => String(s.Status).toLowerCase() === 'selesai'
+    );
+
     onSubmit({
       ...formData,
+      status: allCompleted ? 1 : 0,
       steps: steps
     });
   };

@@ -15,7 +15,8 @@ import {
   Edit3,
   Loader2,
   AlertTriangle,
-  Cloud
+  Cloud,
+  RotateCcw
 } from 'lucide-react';
 import CreateOrderModal from '../CreateOrderModal';
 import EditOrderModal from '../EditOrderModal';
@@ -24,6 +25,7 @@ export default function OrdersListView({
   orders,
   onSelectOrderAndOpenScanner,
   onMarkStepFinished,
+  onRevertStep,
   isAdmin,
   selectedGroup,
   onSyncCloud,
@@ -364,7 +366,7 @@ export default function OrdersListView({
                                     <th>Nama Langkah</th>
                                     <th style={{ width: '160px' }}>No. Konfirmasi</th>
                                     <th style={{ width: '140px' }}>Status</th>
-                                    <th style={{ width: '120px', textAlign: 'center' }}>Aksi</th>
+                                    <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -400,6 +402,19 @@ export default function OrdersListView({
                                             >
                                               Selesai
                                             </button>
+                                          ) : isAdmin ? (
+                                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                              <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                                              <button
+                                                type="button"
+                                                className="btn btn-xs btn-outline-warning flex items-center gap-1"
+                                                onClick={() => onRevertStep && onRevertStep(ord.NoProduksi, st.Langkah, st.id || st.ID)}
+                                                title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                                              >
+                                                <RotateCcw size={11} />
+                                                <span>Belum Selesai</span>
+                                              </button>
+                                            </div>
                                           ) : (
                                             <span className="text-xs text-muted font-mono">Terverifikasi</span>
                                           )}
