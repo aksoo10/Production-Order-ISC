@@ -3034,6 +3034,45 @@ select.modal-input option {
   margin-bottom: 12px;
 }
 
+.operator-filter-pill-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  transition: all var(--transition-fast);
+}
+
+.operator-filter-pill-container:hover {
+  border-color: var(--border-strong);
+}
+
+.operator-filter-pill-container:focus-within {
+  border-color: var(--atz-cyan);
+  box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.2);
+  background-color: var(--bg-surface);
+}
+
+.operator-select-dropdown {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.operator-select-dropdown option {
+  background-color: #121214;
+  color: #FFFFFF;
+  padding: 6px 10px;
+}
+
 /* Panel Field Style */
 .searchable-combobox-field {
   display: flex;

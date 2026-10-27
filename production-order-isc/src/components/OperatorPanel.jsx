@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { UserCheck, Users, X } from 'lucide-react';
 import { INITIAL_PERSONNEL } from '../utils/initialData';
 import BarcodeCard from './BarcodeCard';
-import SearchableOperatorSelect from './SearchableOperatorSelect';
 
 export default function OperatorPanel({
   personnel = [],
@@ -52,15 +51,35 @@ export default function OperatorPanel({
         </span>
       </div>
 
-      {/* Unified Searchable Dropdown Field (Dropdown & Search Combined in 1 Field) */}
+      {/* Operator Filter Dropdown (Murni Filter Dropdown, Tanpa Search) */}
       <div className="operator-select-field-section">
-        <SearchableOperatorSelect
-          personnel={allPersonnel}
-          selectedOperator={activeOperator}
-          onSelectOperator={onSelectOperator}
-          variant="panel"
-          selectedGroup={selectedGroup}
-        />
+        <div className="operator-filter-pill-container">
+          <div className="combobox-field-label">
+            <UserCheck size={16} className="text-cyan" />
+            <span className="label-text">OPERATOR:</span>
+          </div>
+          <select
+            className="operator-select-dropdown"
+            value={activeOperator?.NoPersonal || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (!val) {
+                onSelectOperator(null);
+              } else {
+                const op = allPersonnel.find((p) => String(p.NoPersonal) === String(val));
+                onSelectOperator(op || null);
+              }
+            }}
+            title="Pilih Operator Bengkel"
+          >
+            <option value="">-- Pilih Operator ({allPersonnel.length}) --</option>
+            {allPersonnel.map((op) => (
+              <option key={op.NoPersonal || op.Nama} value={op.NoPersonal}>
+                {op.Nama} — No. Personal: {op.NoPersonal} ({op.ProductGroup || 'PKW'})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Selected Operator Highlight & Barcode (Ready for Scanner) */}
@@ -107,7 +126,7 @@ export default function OperatorPanel({
           <UserCheck size={32} className="text-cyan mb-2" />
           <div className="prompt-title">Pilih Operator di Dropdown Atas</div>
           <div className="prompt-subtitle">
-            Ketik nama atau No. Personal pada kolom dropdown di atas untuk menampilkan Barcode yang akan di-scan ke SAP.
+            Pilih nama operator pada filter dropdown di atas untuk menampilkan Barcode No. Personal yang akan di-scan ke SAP.
           </div>
         </div>
       )}

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   LogOut,
-  Layers
+  Layers,
+  UserCheck
 } from 'lucide-react';
 import andritzLogo from '../assets/andritz-logo.png';
-import SearchableOperatorSelect from './SearchableOperatorSelect';
+import { INITIAL_PERSONNEL } from '../utils/initialData';
 
 export default function Navbar({
   isAdmin,
@@ -17,6 +18,23 @@ export default function Navbar({
   selectedOperator = null,
   onSelectOperator = () => {}
 }) {
+  // Ensure all personnel are loaded without exception
+  const allPersonnel = useMemo(() => {
+    const list = Array.isArray(personnel) && personnel.length > 0 ? personnel : INITIAL_PERSONNEL;
+    const map = new Map();
+    list.forEach((p) => {
+      if (p && (p.NoPersonal || p.Nama)) {
+        map.set(String(p.NoPersonal || p.Nama), p);
+      }
+    });
+    INITIAL_PERSONNEL.forEach((base) => {
+      if (!map.has(String(base.NoPersonal))) {
+        map.set(String(base.NoPersonal), base);
+      }
+    });
+    return Array.from(map.values());
+  }, [personnel]);
+
   return (
     <header className="app-header">
       {/* Brand & Title: Official ANDRITZ Corporate Identity */}
@@ -63,14 +81,32 @@ export default function Navbar({
           </select>
         </div>
 
-        {/* Operator Filter / Dropdown Pill */}
-        <SearchableOperatorSelect
-          personnel={personnel}
-          selectedOperator={selectedOperator}
-          onSelectOperator={onSelectOperator}
-          variant="navbar"
-          selectedGroup={selectedGroup}
-        />
+        {/* Operator Filter (Murni Dropdown Filter, Tanpa Search) */}
+        <div className="filter-pill-group">
+          <UserCheck size={14} className="filter-icon" />
+          <span className="filter-label">OPERATOR:</span>
+          <select
+            className="filter-select"
+            value={selectedOperator?.NoPersonal || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (!val) {
+                onSelectOperator(null);
+              } else {
+                const op = allPersonnel.find((p) => String(p.NoPersonal) === String(val));
+                onSelectOperator(op || null);
+              }
+            }}
+            title="Saring data berdasarkan Operator"
+          >
+            <option value="">Semua Operator ({allPersonnel.length})</option>
+            {allPersonnel.map((op) => (
+              <option key={op.NoPersonal || op.Nama} value={op.NoPersonal}>
+                {op.Nama}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Logout Button */}
         <button
