@@ -125,12 +125,12 @@ export default function Sidebar({
               <div className="sidebar-admin-actions">
                 <button
                   type="button"
-                  className="sidebar-action-btn primary"
+                  className="sidebar-action-btn"
                   onClick={onOpenImport}
-                  title="Impor file Excel dari SAP"
+                  title="Impor order dari file Excel"
                 >
                   <Upload size={16} />
-                  {!collapsed && <span>Impor Excel SAP</span>}
+                  {!collapsed && <span>Impor Order (Excel)</span>}
                 </button>
 
                 <button

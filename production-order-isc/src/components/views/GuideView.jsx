@@ -100,7 +100,7 @@ export default function GuideView() {
                 <li>Klik tombol <strong className="text-cyan">Masuk Admin</strong> di sidebar bawah.</li>
                 <li>Ketik kata sandi awal: <code className="font-mono font-bold text-main">isc-admin</code>, lalu klik <strong>Masuk</strong>.</li>
                 <li>Ganti sandi: Klik menu <strong className="text-main">Ganti Sandi</strong> di sidebar, masukkan sandi baru (minimal 6 karakter), lalu simpan.</li>
-                <li>Klik <strong className="text-main">Impor Excel SAP</strong>, pilih file Excel yang telah disiapkan di tahap A.</li>
+                <li>Klik <strong className="text-main">Impor Order (Excel)</strong>, pilih file Excel yang telah disiapkan di tahap A.</li>
                 <li>Pastikan daftar order dan operator langsung muncul dengan benar di Terminal Scanner.</li>
               </ol>
             </div>
