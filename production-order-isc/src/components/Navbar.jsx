@@ -1,9 +1,7 @@
 import React from 'react';
 import {
-  ShieldCheck,
   LogOut,
-  Layers,
-  UserCheck
+  Layers
 } from 'lucide-react';
 import andritzLogo from '../assets/andritz-logo.png';
 
@@ -40,7 +38,7 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Right Controls: Filter (moved next to operator/admin) + User Profile Info & Logout */}
+      {/* Right Controls: Filter + Logout */}
       <div className="header-right-controls">
         {/* Product Group Filter */}
         <div className="filter-pill-group">
@@ -59,23 +57,6 @@ export default function Navbar({
               </option>
             ))}
           </select>
-        </div>
-
-        {/* User Session Pill */}
-        <div className={`status-mode-pill ${isAdmin ? 'admin-mode' : 'user-mode'}`}>
-          {isAdmin ? (
-            <>
-              <ShieldCheck size={15} color="#34D399" />
-              <span className="user-role-label">Admin</span>
-              <span className="user-name-label">: {currentUser?.username || 'Supervisor'}</span>
-            </>
-          ) : (
-            <>
-              <UserCheck size={14} color="#38BDF8" />
-              <span className="user-role-label">Operator</span>
-              <span className="user-name-label">: {currentUser?.username || 'Operator'}</span>
-            </>
-          )}
         </div>
 
         {/* Logout Button */}
