@@ -18,18 +18,18 @@ export default function AdminLoginModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     const p = password.trim();
-    if (p === currentPassword || p === 'admin' || p === 'isc-admin' || p === 'admin123') {
+    if (p === currentPassword || p === 'admin123' || p === 'admin' || p === 'isc-admin') {
       setErrorMsg('');
       setPassword('');
       onSuccess();
     } else {
-      setErrorMsg('Sandi salah. Sandi hard-code adalah: admin');
+      setErrorMsg('Sandi salah. Sandi bawaan adalah: admin123');
     }
   };
 
   const handleReset = () => {
     onResetPassword();
-    setPassword('isc-admin');
+    setPassword('admin123');
     setErrorMsg('');
     setShowForgotPrompt(false);
   };
@@ -72,7 +72,7 @@ export default function AdminLoginModal({
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="form-control pl-9 pr-9 font-mono"
-                  placeholder="Masukkan sandi (default: isc-admin)"
+                  placeholder="Masukkan sandi (default: admin123)"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
@@ -90,7 +90,7 @@ export default function AdminLoginModal({
                 </button>
               </div>
               <span className="form-hint">
-                Sandi awal bawaan sistem adalah <code className="font-mono">isc-admin</code>
+                Sandi awal bawaan sistem adalah <code className="font-mono">admin123</code>
               </span>
             </div>
 
@@ -107,7 +107,7 @@ export default function AdminLoginModal({
               ) : (
                 <div className="forgot-reset-panel">
                   <div className="text-xs text-muted mb-2">
-                    Sandi tersimpan di browser ini. Jika lupa, Anda dapat mereset sandi kembali ke bawaan pabrik: <strong className="text-white font-mono">isc-admin</strong>.
+                    Sandi tersimpan di browser ini. Jika lupa, Anda dapat mereset sandi kembali ke bawaan pabrik: <strong className="text-white font-mono">admin123</strong>.
                   </div>
                   <button
                     type="button"
@@ -115,7 +115,7 @@ export default function AdminLoginModal({
                     onClick={handleReset}
                   >
                     <RotateCcw size={12} />
-                    <span>Reset Sandi ke isc-admin</span>
+                    <span>Reset Sandi ke admin123</span>
                   </button>
                 </div>
               )}

@@ -106,7 +106,7 @@ export default function HelpModal({ isOpen, onClose }) {
                 <ol className="help-step-list">
                   <li>Buka halaman aplikasi di browser.</li>
                   <li>Klik tombol <strong className="text-cyan">Masuk admin</strong> di pojok kanan atas.</li>
-                  <li>Ketik kata sandi awal: <code className="font-mono font-bold text-white">isc-admin</code>, lalu klik <strong className="text-cyan">Masuk</strong>.</li>
+                  <li>Ketik username: <code className="font-mono font-bold text-white">admin@andritz.com</code> dan kata sandi: <code className="font-mono font-bold text-white">admin123</code>, lalu klik <strong className="text-cyan">Masuk</strong>.</li>
                   <li>Ganti sandi: Klik tombol <strong className="text-white">Ganti Sandi</strong>, masukkan sandi baru (minimal 6 karakter), lalu klik Ganti sandi.</li>
                   <li>Klik <strong className="text-white">Impor Excel</strong>, pilih file Excel yang telah disiapkan di tahap A.</li>
                   <li>Pastikan daftar order dan operator langsung muncul dengan benar di Kolom 1 dan Kolom 2.</li>
@@ -190,7 +190,7 @@ export default function HelpModal({ isOpen, onClose }) {
                 </div>
                 <div className="faq-item">
                   <div className="faq-q">Lupa kata sandi admin</div>
-                  <div className="faq-a">Buka modal Masuk Admin, klik <em>"Lupa sandi?"</em> dan pilih tombol <strong>"Reset Sandi ke isc-admin"</strong> untuk mengembalikannya ke sandi awal bawaan.</div>
+                  <div className="faq-a">Buka modal Masuk Admin, klik <em>"Lupa sandi?"</em> dan pilih tombol <strong>"Reset Sandi ke admin123"</strong> untuk mengembalikannya ke sandi awal bawaan.</div>
                 </div>
               </div>
             )}

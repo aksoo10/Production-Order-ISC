@@ -98,7 +98,7 @@ export default function GuideView() {
               <ol className="help-step-list">
                 <li>Buka halaman aplikasi di browser.</li>
                 <li>Klik tombol <strong className="text-cyan">Masuk Admin</strong> di sidebar bawah.</li>
-                <li>Ketik kata sandi awal: <code className="font-mono font-bold text-main">isc-admin</code>, lalu klik <strong>Masuk</strong>.</li>
+                <li>Ketik username: <code className="font-mono font-bold text-main">admin@andritz.com</code> dan kata sandi: <code className="font-mono font-bold text-main">admin123</code>, lalu klik <strong>Masuk</strong>.</li>
                 <li>Ganti sandi: Klik menu <strong className="text-main">Ganti Sandi</strong> di sidebar, masukkan sandi baru (minimal 6 karakter), lalu simpan.</li>
                 <li>Klik <strong className="text-main">Impor Order (Excel)</strong>, pilih file Excel yang telah disiapkan di tahap A.</li>
                 <li>Pastikan daftar order dan operator langsung muncul dengan benar di Terminal Scanner.</li>
@@ -183,7 +183,7 @@ export default function GuideView() {
               </div>
               <div className="faq-item">
                 <div className="faq-q">Lupa kata sandi admin</div>
-                <div className="faq-a">Buka form Masuk Admin, klik <em>"Lupa sandi?"</em> dan pilih tombol <strong>"Reset Sandi ke isc-admin"</strong> untuk mengembalikannya ke sandi awal bawaan.</div>
+                <div className="faq-a">Buka form Masuk Admin, klik <em>"Lupa sandi?"</em> dan pilih tombol <strong>"Reset Sandi ke admin123"</strong> untuk mengembalikannya ke sandi awal bawaan.</div>
               </div>
             </div>
           )}

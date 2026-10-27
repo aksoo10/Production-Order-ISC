@@ -62,18 +62,18 @@ export default function LoginView({
     const u = adminUsername.trim().toLowerCase();
     const p = adminPass.trim();
 
-    const validAdminUsers = ['admin', 'supervisor', 'isc-admin'];
-    const validAdminPass = ['admin', 'isc-admin', 'admin123', adminPassword];
+    const validAdminUsers = ['admin@andritz.com', 'admin', 'supervisor', 'isc-admin'];
+    const validAdminPass = ['admin123', adminPassword, 'admin', 'isc-admin'];
 
     if (!validAdminUsers.includes(u)) {
-      setErrorMsg('Username administrator tidak ditemukan.');
+      setErrorMsg('Username administrator tidak ditemukan. Gunakan admin@andritz.com');
       return;
     }
 
     if (validAdminPass.includes(p)) {
       onLoginSuccess({
         role: 'admin',
-        username: 'Supervisor Admin',
+        username: u === 'admin@andritz.com' ? 'admin@andritz.com' : 'Supervisor Admin',
         operator: null
       });
     } else {
@@ -174,7 +174,7 @@ export default function LoginView({
                   className="form-control pl-9 font-mono font-bold"
                   value={adminUsername}
                   onChange={(e) => setAdminUsername(e.target.value)}
-                  placeholder="Masukkan username admin"
+                  placeholder="admin@andritz.com"
                   autoFocus
                   required
                 />

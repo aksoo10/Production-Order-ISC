@@ -158,9 +158,13 @@ export default function App() {
     }
   });
 
-  // Admin password with 1-minute localStorage persistence (Default: 'isc-admin')
+  // Admin password with localStorage persistence (Default: 'admin123')
   const [adminPassword, setAdminPassword] = useState(() => {
-    return getStorageItem('isc_production_admin_password') || 'isc-admin';
+    const saved = getStorageItem('isc_production_admin_password');
+    if (saved === 'isc-admin' || !saved) {
+      return 'admin123';
+    }
+    return saved;
   });
 
   // User password with 1-minute localStorage persistence (Default: 'isc-operator')
@@ -792,8 +796,8 @@ export default function App() {
   };
 
   const handleResetAdminPassword = () => {
-    setAdminPassword('isc-admin');
-    showToast('Kata sandi admin telah direset ke default: isc-admin', 'info');
+    setAdminPassword('admin123');
+    showToast('Kata sandi admin telah direset ke default: admin123', 'info');
   };
 
   // Cross-view shortcuts
