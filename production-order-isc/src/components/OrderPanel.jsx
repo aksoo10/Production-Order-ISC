@@ -198,8 +198,8 @@ export default function OrderPanel({
               </div>
 
               <div className="spotlight-content-grid">
-                {/* Left: Step Description & Admin Completion Button */}
-                <div className="spotlight-info-col">
+                {/* Step Description & Confirmation Number Header */}
+                <div className="spotlight-header-meta">
                   <div className="step-name-box">
                     <span className="text-muted text-xs tracking-wider uppercase font-semibold">Nama Langkah:</span>
                     <h4 className="active-step-title">{currentOrder.activeStep.NamaLangkah}</h4>
@@ -208,47 +208,21 @@ export default function OrderPanel({
                   <div className="konfirmasi-meta-box">
                     <span className="text-muted text-xs tracking-wider uppercase font-semibold">No. Konfirmasi SAP:</span>
                     <div className="konfirmasi-display font-mono">
-                      <span>{currentOrder.activeStep.NoKonfirmasi}</span>
+                      <span>{currentOrder.activeStep.NoKonfirmasi || currentOrder.NoProduksi}</span>
                     </div>
                   </div>
-
-                  {/* Admin-only "Tandai Selesai" button */}
-                  {isAdmin ? (
-                    <div className="admin-step-action-box">
-                      <div className="admin-action-hint">
-                        <Sparkles size={14} color="#F59E0B" />
-                        <span>Aksi Admin: Klik tombol di bawah untuk menyelesaikan langkah ini dan mengaktifkan langkah berikutnya.</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-success-gradient w-full"
-                        onClick={() => onMarkStepFinished(currentOrder.NoProduksi, currentOrder.activeStep.Langkah)}
-                        title="Tandai langkah aktif ini selesai dan lanjutkan ke langkah berikutnya"
-                      >
-                        <CheckCircle2 size={18} />
-                        <span>Tandai Selesai & Lanjut Langkah Berikutnya</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="user-scan-guide-box">
-                      <Scan size={18} color="#00A3E0" className="pulse-icon" />
-                      <span>
-                        Operator bengkel: Scan barcode No. Konfirmasi di samping ke layar SAP monitor Anda.
-                      </span>
-                    </div>
-                  )}
                 </div>
 
-                {/* Right: Crisp Barcode of NoKonfirmasi for Scanner */}
-                <div className="spotlight-barcode-col">
+                {/* Always Prominently Displayed Barcode for Scanning into SAP (Admin & Operator) */}
+                <div className="spotlight-barcode-wrapper">
                   <BarcodeCard
-                    value={currentOrder.activeStep.NoKonfirmasi}
+                    value={currentOrder.activeStep.NoKonfirmasi || currentOrder.NoProduksi}
                     label="BARCODE NO. KONFIRMASI"
                     subtitle={`Langkah ${currentOrder.activeStep.Langkah}: ${currentOrder.activeStep.NamaLangkah}`}
                     badgeText="2. Scan No. Konfirmasi ke SAP"
                     highlightColor="#00A3E0"
-                    height={72}
-                    width={2.4}
+                    height={80}
+                    width={2.2}
                     fontSize={17}
                   />
                 </div>
@@ -261,17 +235,6 @@ export default function OrderPanel({
               <div className="all-completed-subtitle">
                 Seluruh {currentOrder.totalSteps} langkah telah selesai diproses di bengkel ISC.
               </div>
-              {isAdmin && (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline mt-3"
-                  onClick={() => onResetOrderSteps(currentOrder.NoProduksi)}
-                  title="Reset status semua langkah order ini kembali ke Berjalan (Hanya untuk keperluan testing)"
-                >
-                  <RotateCcw size={14} />
-                  <span>Reset Langkah Order (Mode Tes)</span>
-                </button>
-              )}
             </div>
           )}
 
@@ -282,7 +245,7 @@ export default function OrderPanel({
                 Rangkaian Seluruh Langkah ({currentOrder.steps.length} Langkah):
               </h4>
               <span className="text-xs text-muted">
-                {isAdmin ? 'Admin dapat menandai selesai tiap langkah' : 'Satu langkah aktif ditandai secara berurutan'}
+                Daftar langkah kerja dan verifikasi nomor konfirmasi SAP
               </span>
             </div>
 
@@ -292,9 +255,8 @@ export default function OrderPanel({
                   <tr>
                     <th style={{ width: '80px' }}>Langkah</th>
                     <th>Nama Langkah</th>
-                    <th style={{ width: '170px' }}>No. Konfirmasi</th>
-                    <th style={{ width: '140px' }}>Status</th>
-                    {isAdmin && <th style={{ width: '130px', textAlign: 'center' }}>Aksi Admin</th>}
+                    <th style={{ width: '180px' }}>No. Konfirmasi</th>
+                    <th style={{ width: '150px' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -350,27 +312,6 @@ export default function OrderPanel({
                             </span>
                           )}
                         </td>
-
-                        {/* Admin Action */}
-                        {isAdmin && (
-                          <td className="step-action-cell" style={{ textAlign: 'center' }}>
-                            {isActive ? (
-                              <button
-                                type="button"
-                                className="btn btn-xs btn-success"
-                                onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
-                                title="Tandai Selesai"
-                              >
-                                <CheckCircle2 size={12} />
-                                <span>Selesai</span>
-                              </button>
-                            ) : isStepComplete ? (
-                              <span className="text-xs text-muted font-mono">Terverifikasi</span>
-                            ) : (
-                              <span className="text-xs text-muted">-</span>
-                            )}
-                          </td>
-                        )}
                       </tr>
                     );
                   })}

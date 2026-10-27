@@ -1694,33 +1694,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .spotlight-content-grid {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 18px;
-  align-items: center;
-  min-width: 0;
-}
-
-@media (max-width: 1024px) {
-  .spotlight-content-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  .spotlight-barcode-col {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-  .spotlight-barcode-col .barcode-card-container {
-    width: 100%;
-    max-width: 500px;
-  }
-}
-
-.spotlight-info-col {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  width: 100%;
+}
+
+.spotlight-header-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.spotlight-barcode-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.spotlight-barcode-wrapper .barcode-card-container {
+  width: 100%;
+  box-shadow: 0 4px 18px rgba(0, 163, 224, 0.15);
 }
 
 .step-name-box {
