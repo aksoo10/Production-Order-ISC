@@ -316,20 +316,18 @@ export default function OrderPanel({
 
                         {/* Action Column */}
                         <td className="step-action-cell" style={{ textAlign: 'center' }}>
-                          {isActive ? (
+                          {!isStepComplete ? (
                             <button
                               type="button"
-                              className="btn btn-xs btn-success flex items-center justify-center gap-1 mx-auto"
+                              className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'} flex items-center justify-center gap-1 mx-auto`}
                               onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
-                              title="Tandai Selesai"
+                              title={`Tandai Langkah ${st.Langkah} Selesai`}
                             >
                               <CheckCircle2 size={12} />
                               <span>Selesai</span>
                             </button>
-                          ) : isStepComplete ? (
-                            <span className="text-xs text-muted font-mono">Terverifikasi</span>
                           ) : (
-                            <span className="text-xs text-muted">-</span>
+                            <span className="text-xs text-muted font-mono">Terverifikasi</span>
                           )}
                         </td>
                       </tr>

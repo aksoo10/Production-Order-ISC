@@ -383,18 +383,17 @@ export default function OrdersListView({
                                           )}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
-                                          {isActive ? (
+                                          {!isDone ? (
                                             <button
                                               type="button"
-                                              className="btn btn-xs btn-success"
+                                              className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'}`}
                                               onClick={() => onMarkStepFinished(ord.NoProduksi, st.Langkah)}
+                                              title={`Tandai Langkah ${st.Langkah} Selesai`}
                                             >
                                               Selesai
                                             </button>
-                                          ) : isDone ? (
-                                            <span className="text-xs text-muted font-mono">Terverifikasi</span>
                                           ) : (
-                                            <span className="text-xs text-muted">-</span>
+                                            <span className="text-xs text-muted font-mono">Terverifikasi</span>
                                           )}
                                         </td>
                                       </tr>

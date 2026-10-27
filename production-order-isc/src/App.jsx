@@ -116,14 +116,43 @@ export default function App() {
     }
   });
 
-  // Orders state with 1-minute localStorage persistence
+  // Orders state with localStorage persistence and custom steps hydration
   const [orders, setOrders] = useState(() => {
     try {
+      const registry = getStorageItem('isc_production_order_steps', {}) || {};
       const saved = getStorageItem('isc_production_orders');
-      if (saved && Array.isArray(saved) && saved.length > 0 && !isDummyOrders(saved)) {
-        return saved;
+      const baseOrders = (saved && Array.isArray(saved) && saved.length > 0 && !isDummyOrders(saved))
+        ? saved
+        : INITIAL_ORDERS;
+
+      if (registry && Object.keys(registry).length > 0) {
+        const expanded = [];
+        const processed = new Set();
+        baseOrders.forEach((item) => {
+          const num = String(item.NoProduksi || item.orderNo || '').trim();
+          if (processed.has(num)) return;
+          processed.add(num);
+
+          const customSteps = registry[num];
+          if (customSteps && Array.isArray(customSteps) && customSteps.length > 0) {
+            customSteps.forEach((st, idx) => {
+              expanded.push({
+                ...item,
+                Langkah: idx + 1,
+                NamaLangkah: st.NamaLangkah || `${item.title || 'Langkah'} ${idx + 1}`,
+                NoKonfirmasi: st.NoKonfirmasi || item.NoKonfirmasi || item.NoProduksi,
+                Status: st.Status || 'Berjalan',
+                status: String(st.Status).toLowerCase() === 'selesai' ? 1 : 0
+              });
+            });
+          } else {
+            expanded.push(item);
+          }
+        });
+        return expanded;
       }
-      return INITIAL_ORDERS;
+
+      return baseOrders;
     } catch {
       return INITIAL_ORDERS;
     }
@@ -302,21 +331,48 @@ export default function App() {
     showToast('Anda telah keluar dari sistem.', 'info');
   };
 
+  // Helper to read and save persistent custom order steps registry
+  const getCustomStepsRegistry = () => {
+    return getStorageItem('isc_production_order_steps', {}) || {};
+  };
+
+  const saveCustomStepsRegistry = (registry) => {
+    setStorageItem('isc_production_order_steps', registry);
+  };
+
   // Mark active step as finished
   const handleMarkStepFinished = (orderNo, stepNumber) => {
+    const sOrderNo = String(orderNo).trim();
+
+    // 1. Update persistent custom steps registry
+    try {
+      const registry = getCustomStepsRegistry();
+      if (registry[sOrderNo]) {
+        registry[sOrderNo] = registry[sOrderNo].map((st) => {
+          if (Number(st.Langkah) === Number(stepNumber)) {
+            return { ...st, Status: 'Selesai' };
+          }
+          return st;
+        });
+        saveCustomStepsRegistry(registry);
+      }
+    } catch (e) {
+      console.warn('[handleMarkStepFinished] Gagal update registry langkah:', e);
+    }
+
     setOrders((prevOrders) => {
       const updated = prevOrders.map((step) => {
         if (
-          String(step.NoProduksi).trim() === String(orderNo).trim() &&
+          String(step.NoProduksi).trim() === sOrderNo &&
           Number(step.Langkah) === Number(stepNumber)
         ) {
-          return { ...step, Status: 'Selesai' };
+          return { ...step, Status: 'Selesai', status: 1 };
         }
         return step;
       });
 
       const orderSteps = updated
-        .filter((s) => String(s.NoProduksi).trim() === String(orderNo).trim())
+        .filter((s) => String(s.NoProduksi).trim() === sOrderNo)
         .sort((a, b) => Number(a.Langkah) - Number(b.Langkah));
 
       const nextActive = orderSteps.find(
@@ -333,7 +389,7 @@ export default function App() {
       }
 
       // Auto-sync status to SharePoint if order has cloud ID
-      const targetOrder = prevOrders.find((o) => String(o.NoProduksi).trim() === String(orderNo).trim());
+      const targetOrder = prevOrders.find((o) => String(o.NoProduksi).trim() === sOrderNo);
       if (targetOrder && targetOrder.id && targetOrder.id > 0) {
         orderApiService.updateOrder({
           id: targetOrder.id,
@@ -343,13 +399,14 @@ export default function App() {
         }).catch((err) => console.warn('[AutoSync] Cloud update failed:', err));
       }
 
+      setStorageItem('isc_production_orders', updated);
       return updated;
     });
   };
 
   // --- CLOUD CRUD HANDLERS (Power Automate & SharePoint) ---
 
-  // 1. READ: Sync orders from Cloud SharePoint
+  // 1. READ: Sync orders from Cloud SharePoint while preserving all custom added steps
   const handleSyncCloud = async (silent = false) => {
     setIsLoadingCloud(true);
     try {
@@ -359,13 +416,69 @@ export default function App() {
           (o) => o && o.NoProduksi && o.NoProduksi !== '-' && (o.customers || o.title || o.materialDescription)
         );
         if (validOrders.length > 0) {
+          const registry = getCustomStepsRegistry();
+
           setOrders((prevOrders) => {
+            // Group existing local steps by order number to ensure no added step is lost
+            const localStepsByOrder = new Map();
+            (prevOrders || []).forEach((item) => {
+              const num = String(item.NoProduksi || item.orderNo || '').trim();
+              if (!num) return;
+              if (!localStepsByOrder.has(num)) {
+                localStepsByOrder.set(num, []);
+              }
+              localStepsByOrder.get(num).push(item);
+            });
+
+            const expandedOrders = [];
+            const cloudOrderNos = new Set();
+
+            validOrders.forEach((cloudOrder) => {
+              const orderNo = String(cloudOrder.NoProduksi || cloudOrder.orderNo || '').trim();
+              cloudOrderNos.add(orderNo);
+
+              const registeredSteps = registry[orderNo];
+              const prevStepItems = localStepsByOrder.get(orderNo);
+
+              if (registeredSteps && Array.isArray(registeredSteps) && registeredSteps.length > 0) {
+                // Expand order with persistently saved custom steps
+                registeredSteps.forEach((st, idx) => {
+                  expandedOrders.push({
+                    ...cloudOrder,
+                    id: st.id || (idx === 0 ? cloudOrder.id : (cloudOrder.id ? cloudOrder.id * 1000 + idx : Date.now() + idx)),
+                    ID: st.id || (idx === 0 ? cloudOrder.ID : (cloudOrder.ID ? cloudOrder.ID * 1000 + idx : Date.now() + idx)),
+                    Langkah: idx + 1,
+                    NamaLangkah: st.NamaLangkah || `${cloudOrder.title || 'Langkah'} ${idx + 1}`,
+                    NoKonfirmasi: st.NoKonfirmasi || cloudOrder.NoKonfirmasi || cloudOrder.NoProduksi,
+                    Status: st.Status || 'Berjalan',
+                    status: String(st.Status).toLowerCase() === 'selesai' ? 1 : 0
+                  });
+                });
+              } else if (prevStepItems && prevStepItems.length > 1) {
+                // Keep previously added local steps for this order
+                prevStepItems.forEach((st, idx) => {
+                  expandedOrders.push({
+                    ...cloudOrder,
+                    ...st,
+                    id: st.id || (idx === 0 ? cloudOrder.id : (cloudOrder.id ? cloudOrder.id * 1000 + idx : Date.now() + idx)),
+                    ID: st.ID || (idx === 0 ? cloudOrder.ID : (cloudOrder.ID ? cloudOrder.ID * 1000 + idx : Date.now() + idx)),
+                    Langkah: idx + 1
+                  });
+                });
+              } else {
+                // Baseline order from cloud
+                expandedOrders.push(cloudOrder);
+              }
+            });
+
             // Keep any locally created/imported orders that have not yet synced to cloud
-            const cloudOrderNos = new Set(validOrders.map((o) => String(o.NoProduksi).trim()));
             const pendingLocal = (prevOrders || []).filter(
               (lo) => lo && lo.NoProduksi && !cloudOrderNos.has(String(lo.NoProduksi).trim())
             );
-            return [...validOrders, ...pendingLocal];
+
+            const merged = [...expandedOrders, ...pendingLocal];
+            setStorageItem('isc_production_orders', merged);
+            return merged;
           });
 
           setSelectedOrderNo((prev) =>
@@ -402,20 +515,38 @@ export default function App() {
   const handleCreateOrder = async (orderData) => {
     setIsLoadingCloud(true);
     try {
+      const targetNo = String(orderData.orderNo || '').trim();
+      const divGroup = orderData.orderDivision ? orderData.orderDivision.split(/[\s&/]+/)[0].toUpperCase() : 'PKW';
+      const prodGroup = orderData.ProductGroup || divGroup || 'PKW';
+
+      // Persist custom steps
+      if (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0) {
+        const registry = getCustomStepsRegistry();
+        registry[targetNo] = orderData.steps.map((st, idx) => ({
+          Langkah: idx + 1,
+          NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
+          NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
+          Status: st.Status || 'Berjalan'
+        }));
+        saveCustomStepsRegistry(registry);
+      }
+
       const itemsToCreate = (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0)
         ? orderData.steps.map((st, idx) => ({
             ...orderData,
+            ProductGroup: prodGroup,
+            orderDivision: orderData.orderDivision || 'PKW Wood Process.Ser',
             Langkah: idx + 1,
             NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
             NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
             Status: st.Status || 'Berjalan',
             status: st.Status === 'Selesai' ? 1 : 0
           }))
-        : [orderData];
+        : [{ ...orderData, ProductGroup: prodGroup }];
 
       await orderApiService.createOrders(itemsToCreate);
       showToast(`Order #${orderData.orderNo} (${itemsToCreate.length} langkah) berhasil disimpan ke SharePoint Cloud!`, 'success');
-      await handleSyncCloud();
+      await handleSyncCloud(true);
     } catch (err) {
       showToast(`Gagal membuat order: ${err.message}`, 'error');
       setIsLoadingCloud(false);
@@ -426,11 +557,31 @@ export default function App() {
   const handleUpdateOrder = async (orderData) => {
     setIsLoadingCloud(true);
     try {
-      await orderApiService.updateOrder(orderData);
+      const targetNo = String(orderData.orderNo || '').trim();
+      const divGroup = orderData.orderDivision ? orderData.orderDivision.split(/[\s&/]+/)[0].toUpperCase() : 'PKW';
+      const prodGroup = orderData.ProductGroup || divGroup || 'PKW';
+
+      // Persist custom steps to registry immediately
+      if (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0) {
+        const registry = getCustomStepsRegistry();
+        registry[targetNo] = orderData.steps.map((st, idx) => ({
+          id: st.id,
+          Langkah: idx + 1,
+          NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
+          NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
+          Status: st.Status || 'Berjalan'
+        }));
+        saveCustomStepsRegistry(registry);
+      }
+
+      await orderApiService.updateOrder({
+        ...orderData,
+        ProductGroup: prodGroup
+      });
       showToast(`Perubahan Order #${orderData.orderNo} berhasil diupdate ke SharePoint!`, 'success');
+
       setOrders((prev) => {
         if (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0) {
-          const targetNo = String(orderData.orderNo || '').trim();
           const otherOrders = prev.filter((o) => {
             const oNo = String(o.NoProduksi || o.orderNo || '').trim();
             const oId = o.id || o.ID;
@@ -441,9 +592,12 @@ export default function App() {
             id: st.id || (idx === 0 ? orderData.id : Date.now() + idx),
             ID: st.id || (idx === 0 ? orderData.id : Date.now() + idx),
             ...orderData,
+            ProductGroup: prodGroup,
+            orderDivision: orderData.orderDivision || 'PKW Wood Process.Ser',
             NoProduksi: targetNo,
             orderNo: targetNo,
             title: orderData.title,
+            materialDescription: orderData.materialDescription || orderData.title,
             Langkah: idx + 1,
             NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
             NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
@@ -451,19 +605,24 @@ export default function App() {
             status: st.Status === 'Selesai' ? 1 : (orderData.status || 0)
           }));
 
-          return [...otherOrders, ...updatedSteps];
+          const nextList = [...otherOrders, ...updatedSteps];
+          setStorageItem('isc_production_orders', nextList);
+          return nextList;
         }
 
-        return prev.map((o) => {
+        const nextList = prev.map((o) => {
           if ((orderData.id && o.id === orderData.id) || o.NoProduksi === orderData.orderNo) {
             return {
               ...o,
               ...orderData,
+              ProductGroup: prodGroup,
               Status: orderData.status === 1 ? 'Selesai' : 'Berjalan'
             };
           }
           return o;
         });
+        setStorageItem('isc_production_orders', nextList);
+        return nextList;
       });
     } catch (err) {
       showToast(`Gagal mengupdate order: ${err.message}`, 'error');
@@ -476,6 +635,13 @@ export default function App() {
   const handleDeleteOrder = async (orderObj) => {
     setIsLoadingCloud(true);
     try {
+      const targetNo = String(orderObj.NoProduksi || orderObj.orderNo || '').trim();
+      const registry = getCustomStepsRegistry();
+      if (registry[targetNo]) {
+        delete registry[targetNo];
+        saveCustomStepsRegistry(registry);
+      }
+
       if (orderObj.id && orderObj.id > 0) {
         try {
           await orderApiService.deleteOrder(orderObj.id);
@@ -484,9 +650,11 @@ export default function App() {
         }
       }
       // Always remove order and all its steps from local state and storage
-      setOrders((prev) =>
-        prev.filter((o) => o.NoProduksi !== orderObj.NoProduksi && (!orderObj.id || o.id !== orderObj.id))
-      );
+      setOrders((prev) => {
+        const nextList = prev.filter((o) => o.NoProduksi !== orderObj.NoProduksi && (!orderObj.id || o.id !== orderObj.id));
+        setStorageItem('isc_production_orders', nextList);
+        return nextList;
+      });
       if (selectedOrderNo === orderObj.NoProduksi) {
         setSelectedOrderNo('');
       }
@@ -500,14 +668,23 @@ export default function App() {
 
   // Reset steps for testing mode
   const handleResetOrderSteps = (orderNo) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((step) => {
-        if (String(step.NoProduksi).trim() === String(orderNo).trim()) {
-          return { ...step, Status: 'Berjalan' };
+    const sOrderNo = String(orderNo).trim();
+    const registry = getCustomStepsRegistry();
+    if (registry[sOrderNo]) {
+      registry[sOrderNo] = registry[sOrderNo].map((st) => ({ ...st, Status: 'Berjalan' }));
+      saveCustomStepsRegistry(registry);
+    }
+
+    setOrders((prevOrders) => {
+      const nextList = prevOrders.map((step) => {
+        if (String(step.NoProduksi).trim() === sOrderNo) {
+          return { ...step, Status: 'Berjalan', status: 0 };
         }
         return step;
-      })
-    );
+      });
+      setStorageItem('isc_production_orders', nextList);
+      return nextList;
+    });
     showToast(`Status seluruh langkah Order ${orderNo} dikembalikan ke Berjalan.`, 'info');
   };
 
