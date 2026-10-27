@@ -175,13 +175,19 @@ export default function App() {
         const customSteps = registry ? registry[num] : null;
         if (customSteps && Array.isArray(customSteps) && customSteps.length > 0) {
           customSteps.forEach((st, idx) => {
+            const defStep = DEFAULT_ORDER_STEPS[num]?.[idx];
+            const isDone =
+              String(st.Status).toLowerCase() === 'selesai' ||
+              st.status === 1 ||
+              (defStep && (String(defStep.Status).toLowerCase() === 'selesai' || defStep.status === 1));
+
             topOrders.push({
               ...item,
               Langkah: idx + 1,
               NamaLangkah: st.NamaLangkah || `${item.title || 'Langkah'} ${idx + 1}`,
               NoKonfirmasi: st.NoKonfirmasi || item.NoKonfirmasi || item.NoProduksi,
-              Status: st.Status || 'Berjalan',
-              status: String(st.Status).toLowerCase() === 'selesai' ? 1 : 0
+              Status: isDone ? 'Selesai' : 'Berjalan',
+              status: isDone ? 1 : 0
             });
           });
         } else if ((stepsCountByOrder.get(num) || 0) > 1 || hasFinishedByOrder.get(num)) {
@@ -382,7 +388,20 @@ export default function App() {
   // Helper to read and save persistent custom order steps registry
   const getCustomStepsRegistry = () => {
     const saved = getStorageItem('isc_production_order_steps', {}) || {};
-    return { ...DEFAULT_ORDER_STEPS, ...saved };
+    const merged = { ...DEFAULT_ORDER_STEPS, ...saved };
+    // Ensure default finished steps are preserved even if an older cached registry had 'Berjalan'
+    Object.entries(DEFAULT_ORDER_STEPS).forEach(([no, defSteps]) => {
+      if (merged[no] && Array.isArray(merged[no])) {
+        merged[no] = merged[no].map((st, idx) => {
+          const def = defSteps[idx];
+          if (def && (String(def.Status).toLowerCase() === 'selesai' || def.status === 1)) {
+            return { ...st, Status: 'Selesai', status: 1 };
+          }
+          return st;
+        });
+      }
+    });
+    return merged;
   };
 
   const saveCustomStepsRegistry = (registry) => {
@@ -569,8 +588,15 @@ export default function App() {
               const prevStepItems = localStepsByOrder.get(orderNo);
 
               if (registeredSteps && Array.isArray(registeredSteps) && registeredSteps.length > 0) {
-                // Expand order with persistently saved custom steps
                 registeredSteps.forEach((st, idx) => {
+                  const cStep = cloudItems[idx];
+                  const defStep = DEFAULT_ORDER_STEPS[orderNo]?.[idx];
+                  const isDone =
+                    String(st.Status).toLowerCase() === 'selesai' ||
+                    st.status === 1 ||
+                    (cStep && (String(cStep.Status).toLowerCase() === 'selesai' || cStep.status === 1)) ||
+                    (defStep && (String(defStep.Status).toLowerCase() === 'selesai' || defStep.status === 1));
+
                   customStepOrders.push({
                     ...primaryCloud,
                     id: st.id || (idx === 0 ? primaryCloud.id : (primaryCloud.id ? primaryCloud.id * 1000 + idx : Date.now() + idx)),
@@ -578,8 +604,8 @@ export default function App() {
                     Langkah: idx + 1,
                     NamaLangkah: st.NamaLangkah || `${primaryCloud.title || 'Langkah'} ${idx + 1}`,
                     NoKonfirmasi: st.NoKonfirmasi || primaryCloud.NoKonfirmasi || primaryCloud.NoProduksi,
-                    Status: st.Status || 'Berjalan',
-                    status: String(st.Status).toLowerCase() === 'selesai' ? 1 : 0
+                    Status: isDone ? 'Selesai' : 'Berjalan',
+                    status: isDone ? 1 : 0
                   });
                 });
               } else if (cloudItems.length > 1) {

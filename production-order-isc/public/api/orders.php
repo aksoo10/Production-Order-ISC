@@ -137,15 +137,15 @@ try {
             $multiStepConfig = [
                 '4800115516' => [
                     ['Langkah' => 1, 'NamaLangkah' => 'SPARE PART - BEDKNIFE', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 2, 'NamaLangkah' => 'SPARE PART - BEDKNIFE - Langkah 2', 'Status' => 'Berjalan', 'status' => 0]
+                    ['Langkah' => 2, 'NamaLangkah' => 'SPARE PART - BEDKNIFE - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
                 ],
                 '53072677' => [
-                    ['Langkah' => 1, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO', 'Status' => 'Selesai', 'status' => 1],
-                    ['Langkah' => 2, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', 'Status' => 'Berjalan', 'status' => 0]
+                    ['Langkah' => 1, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
                 ],
                 '53028923' => [
-                    ['Langkah' => 1, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board', 'Status' => 'Selesai', 'status' => 1],
-                    ['Langkah' => 2, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board - Langkah 2', 'Status' => 'Berjalan', 'status' => 0]
+                    ['Langkah' => 1, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
                 ],
                 'S-10-P82990-643' => [
                     ['Langkah' => 1, 'NamaLangkah' => 'WEAR PLATE', 'Status' => 'Berjalan', 'status' => 0],

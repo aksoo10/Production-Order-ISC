@@ -22,15 +22,15 @@ export const DEFAULT_DELETED_ORDERS = ['S-10-P84786-643', '102910210'];
 export const DEFAULT_ORDER_STEPS = {
   '4800115516': [
     { Langkah: 1, NamaLangkah: 'SPARE PART - BEDKNIFE', NoKonfirmasi: '10005516', Status: 'Berjalan' },
-    { Langkah: 2, NamaLangkah: 'SPARE PART - BEDKNIFE - Langkah 2', NoKonfirmasi: '10005516', Status: 'Berjalan' }
+    { Langkah: 2, NamaLangkah: 'SPARE PART - BEDKNIFE - Langkah 2', NoKonfirmasi: '10005516', Status: 'Selesai' }
   ],
   '53072677': [
-    { Langkah: 1, NamaLangkah: 'BED KNIFE - ANDRITZ - EWR - CHO', NoKonfirmasi: '10002677', Status: 'Selesai' },
-    { Langkah: 2, NamaLangkah: 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', NoKonfirmasi: '10002677', Status: 'Berjalan' }
+    { Langkah: 1, NamaLangkah: 'BED KNIFE - ANDRITZ - EWR - CHO', NoKonfirmasi: '10002677', Status: 'Berjalan' },
+    { Langkah: 2, NamaLangkah: 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', NoKonfirmasi: '10002677', Status: 'Selesai' }
   ],
   '53028923': [
-    { Langkah: 1, NamaLangkah: 'Rear Screw Indonesia Fiber Board', NoKonfirmasi: '10008923', Status: 'Selesai' },
-    { Langkah: 2, NamaLangkah: 'Rear Screw Indonesia Fiber Board - Langkah 2', NoKonfirmasi: '10008923', Status: 'Berjalan' }
+    { Langkah: 1, NamaLangkah: 'Rear Screw Indonesia Fiber Board', NoKonfirmasi: '10008923', Status: 'Berjalan' },
+    { Langkah: 2, NamaLangkah: 'Rear Screw Indonesia Fiber Board - Langkah 2', NoKonfirmasi: '10008923', Status: 'Selesai' }
   ],
   'S-10-P82990-643': [
     { Langkah: 1, NamaLangkah: 'WEAR PLATE', NoKonfirmasi: '10000643', Status: 'Berjalan' },
@@ -98,8 +98,8 @@ export const INITIAL_ORDERS = [
     "qtyOrder": 1,
     "planStart": "2026-10-26",
     "planFinish": "2026-11-15",
-    "status": 0,
-    "Status": "Berjalan",
+    "status": 1,
+    "Status": "Selesai",
     "Langkah": 2,
     "NoKonfirmasi": "10005516",
     "Created": "2026-02-24T15:45:22Z",
@@ -125,8 +125,8 @@ export const INITIAL_ORDERS = [
     "qtyOrder": 3,
     "planStart": "2026-10-26",
     "planFinish": "2026-11-15",
-    "status": 1,
-    "Status": "Selesai",
+    "status": 0,
+    "Status": "Berjalan",
     "Langkah": 1,
     "NoKonfirmasi": "10002677",
     "Created": "2026-02-24T15:45:22Z",
@@ -152,8 +152,8 @@ export const INITIAL_ORDERS = [
     "qtyOrder": 3,
     "planStart": "2026-10-26",
     "planFinish": "2026-11-15",
-    "status": 0,
-    "Status": "Berjalan",
+    "status": 1,
+    "Status": "Selesai",
     "Langkah": 2,
     "NoKonfirmasi": "10002677",
     "Created": "2026-02-24T15:45:22Z",
@@ -233,8 +233,8 @@ export const INITIAL_ORDERS = [
     "qtyOrder": 1,
     "planStart": "2026-10-26",
     "planFinish": "2026-11-15",
-    "status": 1,
-    "Status": "Selesai",
+    "status": 0,
+    "Status": "Berjalan",
     "Langkah": 1,
     "NoKonfirmasi": "10008923",
     "Created": "2026-02-24T15:45:22Z",
@@ -260,8 +260,8 @@ export const INITIAL_ORDERS = [
     "qtyOrder": 1,
     "planStart": "2026-10-26",
     "planFinish": "2026-11-15",
-    "status": 0,
-    "Status": "Berjalan",
+    "status": 1,
+    "Status": "Selesai",
     "Langkah": 2,
     "NoKonfirmasi": "10008923",
     "Created": "2026-02-24T15:45:22Z",
