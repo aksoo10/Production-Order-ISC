@@ -11,7 +11,12 @@ import {
   AlertCircle,
   Scan,
   Users,
-  Cpu
+  Cpu,
+  ArrowRight,
+  Link as LinkIcon,
+  Copy,
+  Check,
+  Sparkles
 } from 'lucide-react';
 
 export default function LoginView({
@@ -34,11 +39,13 @@ export default function LoginView({
   const [adminPass, setAdminPass] = useState('');
   const [showAdminPass, setShowAdminPass] = useState(false);
 
-  // Operator form state
-  const [operatorUsername, setOperatorUsername] = useState('');
+  // Operator direct access state (No username or password required)
   const [selectedOperatorNo, setSelectedOperatorNo] = useState(cleanPersonnel[0]?.NoPersonal || '');
-  const [operatorPass, setOperatorPass] = useState('');
-  const [showOperatorPass, setShowOperatorPass] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const directOperatorUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${window.location.pathname}?role=operator`
+    : 'https://production-order-isc.vercel.app/?role=operator';
 
   // UI state
   const [errorMsg, setErrorMsg] = useState('');
@@ -70,45 +77,22 @@ export default function LoginView({
     }
   };
 
-  // Form Submit for Operator
-  const handleOperatorSubmit = (e) => {
-    e.preventDefault();
+  // Direct Entry Handler for Operator (No password required)
+  const handleDirectOperatorLogin = () => {
     setErrorMsg('');
+    const op = cleanPersonnel.find((item) => String(item.NoPersonal) === String(selectedOperatorNo));
+    onLoginSuccess({
+      role: 'user',
+      username: op ? op.Nama : 'Operator Bengkel',
+      operator: op || null
+    });
+  };
 
-    const u = operatorUsername.trim();
-    const p = operatorPass.trim();
-
-    const op = cleanPersonnel.find((item) => String(item.NoPersonal) === String(selectedOperatorNo)) ||
-      cleanPersonnel.find((item) => String(item.NoPersonal).toLowerCase() === u.toLowerCase() || item.Nama.toLowerCase() === u.toLowerCase());
-
-    const validOperatorPass = [
-      'user',
-      'operator',
-      '1234',
-      '123456',
-      'isc-operator',
-      'isc-user',
-      op ? String(op.NoPersonal) : '',
-      userPassword
-    ];
-
-    if (
-      validOperatorPass.includes(p) ||
-      (op && String(op.NoPersonal) === p) ||
-      p === '1234' || p === 'operator' || p === userPassword
-    ) {
-      const activeOp = op || {
-        NoPersonal: !isNaN(Number(u)) ? u : '1001',
-        Nama: u || 'Operator Bengkel',
-        ProductGroup: 'PKW'
-      };
-      onLoginSuccess({
-        role: 'user',
-        username: activeOp.Nama,
-        operator: activeOp
-      });
-    } else {
-      setErrorMsg('Username atau password operator tidak sesuai.');
+  const handleCopyLink = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(directOperatorUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
     }
   };
 
@@ -169,7 +153,7 @@ export default function LoginView({
             <Users size={18} />
             <div className="text-left">
               <div className="tab-title">Operator Bengkel</div>
-              <div className="tab-sub">Akses Terminal Scanner</div>
+              <div className="tab-sub text-emerald-400 font-semibold">Tautan Langsung (Tanpa Password)</div>
             </div>
           </button>
         </div>
@@ -234,74 +218,82 @@ export default function LoginView({
           </form>
         )}
 
-        {/* TAB 2: OPERATOR LOGIN FORM */}
+        {/* TAB 2: OPERATOR DIRECT LOGIN (NO USERNAME & NO PASSWORD NEEDED) */}
         {roleTab === 'user' && (
-          <form onSubmit={handleOperatorSubmit} className="login-form-body">
-            <div className="form-group">
-              <label className="form-label">Username / No. Personal:</label>
-              <div className="password-input-wrapper">
-                <User size={16} className="input-icon-left text-muted" />
-                <input
-                  type="text"
-                  className="form-control pl-9 font-mono font-bold"
-                  value={operatorUsername}
-                  onChange={(e) => setOperatorUsername(e.target.value)}
-                  placeholder="Masukkan username atau No. Personal"
-                  autoFocus
-                  required
-                />
+          <div className="login-form-body">
+            {/* Quick Informational Notice */}
+            <div className="alert-box alert-info flex items-start gap-2.5">
+              <Sparkles size={18} className="text-cyan flex-shrink-0 mt-0.5" />
+              <div className="text-xs">
+                <strong>Akses Bebas Operator Bengkel:</strong>
+                <div>Tidak diperlukan username atau kata sandi. Silakan langsung masuk ke Terminal Scanner SAP di bawah.</div>
               </div>
             </div>
 
             {/* Profile selection if personnel available */}
             {cleanPersonnel.length > 0 && (
               <div className="form-group">
-                <label className="form-label">Pilih Operator Bengkel:</label>
+                <label className="form-label">Pilih Profil Operator (Opsional):</label>
                 <select
                   className="form-control font-heading font-semibold"
                   value={selectedOperatorNo}
                   onChange={(e) => setSelectedOperatorNo(e.target.value)}
                 >
+                  <option value="">-- Masuk sebagai Operator Umum (Default) --</option>
                   {cleanPersonnel.map((op) => (
                     <option key={op.NoPersonal} value={op.NoPersonal}>
                       {op.Nama} — No. Personal: {op.NoPersonal} ({op.ProductGroup || 'PKW'})
                     </option>
                   ))}
                 </select>
+                <span className="text-xs text-muted mt-1">
+                  *Anda dapat memilih nama untuk otomatis mengisi barcode operator di scanner.
+                </span>
               </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label">Password Operator:</label>
-              <div className="password-input-wrapper">
-                <Lock size={16} className="input-icon-left text-muted" />
-                <input
-                  type={showOperatorPass ? 'text' : 'password'}
-                  className="form-control pl-9 pr-9 font-mono"
-                  placeholder="Masukkan password operator"
-                  value={operatorPass}
-                  onChange={(e) => setOperatorPass(e.target.value)}
-                  required
-                />
+            {/* Direct Login Button */}
+            <button
+              type="button"
+              className="btn btn-primary-gradient w-full flex items-center justify-center gap-2 mt-2"
+              style={{ height: '48px', fontSize: '1rem', fontWeight: 700 }}
+              onClick={handleDirectOperatorLogin}
+            >
+              <Scan size={20} />
+              <span>Masuk Langsung sebagai Operator</span>
+              <ArrowRight size={18} />
+            </button>
+
+            {/* Direct Link Shareable Box */}
+            <div className="operator-direct-link-box">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-main">
+                  <LinkIcon size={14} className="text-cyan" />
+                  <span>Tautan Langsung Operator:</span>
+                </div>
                 <button
                   type="button"
-                  className="password-toggle-btn"
-                  onClick={() => setShowOperatorPass(!showOperatorPass)}
+                  className="btn btn-sm btn-outline-cyan flex items-center gap-1 text-xs py-1 px-2"
+                  onClick={handleCopyLink}
+                  title="Salin tautan untuk dibagikan ke operator"
                 >
-                  {showOperatorPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  {copiedLink ? <Check size={13} color="#10B981" /> : <Copy size={13} />}
+                  <span>{copiedLink ? 'Link Tersalin!' : 'Salin Link'}</span>
                 </button>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary-gradient w-full mt-3"
-              style={{ height: '44px', fontSize: '0.95rem' }}
-            >
-              <Scan size={18} />
-              <span>Masuk sebagai Operator</span>
-            </button>
-          </form>
+              <div
+                className="direct-link-display"
+                onClick={handleCopyLink}
+                title="Klik untuk menyalin tautan ini"
+              >
+                {directOperatorUrl}
+              </div>
+              <div className="direct-link-hint">
+                💡 Cukup simpan atau bagikan tautan ini ke operator agar bisa langsung membuka scanner dari perangkat mana pun tanpa login.
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

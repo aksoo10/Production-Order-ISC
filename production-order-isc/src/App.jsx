@@ -17,6 +17,21 @@ export default function App() {
   // Authentication & Session state
   const [currentUserSession, setCurrentUserSession] = useState(() => {
     try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get('role') || urlParams.get('mode');
+        const isOperatorUrl = urlParams.get('operator') === 'true' || role === 'operator' || role === 'user' || window.location.hash === '#operator';
+        if (isOperatorUrl) {
+          const directSession = {
+            role: 'user',
+            username: 'Operator Bengkel',
+            operator: null
+          };
+          localStorage.setItem('isc_production_session', JSON.stringify(directSession));
+          return directSession;
+        }
+      }
+
       const saved = localStorage.getItem('isc_production_session');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -30,6 +45,25 @@ export default function App() {
       return null;
     }
   });
+
+  // Direct URL Operator Link Handler (e.g. ?role=operator)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const role = urlParams.get('role') || urlParams.get('mode');
+      const isOperatorUrl = urlParams.get('operator') === 'true' || role === 'operator' || role === 'user' || window.location.hash === '#operator';
+      if (isOperatorUrl) {
+        const directSession = {
+          role: 'user',
+          username: 'Operator Bengkel',
+          operator: null
+        };
+        setCurrentUserSession(directSession);
+        localStorage.setItem('isc_production_session', JSON.stringify(directSession));
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   // Navigation tab: 'scanner' | 'orders' | 'personnel' | 'guide'
   const [activeTab, setActiveTab] = useState('scanner');
@@ -254,6 +288,9 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUserSession(null);
     localStorage.removeItem('isc_production_session');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     showToast('Anda telah keluar dari sistem.', 'info');
   };
 
