@@ -168,9 +168,9 @@ export default function OrdersListView({
         </div>
 
         {/* Action Controls & Search */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           {/* Quick Search */}
-          <div className="panel-search-box" style={{ width: '260px' }}>
+          <div className="panel-search-box" style={{ minWidth: '180px', flex: '1 1 200px' }}>
             <Search size={16} className="search-icon" />
             <input
               type="text"

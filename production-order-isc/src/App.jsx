@@ -34,8 +34,22 @@ export default function App() {
   // Navigation tab: 'scanner' | 'orders' | 'personnel' | 'guide'
   const [activeTab, setActiveTab] = useState('scanner');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
+      return true;
+    }
     return localStorage.getItem('isc_production_sidebar') === 'true';
   });
+
+  // Automatically collapse sidebar on window resize if split into 2 (width <= 1024px)
+  useEffect(() => {
+    const handleWindowResize = () => {
+      if (window.innerWidth <= 1024) {
+        setSidebarCollapsed(true);
+      }
+    };
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, []);
 
   // Helper to detect dummy orders in storage
   const isDummyOrders = (arr) => {

@@ -66,12 +66,14 @@ export default function Navbar({
           {isAdmin ? (
             <>
               <ShieldCheck size={15} color="#34D399" />
-              <span>Admin: {currentUser?.username || 'Supervisor'}</span>
+              <span className="user-role-label">Admin</span>
+              <span className="user-name-label">: {currentUser?.username || 'Supervisor'}</span>
             </>
           ) : (
             <>
               <UserCheck size={14} color="#38BDF8" />
-              <span>Operator: {currentUser?.username || 'Operator'}</span>
+              <span className="user-role-label">Operator</span>
+              <span className="user-name-label">: {currentUser?.username || 'Operator'}</span>
             </>
           )}
         </div>
