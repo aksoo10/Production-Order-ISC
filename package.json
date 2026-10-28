@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "npm --prefix production-order-isc run dev",
-    "build": "npm --prefix production-order-isc run build"
+    "build": "npm --prefix production-order-isc run build",
+    "lint": "npm --prefix production-order-isc run lint"
   }
 }

@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Download,
   Info,
-  Check,
   Loader2
 } from 'lucide-react';
 import { parseExcelFile, downloadTemplateExcel } from '../utils/excelHelper';

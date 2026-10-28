@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Key, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Key, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function ChangePasswordModal({
   isOpen,

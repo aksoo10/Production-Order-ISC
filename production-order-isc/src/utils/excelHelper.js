@@ -167,7 +167,7 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
         'confirmation', 'confirmationno', 'rueck', 'confno', 'noconfirmation', 'barcode'
       ], '');
 
-      let noKonfirmasi = '';
+      let noKonfirmasi;
       if (rawKonfirmasi) {
         if (!orderConfirmationMap[noProduksi]) {
           orderConfirmationMap[noProduksi] = String(rawKonfirmasi).trim();

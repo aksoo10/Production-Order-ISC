@@ -7,8 +7,7 @@ import {
   Scan,
   RefreshCw,
   AlertTriangle,
-  ChevronRight,
-  BookOpen
+  ChevronRight
 } from 'lucide-react';
 
 export default function GuideView() {

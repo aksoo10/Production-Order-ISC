@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-  User,
   UserCheck,
   ChevronDown,
   X,

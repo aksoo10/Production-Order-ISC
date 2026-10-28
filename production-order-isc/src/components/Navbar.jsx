@@ -8,8 +8,6 @@ import andritzLogo from '../assets/andritz-logo.png';
 import { INITIAL_PERSONNEL } from '../utils/initialData';
 
 export default function Navbar({
-  isAdmin,
-  currentUser,
   onLogout,
   selectedGroup,
   setSelectedGroup,

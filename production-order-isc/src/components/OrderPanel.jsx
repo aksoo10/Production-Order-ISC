@@ -3,14 +3,11 @@ import {
   Search,
   CheckCircle2,
   Clock,
-  Sparkles,
   Layers,
   ChevronRight,
   CheckCheck,
   RotateCcw,
-  AlertCircle,
   FileText,
-  Scan,
   X
 } from 'lucide-react';
 import BarcodeCard from './BarcodeCard';
@@ -20,7 +17,6 @@ export default function OrderPanel({
   selectedOrderNo,
   onSelectOrderNo,
   onMarkStepFinished,
-  onResetOrderSteps,
   onRevertStep,
   isAdmin,
   selectedGroup

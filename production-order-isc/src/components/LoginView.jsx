@@ -1,7 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import andritzBg from '../assets/andritz-workshop-bg.png';
 import andritzLogo from '../assets/andritz-logo.png';
-import { isDummyPersonnel, INITIAL_PERSONNEL } from '../utils/initialData';
 import {
   ShieldCheck,
   User,
@@ -16,11 +15,8 @@ import {
 } from 'lucide-react';
 
 export default function LoginView({
-  personnel = [],
   adminPassword,
-  userPassword,
-  onLoginSuccess,
-  onResetAdminPassword
+  onLoginSuccess
 }) {
   // Tabs: 'admin' or 'user' (default based on URL query/hash if operator, else admin)
   const [roleTab, setRoleTab] = useState(() => {
@@ -43,22 +39,7 @@ export default function LoginView({
     }
   });
 
-  // Ensure all personnel are loaded without exception
-  const cleanPersonnel = useMemo(() => {
-    const list = Array.isArray(personnel) && personnel.length > 0 ? personnel : INITIAL_PERSONNEL;
-    const map = new Map();
-    list.forEach((p) => {
-      if (p && (p.NoPersonal || p.Nama)) {
-        map.set(String(p.NoPersonal || p.Nama), p);
-      }
-    });
-    INITIAL_PERSONNEL.forEach((base) => {
-      if (!map.has(String(base.NoPersonal))) {
-        map.set(String(base.NoPersonal), base);
-      }
-    });
-    return Array.from(map.values());
-  }, [personnel]);
+
 
   // Admin form state
   const [adminUsername, setAdminUsername] = useState('');

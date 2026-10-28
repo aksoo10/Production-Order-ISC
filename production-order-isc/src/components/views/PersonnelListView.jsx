@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Users, Search, Scan, UserCheck, Shield, Plus } from 'lucide-react';
+import { Users, Search, Scan } from 'lucide-react';
 import BarcodeCard from '../BarcodeCard';
 
 export default function PersonnelListView({

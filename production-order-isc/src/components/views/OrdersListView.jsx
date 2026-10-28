@@ -1,15 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Layers,
   Search,
   CheckCircle2,
   Clock,
   Scan,
-  CheckCheck,
-  ChevronRight,
-  Filter,
-  FileSpreadsheet,
   Plus,
   Trash2,
   Edit3,
@@ -28,7 +23,6 @@ export default function OrdersListView({
   onRevertStep,
   isAdmin,
   selectedGroup,
-  onSyncCloud,
   onCreateOrder,
   onUpdateOrder,
   onDeleteOrder,

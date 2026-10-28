@@ -6,8 +6,7 @@ import BarcodeCard from './BarcodeCard';
 export default function OperatorPanel({
   personnel = [],
   selectedOperator,
-  onSelectOperator,
-  selectedGroup
+  onSelectOperator
 }) {
   // Ensure all personnel are available without exception
   const allPersonnel = useMemo(() => {

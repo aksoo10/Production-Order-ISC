@@ -19,10 +19,8 @@ import { orderApiService } from './services/orderApiService';
 import {
   setStorageItem,
   getStorageItem,
-  removeStorageItem,
   isStorageItemExpired,
-  purgeExpiredStorage,
-  STORAGE_EXPIRY_MS
+  purgeExpiredStorage
 } from './utils/storageHelper';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import './index.css';
@@ -203,7 +201,7 @@ export default function App() {
   });
 
   // User password with 1-minute localStorage persistence (Default: 'isc-operator')
-  const [userPassword, setUserPassword] = useState(() => {
+  const [userPassword] = useState(() => {
     return getStorageItem('isc_production_user_password') || 'isc-operator';
   });
 
@@ -237,7 +235,6 @@ export default function App() {
   // Modals
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
   // Toast Notification
@@ -273,6 +270,7 @@ export default function App() {
         window.sessionStorage.setItem('isc_production_session', JSON.stringify(cleanedSession));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync session to sessionStorage
@@ -323,22 +321,6 @@ export default function App() {
     setStorageItem('isc_production_sidebar', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  // 1-Minute LocalStorage Cache Watcher:
-  // Automatically purges expired cache and triggers background cloud re-sync without logging out the user
-  useEffect(() => {
-    const checkInterval = setInterval(() => {
-      // 1. Orders cache expiration check: automatically sync latest data from cloud
-      if (isStorageItemExpired('isc_production_orders')) {
-        console.log('[StorageTTL] Cache order di localStorage telah melewati 1 menit. Mengambil data terbaru dari SharePoint...');
-        handleSyncCloud(true);
-      }
-
-      // 2. Purge any other expired temporary cache keys (session and settings are protected)
-      purgeExpiredStorage();
-    }, 15000);
-
-    return () => clearInterval(checkInterval);
-  }, []);
 
   // Extract unique ProductGroups
   const availableGroups = useMemo(() => {
@@ -691,6 +673,25 @@ export default function App() {
   // Auto-sync real cloud orders on initial application load
   useEffect(() => {
     handleSyncCloud(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 1-Minute LocalStorage Cache Watcher:
+  // Automatically purges expired cache and triggers background cloud re-sync without logging out the user
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      // 1. Orders cache expiration check: automatically sync latest data from cloud
+      if (isStorageItemExpired('isc_production_orders')) {
+        console.log('[StorageTTL] Cache order di localStorage telah melewati 1 menit. Mengambil data terbaru dari SharePoint...');
+        handleSyncCloud(true);
+      }
+
+      // 2. Purge any other expired temporary cache keys (session and settings are protected)
+      purgeExpiredStorage();
+    }, 15000);
+
+    return () => clearInterval(checkInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2. CREATE: Insert new order to Cloud SharePoint
@@ -1050,11 +1051,6 @@ export default function App() {
   // Cross-view shortcuts
   const handleSelectOrderAndOpenScanner = (orderNo) => {
     setSelectedOrderNo(orderNo);
-    setActiveTab('scanner');
-  };
-
-  const handleSelectOperatorAndOpenScanner = (op) => {
-    setSelectedOperator(op);
     setActiveTab('scanner');
   };
 

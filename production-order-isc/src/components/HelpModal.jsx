@@ -8,7 +8,6 @@ import {
   Scan,
   RefreshCw,
   AlertTriangle,
-  ExternalLink,
   ChevronRight
 } from 'lucide-react';
 

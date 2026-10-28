@@ -12,19 +12,23 @@ import {
 } from 'lucide-react';
 
 export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading }) {
-  const [formData, setFormData] = useState({
-    orderNo: '',
-    title: '',
-    customers: 'PT ANDRITZ Hydro & Separation',
-    soDocument: '',
-    wbsProdNo: '',
-    orderDivision: 'PKW',
-    materialNo: '',
-    materialDescription: '',
-    qtyOrder: 1,
-    planStart: new Date().toISOString().split('T')[0],
-    planFinish: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-    status: 0
+  const [formData, setFormData] = useState(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const finish = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+    return {
+      orderNo: '',
+      title: '',
+      customers: 'PT ANDRITZ Hydro & Separation',
+      soDocument: '',
+      wbsProdNo: '',
+      orderDivision: 'PKW',
+      materialNo: '',
+      materialDescription: '',
+      qtyOrder: 1,
+      planStart: today,
+      planFinish: finish,
+      status: 0
+    };
   });
 
   const [steps, setSteps] = useState([

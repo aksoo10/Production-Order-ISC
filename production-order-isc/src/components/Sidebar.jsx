@@ -15,18 +15,10 @@ export default function Sidebar({
   isAdmin,
   currentUser,
   onLogout,
-  onOpenImport,
   onExportExcel,
-  onDownloadTemplate,
-  onOpenChangePassword,
   collapsed,
   setCollapsed,
-  ordersCount,
-  personnelCount,
-  theme,
-  setTheme,
-  onSyncCloud,
-  isLoadingCloud
+  ordersCount
 }) {
   const navItems = [
     {
