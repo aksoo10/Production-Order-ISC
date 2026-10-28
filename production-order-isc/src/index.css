@@ -4011,3 +4011,132 @@ select.modal-input option {
   line-height: 1.5;
 }
 
+/* ==========================================================================
+   PROGRESS TRACKER VIEW & CARDS
+   ========================================================================== */
+.tracker-view-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tracker-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tracker-kpi-ribbon {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1024px) {
+  .tracker-kpi-ribbon {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .tracker-kpi-ribbon {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.tracker-order-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.tracker-order-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-md);
+}
+
+.tracker-order-header {
+  background-color: var(--bg-surface-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.tracker-order-no {
+  font-size: 1rem;
+  color: var(--atz-cyan-dark);
+}
+
+[data-theme="dark"] .tracker-order-no {
+  color: var(--atz-cyan);
+}
+
+.tracker-table-wrap {
+  padding: 16px 18px 20px 18px;
+}
+
+.tracker-table-wrap .steps-section-header {
+  margin-bottom: 12px;
+}
+
+.status-barcode-select-wrapper.mini-select {
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-barcode-select-wrapper.mini-select .status-barcode-select {
+  padding: 2px 22px 2px 8px;
+  font-size: 0.72rem;
+  height: 24px;
+  font-weight: 700;
+  border-radius: var(--radius-xs);
+  background-position: right 6px center;
+  background-size: 9px;
+  min-width: 68px;
+  cursor: pointer;
+}
+
+.barcode-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.barcode-badge-pill.pill-prog {
+  background-color: var(--atz-cyan-tint);
+  border: 1px solid var(--atz-cyan-border);
+  color: var(--atz-cyan-dark);
+}
+
+[data-theme="dark"] .barcode-badge-pill.pill-prog {
+  background-color: rgba(0, 163, 224, 0.18);
+  border-color: rgba(0, 163, 224, 0.45);
+  color: #38BDF8;
+}
+
+.barcode-badge-pill.pill-fin {
+  background-color: var(--color-success-light);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success);
+}
+
+[data-theme="dark"] .barcode-badge-pill.pill-fin {
+  background-color: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #34D399;
+}
+
+

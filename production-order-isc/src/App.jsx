@@ -5,6 +5,7 @@ import LoginView from './components/LoginView';
 import ScannerView from './components/views/ScannerView';
 import OrdersListView from './components/views/OrdersListView';
 import DashboardChartView from './components/views/DashboardChartView';
+import ProgressTrackerView from './components/views/ProgressTrackerView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ExcelImportModal from './components/ExcelImportModal';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -1221,6 +1222,21 @@ export default function App() {
                 setIsImportModalOpen(true);
               }
             }}
+          />
+        );
+      case 'tracker':
+        return (
+          <ProgressTrackerView
+            orders={orders}
+            selectedGroup={selectedGroup}
+            isAdmin={isAdmin}
+            currentUser={currentUserSession}
+            onMarkStepFinished={handleMarkStepFinished}
+            onRevertStep={handleRevertStep}
+            onUpdateStepStatus={handleUpdateStepStatus}
+            onSelectOrderAndOpenScanner={handleSelectOrderAndOpenScanner}
+            onSyncCloud={handleSyncCloud}
+            isLoadingCloud={isLoadingCloud}
           />
         );
       case 'dashboard':

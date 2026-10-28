@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Scan,
   Layers,
+  ListChecks,
   Download,
   Upload,
   LogOut,
@@ -41,6 +42,15 @@ export default function Sidebar({
       badge: ordersCount,
       badgeColor: '#00A3E0',
       desc: 'Monitoring Rangkaian Langkah'
+    },
+    {
+      id: 'tracker',
+      label: 'Progress Tracker',
+      shortLabel: 'Tracker',
+      icon: ListChecks,
+      badge: 'PROG / FIN',
+      badgeColor: '#0284C7',
+      desc: 'Pelacakan Langkah & Barcode'
     },
     ...(isAdmin ? [{
       id: 'dashboard',

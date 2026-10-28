@@ -1,0 +1,616 @@
+import React, { useState, useMemo } from 'react';
+import {
+  ListChecks,
+  CheckCircle2,
+  Clock,
+  RotateCcw,
+  Scan,
+  Search,
+  Filter,
+  Layers,
+  Activity,
+  ArrowRight
+} from 'lucide-react';
+
+export default function ProgressTrackerView({
+  orders = [],
+  selectedGroup = 'ALL',
+  isAdmin = false,
+  currentUser = null,
+  onMarkStepFinished,
+  onRevertStep,
+  onUpdateStepStatus,
+  onSelectOrderAndOpenScanner,
+  onSyncCloud,
+  isLoadingCloud = false
+}) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [groupFilter, setGroupFilter] = useState(selectedGroup || 'ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PROG' | 'FIN'
+  const [selectedOrderFilter, setSelectedOrderFilter] = useState('ALL');
+
+  // Keep groupFilter in sync if parent selectedGroup changes
+  React.useEffect(() => {
+    if (selectedGroup) {
+      setGroupFilter(selectedGroup);
+    }
+  }, [selectedGroup]);
+
+  // Group all steps by NoProduksi
+  const ordersGrouped = useMemo(() => {
+    const map = new Map();
+
+    orders.forEach((step) => {
+      const orderNo = String(step.NoProduksi || step.orderNo || '').trim();
+      if (!orderNo) return;
+
+      if (!map.has(orderNo)) {
+        map.set(orderNo, {
+          id: step.id || step.ID || 0,
+          ID: step.id || step.ID || 0,
+          NoProduksi: orderNo,
+          orderNo: orderNo,
+          title: step.title || step.NamaLangkah || '',
+          customers: step.customers || '',
+          soDocument: step.soDocument || '',
+          wbsProdNo: step.wbsProdNo || '',
+          ProductGroup: String(step.ProductGroup || step.orderDivision || 'PKW').trim().toUpperCase(),
+          steps: []
+        });
+      }
+      map.get(orderNo).steps.push(step);
+    });
+
+    return Array.from(map.values()).map((order) => {
+      const sortedSteps = [...order.steps].sort((a, b) => Number(a.Langkah) - Number(b.Langkah));
+      const totalSteps = sortedSteps.length;
+      const completedSteps = sortedSteps.filter(
+        (s) => String(s.Status || '').toLowerCase() === 'selesai' || s.status === 1
+      ).length;
+      const isComplete = totalSteps > 0 && completedSteps === totalSteps;
+      const activeStep =
+        sortedSteps.find(
+          (s) => String(s.Status || '').toLowerCase() !== 'selesai' && s.status !== 1
+        ) || null;
+
+      // Determine order-level barcode status: FIN if all steps done, else PROG
+      const orderBarcodeStatus = isComplete ? 'FIN' : 'PROG';
+
+      return {
+        ...order,
+        steps: sortedSteps,
+        totalSteps,
+        completedSteps,
+        isComplete,
+        activeStep,
+        orderBarcodeStatus
+      };
+    });
+  }, [orders]);
+
+  // Extract available unique groups
+  const availableGroups = useMemo(() => {
+    const set = new Set();
+    ordersGrouped.forEach((o) => {
+      if (o.ProductGroup) set.add(o.ProductGroup);
+    });
+    return Array.from(set).sort();
+  }, [ordersGrouped]);
+
+  // Filter orders based on search, group, status, and specific order selection
+  const filteredOrders = useMemo(() => {
+    return ordersGrouped.filter((ord) => {
+      // 1. Group filter
+      if (groupFilter !== 'ALL' && ord.ProductGroup !== groupFilter.toUpperCase()) {
+        return false;
+      }
+
+      // 2. Specific Order filter
+      if (selectedOrderFilter !== 'ALL' && ord.NoProduksi !== selectedOrderFilter) {
+        return false;
+      }
+
+      // 3. Status Barcode filter (PROG vs FIN)
+      if (statusFilter === 'FIN' && !ord.isComplete) {
+        return false;
+      }
+      if (statusFilter === 'PROG' && ord.isComplete) {
+        return false;
+      }
+
+      // 4. Search query matching
+      if (!searchTerm.trim()) return true;
+      const term = searchTerm.toLowerCase();
+      const matchNo = ord.NoProduksi.toLowerCase().includes(term);
+      const matchTitle = (ord.title || '').toLowerCase().includes(term);
+      const matchCust = (ord.customers || '').toLowerCase().includes(term);
+      const matchGroup = ord.ProductGroup.toLowerCase().includes(term);
+      const matchStep = ord.steps.some(
+        (s) =>
+          String(s.NamaLangkah || '').toLowerCase().includes(term) ||
+          String(s.NoKonfirmasi || '').toLowerCase().includes(term)
+      );
+
+      return matchNo || matchTitle || matchCust || matchGroup || matchStep;
+    });
+  }, [ordersGrouped, groupFilter, selectedOrderFilter, statusFilter, searchTerm]);
+
+  // Summary KPI statistics
+  const stats = useMemo(() => {
+    const totalOrders = filteredOrders.length;
+    const completedOrders = filteredOrders.filter((o) => o.isComplete).length;
+    const activeOrders = totalOrders - completedOrders;
+
+    let totalSteps = 0;
+    let completedSteps = 0;
+    let finSteps = 0;
+    let progSteps = 0;
+
+    filteredOrders.forEach((o) => {
+      totalSteps += o.totalSteps;
+      completedSteps += o.completedSteps;
+      o.steps.forEach((s) => {
+        const isDone = String(s.Status || '').toLowerCase() === 'selesai' || s.status === 1;
+        const bStatus = (s.barcodeStatus || s.statusBarcode || (isDone ? 'FIN' : 'PROG')).toUpperCase();
+        if (bStatus === 'FIN') finSteps++;
+        else progSteps++;
+      });
+    });
+
+    const percent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
+    return {
+      totalOrders,
+      completedOrders,
+      activeOrders,
+      totalSteps,
+      completedSteps,
+      finSteps,
+      progSteps,
+      percent
+    };
+  }, [filteredOrders]);
+
+  return (
+    <div className="view-container tracker-view-container">
+      {/* 1. Header Toolbar */}
+      <div className="view-header-row tracker-header-row">
+        <div>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h2 className="view-title font-heading flex items-center gap-2">
+              <ListChecks className="text-cyan" size={24} />
+              <span>Progress Tracker Rangkaian Langkah Kerja</span>
+            </h2>
+            <span className="badge badge-cyan flex items-center gap-1 font-mono text-xs">
+              <Activity size={12} />
+              Live Tracker (PROG & FIN) • {isAdmin ? 'Akses Admin' : (currentUser?.name || 'Operator')}
+            </span>
+          </div>
+          <p className="view-subtitle">
+            Pemantauan visual langkah kerja setiap order produksi, nomor konfirmasi SAP, status barcode PROG/FIN, dan eksekusi aksi
+          </p>
+        </div>
+
+        {/* Global Controls */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          {/* Quick Search */}
+          <div className="panel-search-box" style={{ minWidth: '180px', flex: '1 1 200px' }}>
+            <Search size={16} className="search-icon" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Cari order, langkah, konfirmasi..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Group Filter */}
+          <div className="filter-pill-group">
+            <Layers size={14} className="filter-icon" />
+            <span className="filter-label">Grup:</span>
+            <select
+              className="filter-select font-mono"
+              value={groupFilter}
+              onChange={(e) => setGroupFilter(e.target.value)}
+              title="Filter berdasarkan Product Group"
+            >
+              <option value="ALL">Semua Grup ({availableGroups.length})</option>
+              {availableGroups.map((grp) => (
+                <option key={grp} value={grp}>
+                  Grup {grp}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Barcode Filter (PROG vs FIN) */}
+          <div className="filter-pill-group">
+            <Filter size={14} className="filter-icon" />
+            <span className="filter-label">Status:</span>
+            <select
+              className="filter-select font-mono"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              title="Filter berdasarkan Status Barcode"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="PROG">PROG — In Progress</option>
+              <option value="FIN">FIN — Finished</option>
+            </select>
+          </div>
+
+          {/* Order Selector */}
+          <div className="filter-pill-group">
+            <span className="filter-label">Pilih Order:</span>
+            <select
+              className="filter-select font-mono"
+              value={selectedOrderFilter}
+              onChange={(e) => setSelectedOrderFilter(e.target.value)}
+              title="Pilih Order Tertentu"
+              style={{ maxWidth: '160px' }}
+            >
+              <option value="ALL">Tampilkan Semua ({ordersGrouped.length})</option>
+              {ordersGrouped.map((ord) => (
+                <option key={ord.NoProduksi} value={ord.NoProduksi}>
+                  #{ord.NoProduksi} ({ord.completedSteps}/{ord.totalSteps})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Refresh Button */}
+          {onSyncCloud && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline flex items-center gap-1.5"
+              onClick={() => onSyncCloud(true)}
+              disabled={isLoadingCloud}
+              title="Segarkan data terbaru dari database cloud"
+            >
+              <RotateCcw size={14} className={isLoadingCloud ? 'animate-spin text-cyan' : ''} />
+              <span>{isLoadingCloud ? 'Sinkron...' : 'Segarkan'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 2. KPI Ribbon Statistics */}
+      <div className="kpi-ribbon-grid tracker-kpi-ribbon">
+        <div className="kpi-card">
+          <div className="kpi-num text-cyan font-mono">{stats.totalOrders}</div>
+          <div className="kpi-label">Total Order Produksi</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-num text-emerald-500 font-mono">{stats.completedOrders}</div>
+          <div className="kpi-label">Order Selesai (FIN)</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-num text-amber-500 font-mono">{stats.activeOrders}</div>
+          <div className="kpi-label">Order Berjalan (PROG)</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-num font-mono" style={{ color: '#0284C7' }}>
+            {stats.completedSteps} / {stats.totalSteps}
+          </div>
+          <div className="kpi-label">Total Langkah Selesai</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-num text-cyan font-mono">{stats.percent}%</div>
+          <div className="kpi-label">Progres Global</div>
+        </div>
+      </div>
+
+      {/* 3. Orders Step Sequence Cards List */}
+      <div className="tracker-orders-list flex flex-col gap-6">
+        {filteredOrders.length === 0 ? (
+          <div className="chart-card text-center py-10">
+            <div className="text-muted font-heading text-sm mb-1">
+              Tidak ada order yang cocok dengan filter atau pencarian Anda.
+            </div>
+            <div className="text-xs text-muted">
+              Coba reset filter grup atau ubah kata kunci pencarian.
+            </div>
+          </div>
+        ) : (
+          filteredOrders.map((ord) => {
+            const percent = Math.round(
+              (ord.completedSteps / Math.max(1, ord.totalSteps)) * 100
+            );
+
+            return (
+              <div key={ord.NoProduksi} className="tracker-order-card">
+                {/* Order Summary Header Bar */}
+                <div className="tracker-order-header">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="tracker-order-no font-mono font-bold">
+                      Order #{ord.NoProduksi}
+                    </div>
+                    <span className="group-tag">{ord.ProductGroup || 'PKW'}</span>
+                    {ord.customers && (
+                      <span className="text-xs text-muted font-semibold truncate" style={{ maxWidth: 240 }}>
+                        Cust: {ord.customers}
+                      </span>
+                    )}
+                    {ord.title && (
+                      <span className="text-xs text-main truncate font-medium" style={{ maxWidth: 280 }}>
+                        {ord.title}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {/* Order Progress Indicator */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted font-semibold">
+                        {ord.completedSteps}/{ord.totalSteps} Selesai ({percent}%)
+                      </span>
+                      <div className="progress-bar-track" style={{ width: '100px' }}>
+                        <div
+                          className="progress-bar-fill"
+                          style={{
+                            width: `${percent}%`,
+                            backgroundColor: ord.isComplete ? '#10B981' : '#00A3E0'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Order Barcode Status Pill */}
+                    <span
+                      className={`barcode-badge-pill font-mono text-xs ${
+                        ord.orderBarcodeStatus === 'FIN' ? 'pill-fin' : 'pill-prog'
+                      }`}
+                    >
+                      {ord.orderBarcodeStatus === 'FIN' ? (
+                        <>
+                          <CheckCircle2 size={12} />
+                          <span>FIN</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock size={12} />
+                          <span>PROG</span>
+                        </>
+                      )}
+                    </span>
+
+                    {/* Open in Terminal Scanner shortcut */}
+                    {onSelectOrderAndOpenScanner && (
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-outline flex items-center gap-1 font-mono"
+                        onClick={() => onSelectOrderAndOpenScanner(ord.NoProduksi)}
+                        title="Buka order ini di Terminal Scanner SAP"
+                      >
+                        <Scan size={12} />
+                        <span>Scan</span>
+                        <ArrowRight size={10} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* THE EXACT STEPS TABLE MATCHING REFERENCE SCREENSHOT */}
+                <div className="steps-sequence-section tracker-table-wrap">
+                  <div className="steps-section-header">
+                    <h4 className="steps-section-title font-heading">
+                      Rangkaian Seluruh Langkah ({ord.steps.length} Langkah):
+                    </h4>
+                    <span className="text-xs text-muted">
+                      Daftar langkah kerja dan verifikasi nomor konfirmasi SAP
+                    </span>
+                  </div>
+
+                  <div className="steps-table-container">
+                    <table className="steps-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '80px' }}>Langkah</th>
+                          <th>Nama Langkah</th>
+                          <th style={{ width: '180px' }}>No. Konfirmasi</th>
+                          <th style={{ width: '210px' }}>Status</th>
+                          <th style={{ minWidth: '170px', textAlign: 'center' }}>Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ord.steps.map((st) => {
+                          const isStepComplete =
+                            String(st.Status || '').toLowerCase() === 'selesai' ||
+                            st.status === 1;
+                          const isActive =
+                            ord.activeStep &&
+                            Number(ord.activeStep.Langkah) === Number(st.Langkah);
+                          const barcodeStatus = (
+                            st.barcodeStatus ||
+                            st.statusBarcode ||
+                            (isStepComplete ? 'FIN' : 'PROG')
+                          ).toUpperCase();
+
+                          return (
+                            <tr
+                              key={st.Langkah}
+                              className={`step-row ${isActive ? 'row-active' : ''} ${
+                                isStepComplete ? 'row-completed' : ''
+                              }`}
+                            >
+                              {/* 1. LANGKAH Badge */}
+                              <td className="step-num-cell">
+                                <span
+                                  className={`step-badge-number ${
+                                    isActive ? 'active' : ''
+                                  } ${isStepComplete ? 'done' : ''}`}
+                                >
+                                  {isStepComplete ? (
+                                    <CheckCircle2 size={13} />
+                                  ) : (
+                                    st.Langkah
+                                  )}
+                                </span>
+                              </td>
+
+                              {/* 2. NAMA LANGKAH */}
+                              <td className="step-name-cell">
+                                <div className="step-name-text">
+                                  {st.NamaLangkah || `Langkah Produksi ${st.Langkah}`}
+                                </div>
+                                {isActive && (
+                                  <span className="active-tag-inline">
+                                    <span className="active-pulse-mini"></span> Langkah Aktif
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* 3. NO. KONFIRMASI */}
+                              <td className="step-konf-cell font-mono">
+                                <span className="konf-number">{st.NoKonfirmasi}</span>
+                              </td>
+
+                              {/* 4. STATUS + BARCODE PROG/FIN */}
+                              <td className="step-status-cell">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {/* Primary Step Status Pill */}
+                                  {isStepComplete ? (
+                                    <span className="status-badge status-selesai">
+                                      <CheckCircle2 size={12} />
+                                      Selesai
+                                    </span>
+                                  ) : String(st.Status || '').toLowerCase() === 'not started' ? (
+                                    <span className="status-badge status-pending">
+                                      <Clock size={12} />
+                                      Not Started
+                                    </span>
+                                  ) : isActive ? (
+                                    <span className="status-badge status-berjalan active">
+                                      <span className="pulse-dot-small"></span>
+                                      Langkah Aktif
+                                    </span>
+                                  ) : (
+                                    <span className="status-badge status-pending">
+                                      <Clock size={12} />
+                                      Menunggu
+                                    </span>
+                                  )}
+
+                                  {/* Status Barcode (PROG vs FIN) Indicator */}
+                                  {isAdmin && onUpdateStepStatus ? (
+                                    <div className="status-barcode-select-wrapper mini-select">
+                                      <select
+                                        className={`status-barcode-select font-mono ${
+                                          barcodeStatus === 'FIN' ? 'status-fin' : 'status-prog'
+                                        }`}
+                                        value={barcodeStatus}
+                                        onChange={(e) => {
+                                          const nextBStatus = e.target.value;
+                                          onUpdateStepStatus(
+                                            ord.NoProduksi,
+                                            st.Langkah,
+                                            nextBStatus,
+                                            st.id || st.ID
+                                          );
+                                        }}
+                                        title="Ubah Status Barcode Langkah Ini (PROG vs FIN)"
+                                      >
+                                        <option value="PROG">PROG</option>
+                                        <option value="FIN">FIN</option>
+                                      </select>
+                                    </div>
+                                  ) : (
+                                    <span
+                                      className={`barcode-badge-pill font-mono text-xs ${
+                                        barcodeStatus === 'FIN' ? 'pill-fin' : 'pill-prog'
+                                      }`}
+                                      title={`Status Barcode: ${barcodeStatus === 'FIN' ? 'Finished' : 'In Progress'}`}
+                                    >
+                                      {barcodeStatus === 'FIN' ? (
+                                        <>
+                                          <CheckCircle2 size={10} />
+                                          <span>FIN</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Clock size={10} />
+                                          <span>PROG</span>
+                                        </>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* 5. AKSI */}
+                              <td className="step-action-cell" style={{ textAlign: 'center' }}>
+                                {!isStepComplete ? (
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs ${
+                                      isActive ? 'btn-success' : 'btn-outline-cyan'
+                                    } flex items-center justify-center gap-1 mx-auto`}
+                                    onClick={() => {
+                                      if (onMarkStepFinished) {
+                                        onMarkStepFinished(ord.NoProduksi, st.Langkah);
+                                      }
+                                      if (onUpdateStepStatus) {
+                                        onUpdateStepStatus(
+                                          ord.NoProduksi,
+                                          st.Langkah,
+                                          'FIN',
+                                          st.id || st.ID
+                                        );
+                                      }
+                                    }}
+                                    title={`Tandai Langkah ${st.Langkah} Selesai`}
+                                  >
+                                    <CheckCircle2 size={12} />
+                                    <span>Selesai</span>
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                    <span className="text-xs text-muted font-mono">
+                                      Terverifikasi
+                                    </span>
+
+                                    {/* Revert button: strictly for Admin */}
+                                    {isAdmin && onRevertStep && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-xs btn-outline-warning flex items-center gap-1"
+                                        onClick={() => {
+                                          onRevertStep(
+                                            ord.NoProduksi,
+                                            st.Langkah,
+                                            st.id || st.ID
+                                          );
+                                          if (onUpdateStepStatus) {
+                                            onUpdateStepStatus(
+                                              ord.NoProduksi,
+                                              st.Langkah,
+                                              'PROG',
+                                              st.id || st.ID
+                                            );
+                                          }
+                                        }}
+                                        title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                                      >
+                                        <RotateCcw size={11} />
+                                        <span>Belum Selesai</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
