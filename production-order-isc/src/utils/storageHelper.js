@@ -11,7 +11,6 @@ export const STORAGE_EXPIRY_MS = 60 * 1000; // 1 menit (60 detik) untuk cache da
  * Sesi login, pengaturan sandi, dan preferensi tampilan tetap aktif sampai pengguna klik "Keluar".
  */
 export const PERSISTENT_KEYS = [
-  'isc_production_session',
   'isc_production_admin_password',
   'isc_production_user_password',
   'isc_production_theme',

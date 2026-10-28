@@ -28,30 +28,24 @@ import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import './index.css';
 
 export default function App() {
-  // Authentication & Session state (Expires after 1 minute)
+  // Authentication & Session state:
+  // Session is stored in sessionStorage so fresh visits require logging in first
   const [currentUserSession, setCurrentUserSession] = useState(() => {
     try {
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const role = urlParams.get('role') || urlParams.get('mode');
-        const isOperatorUrl = urlParams.get('operator') === 'true' || role === 'operator' || role === 'user' || window.location.hash === '#operator';
-        if (isOperatorUrl) {
-          const directSession = {
-            role: 'user',
-            username: 'Operator Bengkel',
-            operator: null
-          };
-          setStorageItem('isc_production_session', directSession);
-          return directSession;
-        }
+      // Proactively clear any legacy persistent session from localStorage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem('isc_production_session');
       }
 
-      const saved = getStorageItem('isc_production_session');
-      if (saved) {
-        if (saved?.operator && isDummyPersonnel(saved.operator)) {
-          saved.operator = null;
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const saved = window.sessionStorage.getItem('isc_production_session');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.operator && isDummyPersonnel(parsed.operator)) {
+            parsed.operator = null;
+          }
+          return parsed;
         }
-        return saved;
       }
       return null;
     } catch {
@@ -59,20 +53,11 @@ export default function App() {
     }
   });
 
-  // Direct URL Operator Link Handler (e.g. ?role=operator)
+  // Clean URL parameters if any were passed (e.g. ?role=operator) without auto-bypassing login
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      const role = urlParams.get('role') || urlParams.get('mode');
-      const isOperatorUrl = urlParams.get('operator') === 'true' || role === 'operator' || role === 'user' || window.location.hash === '#operator';
-      if (isOperatorUrl) {
-        const directSession = {
-          role: 'user',
-          username: 'Operator Bengkel',
-          operator: null
-        };
-        setCurrentUserSession(directSession);
-        setStorageItem('isc_production_session', directSession);
+      if (urlParams.has('role') || urlParams.has('operator') || urlParams.has('mode') || window.location.hash === '#operator') {
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
@@ -280,21 +265,31 @@ export default function App() {
       }
     }
 
-    const savedSession = getStorageItem('isc_production_session');
-    if (savedSession?.operator && isDummyPersonnel(savedSession.operator)) {
-      savedSession.operator = null;
-      setStorageItem('isc_production_session', savedSession);
-      setCurrentUserSession(savedSession);
+    if (currentUserSession?.operator && isDummyPersonnel(currentUserSession.operator)) {
+      const cleanedSession = { ...currentUserSession, operator: null };
+      setCurrentUserSession(cleanedSession);
       setSelectedOperator(null);
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('isc_production_session', JSON.stringify(cleanedSession));
+      }
     }
   }, []);
 
-  // Sync session to localStorage with 1-minute expiry
+  // Sync session to sessionStorage
   useEffect(() => {
-    if (currentUserSession) {
-      setStorageItem('isc_production_session', currentUserSession);
-    } else {
-      removeStorageItem('isc_production_session');
+    if (typeof window !== 'undefined') {
+      if (currentUserSession) {
+        if (window.sessionStorage) {
+          window.sessionStorage.setItem('isc_production_session', JSON.stringify(currentUserSession));
+        }
+      } else {
+        if (window.sessionStorage) {
+          window.sessionStorage.removeItem('isc_production_session');
+        }
+      }
+      if (window.localStorage) {
+        window.localStorage.removeItem('isc_production_session');
+      }
     }
   }, [currentUserSession]);
 
@@ -365,6 +360,14 @@ export default function App() {
   // Login handler
   const handleLoginSuccess = (session) => {
     setCurrentUserSession(session);
+    if (typeof window !== 'undefined') {
+      if (window.sessionStorage) {
+        window.sessionStorage.setItem('isc_production_session', JSON.stringify(session));
+      }
+      if (window.localStorage) {
+        window.localStorage.removeItem('isc_production_session');
+      }
+    }
     if (session.role === 'admin') {
       showToast('Berhasil masuk sebagai Administrator ISC!', 'success');
     } else {
@@ -378,8 +381,13 @@ export default function App() {
   // Logout handler
   const handleLogout = () => {
     setCurrentUserSession(null);
-    removeStorageItem('isc_production_session');
     if (typeof window !== 'undefined') {
+      if (window.sessionStorage) {
+        window.sessionStorage.removeItem('isc_production_session');
+      }
+      if (window.localStorage) {
+        window.localStorage.removeItem('isc_production_session');
+      }
       window.history.replaceState({}, '', window.location.pathname);
     }
     showToast('Anda telah keluar dari sistem.', 'info');

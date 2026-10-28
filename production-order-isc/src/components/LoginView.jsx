@@ -23,8 +23,26 @@ export default function LoginView({
   onLoginSuccess,
   onResetAdminPassword
 }) {
-  // Tabs: 'admin' or 'user'
-  const [roleTab, setRoleTab] = useState('admin');
+  // Tabs: 'admin' or 'user' (default based on URL query/hash if operator, else admin)
+  const [roleTab, setRoleTab] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get('role') || urlParams.get('mode');
+        if (
+          urlParams.get('operator') === 'true' ||
+          role === 'operator' ||
+          role === 'user' ||
+          window.location.hash === '#operator'
+        ) {
+          return 'user';
+        }
+      }
+      return 'admin';
+    } catch {
+      return 'admin';
+    }
+  });
 
   // Ensure all personnel are loaded without exception
   const cleanPersonnel = useMemo(() => {
