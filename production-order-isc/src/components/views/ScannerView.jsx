@@ -12,6 +12,7 @@ export default function ScannerView({
   onMarkStepFinished,
   onResetOrderSteps,
   onRevertStep,
+  onUpdateStepStatus,
   isAdmin,
   selectedGroup
 }) {
@@ -33,6 +34,7 @@ export default function ScannerView({
         onMarkStepFinished={onMarkStepFinished}
         onResetOrderSteps={onResetOrderSteps}
         onRevertStep={onRevertStep}
+        onUpdateStepStatus={onUpdateStepStatus}
         isAdmin={isAdmin}
         selectedGroup={selectedGroup}
       />

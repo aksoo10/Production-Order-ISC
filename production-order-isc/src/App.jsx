@@ -523,6 +523,85 @@ export default function App() {
     showToast(`Langkah ${stepNumber} Order #${sOrderNo} dikembalikan ke Belum Selesai (Berjalan).`, 'info');
   };
 
+  // Update step status via Status Barcode dropdown (PROG vs FIN) with backend synchronization
+  const handleUpdateStepStatus = (orderNo, stepNumber, newStatus, stepId) => {
+    const sOrderNo = String(orderNo).trim();
+    const isFinished = newStatus === 'FIN';
+    const statusText = isFinished ? 'Selesai' : 'Berjalan';
+    const statusNum = isFinished ? 1 : 0;
+
+    // 1. Update persistent custom steps registry
+    try {
+      const registry = getCustomStepsRegistry();
+      if (registry[sOrderNo]) {
+        registry[sOrderNo] = registry[sOrderNo].map((st) => {
+          const isMatch = stepId && (st.id === stepId || st.ID === stepId)
+            ? true
+            : Number(st.Langkah) === Number(stepNumber);
+          if (isMatch) {
+            return {
+              ...st,
+              Status: statusText,
+              status: statusNum,
+              barcodeStatus: newStatus
+            };
+          }
+          return st;
+        });
+        saveCustomStepsRegistry(registry);
+      }
+    } catch (e) {
+      console.warn('[handleUpdateStepStatus] Gagal update registry langkah:', e);
+    }
+
+    setOrders((prevOrders) => {
+      let matched = false;
+      const updated = prevOrders.map((step) => {
+        if (String(step.NoProduksi).trim() === sOrderNo) {
+          const isMatch = stepId && (step.id === stepId || step.ID === stepId)
+            ? true
+            : (!matched && Number(step.Langkah) === Number(stepNumber));
+          if (isMatch) {
+            matched = true;
+            return {
+              ...step,
+              Status: statusText,
+              status: statusNum,
+              barcodeStatus: newStatus
+            };
+          }
+        }
+        return step;
+      });
+
+      // Recalculate order status
+      const matchingOrderSteps = updated.filter((s) => String(s.NoProduksi).trim() === sOrderNo);
+      const allStepsDone = matchingOrderSteps.length > 0 && matchingOrderSteps.every(
+        (s) => String(s.Status).toLowerCase() === 'selesai' || s.status === 1 || s.barcodeStatus === 'FIN'
+      );
+
+      // Auto-sync status to backend (SharePoint / Power Automate)
+      const targetOrder = prevOrders.find((o) => String(o.NoProduksi).trim() === sOrderNo);
+      if (targetOrder && targetOrder.id && targetOrder.id > 0) {
+        orderApiService.updateOrder({
+          id: targetOrder.id,
+          orderNo: targetOrder.NoProduksi,
+          title: targetOrder.title || targetOrder.NamaLangkah || '',
+          status: allStepsDone ? 1 : 0
+        }).catch((err) => console.warn('[AutoSync] Cloud update failed:', err));
+      }
+
+      setStorageItem('isc_production_orders', updated);
+      return updated;
+    });
+
+    if (isFinished) {
+      showToast(`Status Barcode Langkah ${stepNumber} diubah ke FIN (Finished) & disimpan ke database.`, 'success');
+    } else {
+      showToast(`Status Barcode Langkah ${stepNumber} diubah ke PROG (In Progress) & disimpan ke database.`, 'info');
+    }
+  };
+
   // --- CLOUD CRUD HANDLERS (Power Automate & SharePoint) ---
 
   // 1. READ: Sync orders from Cloud SharePoint while preserving all custom added steps
@@ -1092,6 +1171,7 @@ export default function App() {
             onMarkStepFinished={handleMarkStepFinished}
             onResetOrderSteps={handleResetOrderSteps}
             onRevertStep={handleRevertStep}
+            onUpdateStepStatus={handleUpdateStepStatus}
             isAdmin={isAdmin}
             selectedGroup={selectedGroup}
           />
@@ -1124,6 +1204,7 @@ export default function App() {
             onMarkStepFinished={handleMarkStepFinished}
             onResetOrderSteps={handleResetOrderSteps}
             onRevertStep={handleRevertStep}
+            onUpdateStepStatus={handleUpdateStepStatus}
             isAdmin={isAdmin}
             selectedGroup={selectedGroup}
           />

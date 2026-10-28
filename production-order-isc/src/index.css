@@ -1783,6 +1783,85 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--atz-cyan);
 }
 
+.meta-right-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.status-barcode-meta-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-barcode-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-barcode-select {
+  height: 38px;
+  min-width: 175px;
+  padding: 0 32px 0 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+}
+
+.status-barcode-select.status-prog {
+  background-color: var(--atz-cyan-tint);
+  border: 1.5px solid var(--atz-cyan-border);
+  color: var(--atz-cyan-dark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230087BA' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.status-barcode-select.status-fin {
+  background-color: var(--color-success-light);
+  border: 1.5px solid var(--color-success-border);
+  color: var(--color-success);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.status-barcode-select:hover {
+  filter: brightness(0.97);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.status-barcode-select:focus {
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.25);
+}
+
+[data-theme="dark"] .status-barcode-select.status-prog {
+  background-color: rgba(0, 163, 224, 0.15);
+  border-color: rgba(0, 163, 224, 0.5);
+  color: #38BDF8;
+}
+
+[data-theme="dark"] .status-barcode-select.status-fin {
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #34D399;
+}
+
+.completed-status-dropdown-row {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 .admin-step-action-box {
   background-color: var(--color-warning-light);
   border: 1px solid var(--color-warning-border);

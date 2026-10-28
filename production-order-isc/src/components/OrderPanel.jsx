@@ -18,6 +18,7 @@ export default function OrderPanel({
   onSelectOrderNo,
   onMarkStepFinished,
   onRevertStep,
+  onUpdateStepStatus,
   isAdmin,
   selectedGroup
 }) {
@@ -115,6 +116,30 @@ export default function OrderPanel({
     }
     return currentOrder.activeStep || currentOrder.steps[0] || null;
   }, [currentOrder, selectedStepNum]);
+
+  // Handle status change from Status Barcode dropdown (PROG vs FIN)
+  const handleBarcodeStatusChange = (newStatus, customStep) => {
+    if (!currentOrder) return;
+    const targetStep = customStep || displayStep || currentOrder.steps[0];
+    if (!targetStep) return;
+
+    if (onUpdateStepStatus) {
+      onUpdateStepStatus(currentOrder.NoProduksi, targetStep.Langkah, newStatus, targetStep.id || targetStep.ID);
+    } else if (newStatus === 'FIN') {
+      onMarkStepFinished(currentOrder.NoProduksi, targetStep.Langkah);
+    } else if (newStatus === 'PROG' && onRevertStep) {
+      onRevertStep(currentOrder.NoProduksi, targetStep.Langkah, targetStep.id || targetStep.ID);
+    }
+  };
+
+  const isDisplayStepFinished = Boolean(
+    displayStep && (
+      displayStep.barcodeStatus === 'FIN' ||
+      String(displayStep.Status).toLowerCase() === 'selesai' ||
+      displayStep.status === 1
+    )
+  );
+  const currentBarcodeStatus = isDisplayStepFinished ? 'FIN' : 'PROG';
 
   return (
     <div className="panel-container order-panel">
@@ -262,10 +287,29 @@ export default function OrderPanel({
                     <h4 className="active-step-title">{displayStep.NamaLangkah}</h4>
                   </div>
 
-                  <div className="konfirmasi-meta-box">
-                    <span className="text-muted text-xs tracking-wider uppercase font-semibold">No. Konfirmasi SAP:</span>
-                    <div className="konfirmasi-display font-mono">
-                      <span>{displayStep.NoKonfirmasi || currentOrder.NoProduksi}</span>
+                  <div className="meta-right-controls">
+                    <div className="konfirmasi-meta-box">
+                      <span className="text-muted text-xs tracking-wider uppercase font-semibold">No. Konfirmasi SAP:</span>
+                      <div className="konfirmasi-display font-mono">
+                        <span>{displayStep.NoKonfirmasi || currentOrder.NoProduksi}</span>
+                      </div>
+                    </div>
+
+                    <div className="status-barcode-meta-box">
+                      <span className="text-muted text-xs tracking-wider uppercase font-semibold">
+                        Status Barcode:
+                      </span>
+                      <div className="status-barcode-select-wrapper">
+                        <select
+                          className={`status-barcode-select font-mono ${isDisplayStepFinished ? 'status-fin' : 'status-prog'}`}
+                          value={currentBarcodeStatus}
+                          onChange={(e) => handleBarcodeStatusChange(e.target.value)}
+                          title="Ubah Status Barcode Langkah Kerja"
+                        >
+                          <option value="PROG">PROG — In Progress</option>
+                          <option value="FIN">FIN — Finished</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -291,6 +335,20 @@ export default function OrderPanel({
               <div className="all-completed-title">Semua Langkah Order Ini Telah Selesai!</div>
               <div className="all-completed-subtitle">
                 Seluruh {currentOrder.totalSteps} langkah telah selesai diproses di bengkel ISC.
+              </div>
+              <div className="completed-status-dropdown-row">
+                <span className="text-xs text-muted font-semibold">Status Barcode Order:</span>
+                <div className="status-barcode-select-wrapper">
+                  <select
+                    className="status-barcode-select font-mono status-fin"
+                    value="FIN"
+                    onChange={(e) => handleBarcodeStatusChange(e.target.value, currentOrder.steps[currentOrder.steps.length - 1])}
+                    title="Ubah Status Barcode Order"
+                  >
+                    <option value="PROG">PROG — In Progress</option>
+                    <option value="FIN">FIN — Finished</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}
