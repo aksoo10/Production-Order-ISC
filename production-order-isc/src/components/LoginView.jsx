@@ -12,8 +12,7 @@ import {
   Scan,
   Users,
   Cpu,
-  ArrowRight,
-  Sparkles
+  ArrowRight
 } from 'lucide-react';
 
 export default function LoginView({
@@ -66,9 +65,6 @@ export default function LoginView({
   const [adminPass, setAdminPass] = useState('');
   const [showAdminPass, setShowAdminPass] = useState(false);
 
-  // Operator direct access state (No username or password required)
-  const [selectedOperatorNo, setSelectedOperatorNo] = useState(cleanPersonnel[0]?.NoPersonal || '');
-
   // UI state
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -102,11 +98,10 @@ export default function LoginView({
   // Direct Entry Handler for Operator (No password required)
   const handleDirectOperatorLogin = () => {
     setErrorMsg('');
-    const op = cleanPersonnel.find((item) => String(item.NoPersonal) === String(selectedOperatorNo));
     onLoginSuccess({
       role: 'user',
-      username: op ? op.Nama : 'Operator Bengkel',
-      operator: op || null
+      username: 'Operator Bengkel',
+      operator: null
     });
   };
 
@@ -235,37 +230,6 @@ export default function LoginView({
         {/* TAB 2: OPERATOR DIRECT LOGIN (NO USERNAME & NO PASSWORD NEEDED) */}
         {roleTab === 'user' && (
           <div className="login-form-body">
-            {/* Quick Informational Notice */}
-            <div className="alert-box alert-info flex items-start gap-2.5">
-              <Sparkles size={18} className="text-cyan flex-shrink-0 mt-0.5" />
-              <div className="text-xs">
-                <strong>Akses Bebas Operator Bengkel:</strong>
-                <div>Tidak diperlukan username atau kata sandi. Silakan langsung masuk ke Terminal Scanner SAP di bawah.</div>
-              </div>
-            </div>
-
-            {/* Profile selection if personnel available */}
-            {cleanPersonnel.length > 0 && (
-              <div className="form-group">
-                <label className="form-label">Pilih Profil Operator (Opsional):</label>
-                <select
-                  className="form-control font-heading font-semibold"
-                  value={selectedOperatorNo}
-                  onChange={(e) => setSelectedOperatorNo(e.target.value)}
-                >
-                  <option value="">-- Masuk sebagai Operator Umum (Default) --</option>
-                  {cleanPersonnel.map((op) => (
-                    <option key={op.NoPersonal} value={op.NoPersonal}>
-                      {op.Nama} — No. Personal: {op.NoPersonal} ({op.ProductGroup || 'PKW'})
-                    </option>
-                  ))}
-                </select>
-                <span className="text-xs text-muted mt-1">
-                  *Anda dapat memilih nama untuk otomatis mengisi barcode operator di scanner.
-                </span>
-              </div>
-            )}
-
             {/* Direct Login Button */}
             <button
               type="button"
