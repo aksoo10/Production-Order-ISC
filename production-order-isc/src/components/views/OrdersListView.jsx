@@ -11,8 +11,7 @@ import {
   Loader2,
   AlertTriangle,
   RotateCcw,
-  Upload,
-  Download
+  Upload
 } from 'lucide-react';
 import CreateOrderModal from '../CreateOrderModal';
 import EditOrderModal from '../EditOrderModal';
@@ -28,8 +27,7 @@ export default function OrdersListView({
   onUpdateOrder,
   onDeleteOrder,
   isLoadingCloud,
-  onOpenImport,
-  onExportExcel
+  onOpenImport
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedOrder, setExpandedOrder] = useState(null);
@@ -183,19 +181,6 @@ export default function OrdersListView({
             >
               <Upload size={14} className="text-cyan" />
               <span>Import Excel</span>
-            </button>
-          )}
-
-          {/* Unduh Order Button */}
-          {onExportExcel && (
-            <button
-              type="button"
-              className="btn btn-outline flex items-center gap-1.5 text-xs font-semibold"
-              onClick={onExportExcel}
-              title="Unduh seluruh data order produksi ke file Excel (.xlsx)"
-            >
-              <Download size={14} className="text-cyan" />
-              <span>Unduh Order</span>
             </button>
           )}
 

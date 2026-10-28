@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart3,
   PieChart,
-  ShieldCheck,
   ShieldAlert,
   RotateCcw,
   Layers,
@@ -10,7 +9,6 @@ import {
   Clock,
   Activity,
   TrendingUp,
-  Database,
   Filter
 } from 'lucide-react';
 import { orderApiService } from '../../services/orderApiService';
@@ -22,7 +20,7 @@ export default function DashboardChartView({
   onSyncCloud,
   isLoadingCloud = false
 }) {
-  const [isBackendAuthorized, setIsBackendAuthorized] = useState(true);
+  const [_isBackendAuthorized, setIsBackendAuthorized] = useState(true);
   const [localGroupFilter, setLocalGroupFilter] = useState(selectedGroup || 'ALL');
   const [hoveredSegment, setHoveredSegment] = useState(null);
 
@@ -312,19 +310,11 @@ export default function DashboardChartView({
       {/* 1. Header Toolbar */}
       <div className="view-header-row chart-header-row">
         <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <div className="flex items-center gap-2">
             <h2 className="view-title font-heading flex items-center gap-2">
               <BarChart3 className="text-cyan" size={24} />
               <span>Dashboard Analitik & Visualisasi Grafik</span>
             </h2>
-            <span className="badge badge-admin-role flex items-center gap-1 font-mono text-xs">
-              <ShieldCheck size={13} />
-              {isBackendAuthorized ? 'Khusus Admin (Terverifikasi)' : 'Khusus Admin'}
-            </span>
-            <span className="badge badge-cyan flex items-center gap-1 font-mono text-xs">
-              <Database size={12} />
-              Data Aktual Database
-            </span>
           </div>
         </div>
 
