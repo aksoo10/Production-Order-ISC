@@ -1222,6 +1222,7 @@ export default function App() {
                 setIsImportModalOpen(true);
               }
             }}
+            onExportExcel={handleExportExcel}
           />
         );
       case 'tracker':
