@@ -2,7 +2,6 @@ import {
   Scan,
   Layers,
   ListChecks,
-  Upload,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -16,7 +15,6 @@ export default function Sidebar({
   isAdmin,
   currentUser,
   onLogout,
-  onOpenImport,
   collapsed,
   setCollapsed,
   ordersCount
@@ -122,50 +120,25 @@ export default function Sidebar({
           </nav>
         </div>
 
-        {/* Admin Operations Section or Active Operator Card */}
-        <div className="sidebar-admin-section">
-          {isAdmin ? (
-            <>
-              {!collapsed && (
-                <div className="sidebar-group-label flex items-center justify-between">
-                  <span>KONTROL SUPERVISOR</span>
-                  <span className="admin-status-dot"></span>
+        {/* Active Operator Card (Shown only for Operator) */}
+        {!isAdmin && !collapsed && (
+          <div className="sidebar-admin-section">
+            <div className="user-mode-card">
+              <div className="flex items-center gap-2 mb-1">
+                <UserCheck size={14} className="text-cyan" />
+                <span className="font-bold text-xs text-white">Sesi Operator Aktif</span>
+              </div>
+              <div className="text-xs font-semibold text-main mb-1" style={{ color: '#E2E8F0' }}>
+                {currentUser?.username || 'Operator'}
+              </div>
+              {currentUser?.operator?.NoPersonal && (
+                <div className="text-xs font-mono text-muted">
+                  ID: <span className="text-cyan">{currentUser.operator.NoPersonal}</span> ({currentUser.operator.ProductGroup || 'PKW'})
                 </div>
               )}
-              <div className="sidebar-admin-actions">
-                {onOpenImport && (
-                  <button
-                    type="button"
-                    className="sidebar-action-btn"
-                    onClick={onOpenImport}
-                    title="Impor order produksi dari file Excel (.xlsx / .xls)"
-                  >
-                    <Upload size={16} />
-                    {!collapsed && <span>Impor Order (Excel)</span>}
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            /* Operator Status Info */
-            !collapsed && (
-              <div className="user-mode-card">
-                <div className="flex items-center gap-2 mb-1">
-                  <UserCheck size={14} className="text-cyan" />
-                  <span className="font-bold text-xs text-white">Sesi Operator Aktif</span>
-                </div>
-                <div className="text-xs font-semibold text-main mb-1" style={{ color: '#E2E8F0' }}>
-                  {currentUser?.username || 'Operator'}
-                </div>
-                {currentUser?.operator?.NoPersonal && (
-                  <div className="text-xs font-mono text-muted">
-                    ID: <span className="text-cyan">{currentUser.operator.NoPersonal}</span> ({currentUser.operator.ProductGroup || 'PKW'})
-                  </div>
-                )}
-              </div>
-            )
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sidebar Footer: Logout */}
