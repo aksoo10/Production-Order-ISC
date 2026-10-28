@@ -2802,6 +2802,31 @@ select.modal-input option {
   gap: 6px;
 }
 
+.zoom-btn-group .btn {
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.zoom-btn-group .btn:hover:not(:disabled) {
+  background-color: rgba(0, 163, 224, 0.25);
+  border-color: var(--atz-cyan);
+  color: #FFFFFF;
+}
+
+.zoom-btn-group .btn:active:not(:disabled) {
+  background-color: var(--atz-cyan);
+  color: #FFFFFF;
+}
+
 .zoom-indicator {
   font-size: 0.8rem;
   color: #FFFFFF;

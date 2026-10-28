@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
-import { Maximize2, Copy, Check, Scan, ZoomIn, ZoomOut } from 'lucide-react';
+import { Maximize2, Copy, Check, Scan, Plus, Minus } from 'lucide-react';
 
 export default function BarcodeCard({
   value,
@@ -154,18 +154,18 @@ export default function BarcodeCard({
                     type="button"
                     className="btn btn-sm btn-outline"
                     onClick={() => setModalScale(prev => Math.max(0.8, prev - 0.2))}
-                    title="Perkecil"
+                    title="Perkecil (-)"
                   >
-                    <ZoomOut size={16} />
+                    <Minus size={16} strokeWidth={2.2} />
                   </button>
                   <span className="zoom-indicator font-mono">{Math.round(modalScale * 100)}%</span>
                   <button
                     type="button"
                     className="btn btn-sm btn-outline"
                     onClick={() => setModalScale(prev => Math.min(1.8, prev + 0.2))}
-                    title="Perbesar"
+                    title="Perbesar (+)"
                   >
-                    <ZoomIn size={16} />
+                    <Plus size={16} strokeWidth={2.2} />
                   </button>
                 </div>
                 <button
