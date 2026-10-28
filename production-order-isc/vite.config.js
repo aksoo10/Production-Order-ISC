@@ -119,6 +119,18 @@ function directPowerAutomatePlugin() {
           req.on('data', chunk => { body += chunk; });
           req.on('end', async () => {
             try {
+              if (action === 'create') {
+                const callerRole = req.headers['x-user-role'] || url.searchParams.get('role') || 'admin';
+                if (String(callerRole).toLowerCase() !== 'admin') {
+                  res.statusCode = 403;
+                  res.end(JSON.stringify({
+                    success: false,
+                    error: 'Akses ditolak: Hanya role Admin yang berhak melakukan import / pembuatan order produksi.'
+                  }));
+                  return;
+                }
+              }
+
               let targetUrl = CREATE_URL;
               if (action === 'update') targetUrl = UPDATE_URL;
               else if (action === 'delete') targetUrl = DELETE_URL;

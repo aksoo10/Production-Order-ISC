@@ -3,6 +3,7 @@ import {
   Scan,
   Layers,
   Download,
+  Upload,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -15,6 +16,7 @@ export default function Sidebar({
   isAdmin,
   currentUser,
   onLogout,
+  onOpenImport,
   onExportExcel,
   collapsed,
   setCollapsed,
@@ -114,6 +116,17 @@ export default function Sidebar({
                 </div>
               )}
               <div className="sidebar-admin-actions">
+                {onOpenImport && (
+                  <button
+                    type="button"
+                    className="sidebar-action-btn"
+                    onClick={onOpenImport}
+                    title="Impor order produksi dari file Excel (.xlsx / .xls)"
+                  >
+                    <Upload size={16} />
+                    {!collapsed && <span>Impor Order (Excel)</span>}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="sidebar-action-btn"

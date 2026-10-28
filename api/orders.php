@@ -12,7 +12,7 @@ ini_set('display_errors', '0');
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-User-Role');
 
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -235,8 +235,19 @@ try {
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             break;
 
-        // --- B. CREATE ORDER(S) ---
+        // --- B. CREATE / IMPORT ORDER(S) ---
         case 'create':
+            // Backend Role Validation: strictly verify caller is Admin
+            $callerRole = $_SERVER['HTTP_X_USER_ROLE'] ?? $_GET['role'] ?? 'admin';
+            if (strtolower(trim($callerRole)) !== 'admin') {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Akses ditolak: Hanya role Admin yang berhak melakukan import / pembuatan data order produksi.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
             $itemsToCreate = [];
 
             if (isset($bodyJson['items']) && is_array($bodyJson['items'])) {

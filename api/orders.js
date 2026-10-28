@@ -10,7 +10,7 @@ const DELETE_URL = process.env.POWER_AUTOMATE_DELETE_URL || "https://default6785
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Role');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -188,6 +188,14 @@ export default async function handler(req, res) {
       }
 
       case 'create': {
+        const callerRole = req.headers['x-user-role'] || req.query.role || 'admin';
+        if (String(callerRole).toLowerCase() !== 'admin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Akses ditolak: Hanya role Admin yang berhak melakukan import / pembuatan order produksi.'
+          });
+        }
+
         const rawItems = Array.isArray(body.items) ? body.items : (Array.isArray(body) ? body : [body]);
         const formattedItems = [];
 

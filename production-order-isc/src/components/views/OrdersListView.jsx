@@ -11,7 +11,8 @@ import {
   Loader2,
   AlertTriangle,
   Cloud,
-  RotateCcw
+  RotateCcw,
+  Upload
 } from 'lucide-react';
 import CreateOrderModal from '../CreateOrderModal';
 import EditOrderModal from '../EditOrderModal';
@@ -26,7 +27,8 @@ export default function OrdersListView({
   onCreateOrder,
   onUpdateOrder,
   onDeleteOrder,
-  isLoadingCloud
+  isLoadingCloud,
+  onOpenImport
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedOrder, setExpandedOrder] = useState(null);
@@ -176,6 +178,19 @@ export default function OrdersListView({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          {/* Import Excel Button (Only for Admin) */}
+          {isAdmin && onOpenImport && (
+            <button
+              type="button"
+              className="btn btn-outline flex items-center gap-1.5 text-xs font-semibold"
+              onClick={onOpenImport}
+              title="Import Data Order dari file Excel (.xlsx / .xls) ke Database"
+            >
+              <Upload size={14} className="text-cyan" />
+              <span>Import Excel</span>
+            </button>
+          )}
 
           {/* Add Order Button (CREATE) */}
           {isAdmin && (

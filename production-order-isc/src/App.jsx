@@ -1011,15 +1011,26 @@ export default function App() {
     showToast(`Status seluruh langkah Order ${orderNo} dikembalikan ke Berjalan.`, 'info');
   };
 
-  // Excel Import Success Handler: Saves to Local State AND Persists to Cloud Database (SharePoint via Power Automate)
+  // Excel Import Success Handler: Restricted strictly to Admin, persists to Cloud Database (SharePoint via Power Automate)
   const handleImportSuccess = async (newOrders, newPersonnel) => {
+    // 1. Strict Security Gate
+    if (!isAdmin) {
+      showToast('Akses ditolak: Hanya role Admin yang berhak mengimpor data Excel.', 'error');
+      throw new Error('Akses ditolak: Hanya role Admin yang berhak mengimpor data.');
+    }
+
+    if (!Array.isArray(newOrders) || newOrders.length === 0) {
+      showToast('Tidak ada data order yang diproses.', 'warning');
+      return { success: true, count: 0 };
+    }
+
     setIsLoadingCloud(true);
 
     if (newPersonnel && newPersonnel.length > 0) {
       setPersonnel(newPersonnel);
     }
 
-    // Un-delete any imported orders from deleted registry
+    // 2. Un-delete any imported orders from deleted registry
     const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
     if (deletedList.length > 0) {
       const importedNos = new Set(newOrders.map((o) => String(o.NoProduksi || o.orderNo || '').trim()));
@@ -1027,29 +1038,39 @@ export default function App() {
       setStorageItem('isc_production_deleted_orders', nextDeleted);
     }
 
-    // Match existing orders to preserve existing SharePoint IDs if any match
+    // 3. Match existing orders to preserve existing SharePoint IDs if any match
     const existingMap = new Map();
     orders.forEach((o) => {
-      if (o.id && o.id > 0) {
-        existingMap.set(String(o.NoProduksi).trim(), o.id);
+      const num = String(o.NoProduksi || o.orderNo || '').trim();
+      if (num && o.id && o.id > 0) {
+        existingMap.set(num, o.id);
       }
     });
 
     const preparedOrders = newOrders.map((no) => {
-      const existingId = existingMap.get(String(no.NoProduksi).trim());
+      const num = String(no.NoProduksi || no.orderNo || '').trim();
+      const existingId = existingMap.get(num);
       if (existingId) {
         return { ...no, id: existingId, ID: existingId };
       }
       return no;
     });
 
-    // Immediately update local state and localStorage so user sees imported data right away
-    setOrders(preparedOrders);
+    // 4. Merge imported orders with current orders (updating duplicates, keeping existing non-imported orders)
+    const importedNos = new Set(preparedOrders.map((o) => String(o.NoProduksi || o.orderNo || '').trim()));
+    const nonOverwrittenOrders = orders.filter(
+      (o) => !importedNos.has(String(o.NoProduksi || o.orderNo || '').trim())
+    );
+    const mergedList = [...preparedOrders, ...nonOverwrittenOrders];
+
+    // Immediately update local state and localStorage so table updates instantly
+    setOrders(mergedList);
+    setStorageItem('isc_production_orders', mergedList);
     if (preparedOrders.length > 0) {
       setSelectedOrderNo(preparedOrders[0].NoProduksi);
     }
 
-    // Group into items to create (new) vs update (existing)
+    // 5. Group into items to create (new) vs update (existing)
     const toCreate = [];
     const toUpdate = [];
     preparedOrders.forEach((o) => {
@@ -1074,14 +1095,18 @@ export default function App() {
       }
 
       showToast(
-        `Sukses! ${preparedOrders.length} order berhasil diimpor & disimpan permanen ke SharePoint Database.`,
+        `Sukses! ${preparedOrders.length} data order berhasil diimpor & disinkronkan ke database SharePoint.`,
         'success'
       );
 
-      // Re-fetch cloud orders after short delay to retrieve real SharePoint IDs
+      // 6. Automatic table refresh: Re-fetch cloud orders after short delay
       setTimeout(async () => {
-        await handleSyncCloud(true);
-      }, 1500);
+        try {
+          await handleSyncCloud(true);
+        } catch (syncErr) {
+          console.warn('[handleImportSuccess] Background sync error:', syncErr);
+        }
+      }, 1200);
 
       return { success: true, count: preparedOrders.length };
     } catch (cloudErr) {
@@ -1190,6 +1215,11 @@ export default function App() {
             onUpdateOrder={handleUpdateOrder}
             onDeleteOrder={handleDeleteOrder}
             isLoadingCloud={isLoadingCloud}
+            onOpenImport={() => {
+              if (isAdmin) {
+                setIsImportModalOpen(true);
+              }
+            }}
           />
         );
       default:
@@ -1285,6 +1315,8 @@ export default function App() {
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={handleImportSuccess}
         currentPersonnel={personnel}
+        existingOrders={orders}
+        isAdmin={isAdmin}
       />
 
       {/* Toast Notification Banner */}

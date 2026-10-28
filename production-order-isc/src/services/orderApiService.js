@@ -20,6 +20,30 @@ function getEndpointUrl(action) {
   return `${cleanBase}/orders.php?action=${encodeURIComponent(action)}`;
 }
 
+// Helper to build request headers with current authenticated user role
+function getAuthHeaders() {
+  let role = 'admin';
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const saved = window.sessionStorage.getItem('isc_production_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.role) {
+          role = parsed.role;
+        }
+      }
+    }
+  } catch {
+    role = 'admin';
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-User-Role': role
+  };
+}
+
 // Resilient fetch helper that handles both /orders and /orders.php environments
 async function requestWithFallback(primaryUrl, options = {}) {
   let response;
@@ -140,10 +164,7 @@ export const orderApiService = {
         const batch = validItems.slice(i, i + BATCH_SIZE);
         const response = await requestWithFallback(getEndpointUrl('create'), {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ items: batch })
         });
 
@@ -181,10 +202,7 @@ export const orderApiService = {
         const batch = validItems.slice(i, i + BATCH_SIZE);
         const response = await requestWithFallback(getEndpointUrl('update'), {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ items: batch })
         });
 
@@ -215,10 +233,7 @@ export const orderApiService = {
 
       const response = await requestWithFallback(getEndpointUrl('delete'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ID: numId })
       });
 
