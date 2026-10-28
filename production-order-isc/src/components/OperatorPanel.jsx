@@ -69,7 +69,7 @@ export default function OperatorPanel({
                 onSelectOperator(op || null);
               }
             }}
-            title="Select Workshop Operator"
+            title={activeOperator ? `${activeOperator.Nama} — Personnel No.: ${activeOperator.NoPersonal} (${activeOperator.ProductGroup || 'PKW'})` : "Select Workshop Operator"}
           >
             <option value="">-- Select Operator ({allPersonnel.length}) --</option>
             {allPersonnel.map((op) => (
