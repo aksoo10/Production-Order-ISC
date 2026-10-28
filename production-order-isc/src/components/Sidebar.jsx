@@ -1,9 +1,7 @@
-import React from 'react';
 import {
   Scan,
   Layers,
   ListChecks,
-  Download,
   Upload,
   LogOut,
   ChevronLeft,
@@ -19,7 +17,6 @@ export default function Sidebar({
   currentUser,
   onLogout,
   onOpenImport,
-  onExportExcel,
   collapsed,
   setCollapsed,
   ordersCount
@@ -147,15 +144,6 @@ export default function Sidebar({
                     {!collapsed && <span>Impor Order (Excel)</span>}
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="sidebar-action-btn"
-                  onClick={onExportExcel}
-                  title="Unduh status order terbaru ke Excel"
-                >
-                  <Download size={16} />
-                  {!collapsed && <span>Unduh Order (Excel)</span>}
-                </button>
               </div>
             </>
           ) : (
