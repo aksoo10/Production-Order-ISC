@@ -63,8 +63,41 @@ export default function App() {
     }
   }, []);
 
-  // Navigation tab: 'scanner' | 'orders' | 'personnel' | 'guide'
-  const [activeTab, setActiveTab] = useState('scanner');
+  // Navigation tab: 'dashboard' | 'scanner' | 'orders' | 'tracker'
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const savedTab = window.sessionStorage.getItem('isc_production_active_tab');
+        if (savedTab && ['dashboard', 'scanner', 'orders', 'tracker'].includes(savedTab)) {
+          return savedTab;
+        }
+      }
+      // If user session is already admin, default to 'dashboard' (top menu), else 'scanner'
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const savedSession = window.sessionStorage.getItem('isc_production_session');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          if (parsed?.role === 'admin') {
+            return 'dashboard';
+          }
+        }
+      }
+      return 'scanner';
+    } catch {
+      return 'scanner';
+    }
+  });
+
+  // Persist activeTab to sessionStorage across page refreshes
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('isc_production_active_tab', activeTab);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, [activeTab]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
       return true;
@@ -353,14 +386,31 @@ export default function App() {
       }
     }
     if (session.role === 'admin') {
+      // Default Admin to top menu (dashboard) if no tab previously selected
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const savedTab = window.sessionStorage.getItem('isc_production_active_tab');
+        if (!savedTab) {
+          setActiveTab('dashboard');
+        }
+      } else {
+        setActiveTab('dashboard');
+      }
       showToast('Berhasil masuk sebagai Administrator ISC!', 'success');
     } else {
       if (session.operator) {
         setSelectedOperator(session.operator);
       }
+      setActiveTab('scanner');
       showToast(`Selamat datang di Bengkel ISC, ${session.username}!`, 'success');
     }
   };
+
+  // Guard: if non-admin is on dashboard, fallback to scanner
+  useEffect(() => {
+    if (!isAdmin && activeTab === 'dashboard') {
+      setActiveTab('scanner');
+    }
+  }, [isAdmin, activeTab]);
 
   // Logout handler
   const handleLogout = () => {
@@ -368,12 +418,14 @@ export default function App() {
     if (typeof window !== 'undefined') {
       if (window.sessionStorage) {
         window.sessionStorage.removeItem('isc_production_session');
+        window.sessionStorage.removeItem('isc_production_active_tab');
       }
       if (window.localStorage) {
         window.localStorage.removeItem('isc_production_session');
       }
       window.history.replaceState({}, '', window.location.pathname);
     }
+    setActiveTab('scanner');
     showToast('Anda telah keluar dari sistem.', 'info');
   };
 
