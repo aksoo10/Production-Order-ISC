@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Download,
-  Info,
   Loader2,
   ShieldCheck
 } from 'lucide-react';
@@ -232,37 +231,6 @@ export default function ExcelImportModal({
 
         {/* Modal Body */}
         <div className="modal-body flex flex-col gap-4">
-          {/* Format Specification Guide */}
-          <div className="import-format-guide">
-            <div className="guide-header-title">
-              <div className="flex items-center gap-2">
-                <Info size={16} className="text-cyan flex-shrink-0" />
-                <span>Format Standar Excel (.xlsx / .xls):</span>
-              </div>
-              <span className="guide-rule-badge">1 Baris per Langkah</span>
-            </div>
-
-            <div className="guide-rules-grid">
-              <div className="guide-rule-card">
-                <strong>
-                  <span className="text-cyan">①</span> 1 Baris per Langkah (Step)
-                </strong>
-                <p>
-                  Setiap langkah pengerjaan ditulis pada baris tersendiri: <code>Step 1</code>, <code>Step 2</code>, <code>Step 3</code>, dst.
-                </p>
-              </div>
-
-              <div className="guide-rule-card">
-                <strong>
-                  <span className="text-emerald-500">②</span> Nomor Konfirmasi Seragam
-                </strong>
-                <p>
-                  Seluruh langkah pada No. Produksi yang sama memiliki <strong>No. Konfirmasi yang identik</strong> untuk barcode tiket pengerjaan.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Upload Dropzone */}
           <div
             className={`import-dropzone ${isDragOver ? 'drag-over' : ''} ${file ? 'has-file' : ''}`}
