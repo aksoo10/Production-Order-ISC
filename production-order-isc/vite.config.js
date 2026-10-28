@@ -115,6 +115,26 @@ function directPowerAutomatePlugin() {
             return;
           }
 
+          if (action === 'dashboard_analytics' || action === 'analytics') {
+            const callerRole = req.headers['x-user-role'] || url.searchParams.get('role') || '';
+            if (String(callerRole).toLowerCase() !== 'admin') {
+              res.statusCode = 403;
+              res.end(JSON.stringify({
+                success: false,
+                error: 'Akses ditolak: Hanya role Admin yang berhak mengakses analitik dashboard.'
+              }));
+              return;
+            }
+            res.end(JSON.stringify({
+              success: true,
+              authorized: true,
+              role: 'admin',
+              timestamp: new Date().toISOString(),
+              message: 'Akses Dashboard Analisis Admin terverifikasi.'
+            }));
+            return;
+          }
+
           let body = '';
           req.on('data', chunk => { body += chunk; });
           req.on('end', async () => {

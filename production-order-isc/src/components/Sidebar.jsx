@@ -7,7 +7,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  UserCheck
+  UserCheck,
+  BarChart3
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -40,7 +41,16 @@ export default function Sidebar({
       badge: ordersCount,
       badgeColor: '#00A3E0',
       desc: 'Monitoring Rangkaian Langkah'
-    }
+    },
+    ...(isAdmin ? [{
+      id: 'dashboard',
+      label: 'Dashboard → Only Chart',
+      shortLabel: 'Chart',
+      icon: BarChart3,
+      badge: 'ADMIN',
+      badgeColor: '#8B5CF6',
+      desc: 'Visualisasi Grafik Database'
+    }] : [])
   ];
 
   return (

@@ -187,6 +187,24 @@ export default async function handler(req, res) {
         });
       }
 
+      case 'dashboard_analytics':
+      case 'analytics': {
+        const callerRole = req.headers['x-user-role'] || req.query.role || '';
+        if (String(callerRole).toLowerCase() !== 'admin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Akses ditolak: Hanya role Admin yang berhak mengakses analitik dashboard.'
+          });
+        }
+        return res.status(200).json({
+          success: true,
+          authorized: true,
+          role: 'admin',
+          timestamp: new Date().toISOString(),
+          message: 'Akses Dashboard Analisis Admin terverifikasi.'
+        });
+      }
+
       case 'create': {
         const callerRole = req.headers['x-user-role'] || req.query.role || 'admin';
         if (String(callerRole).toLowerCase() !== 'admin') {

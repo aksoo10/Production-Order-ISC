@@ -235,6 +235,28 @@ try {
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             break;
 
+        // --- DASHBOARD ANALYTICS (STRICT ADMIN ACCESS) ---
+        case 'dashboard_analytics':
+        case 'analytics':
+            $callerRole = $_SERVER['HTTP_X_USER_ROLE'] ?? $_GET['role'] ?? '';
+            if (strtolower(trim($callerRole)) !== 'admin') {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Akses ditolak: Hanya role Admin yang berhak mengakses analitik dashboard.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'authorized' => true,
+                'role' => 'admin',
+                'timestamp' => date('c'),
+                'message' => 'Akses Dashboard Analisis Admin terverifikasi.'
+            ], JSON_UNESCAPED_UNICODE);
+            break;
+
         // --- B. CREATE / IMPORT ORDER(S) ---
         case 'create':
             // Backend Role Validation: strictly verify caller is Admin

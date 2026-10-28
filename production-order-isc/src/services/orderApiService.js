@@ -269,6 +269,25 @@ export const orderApiService = {
     } catch (err) {
       return { success: false, error: err.message };
     }
+  },
+
+  /**
+   * 6. VERIFY DASHBOARD ADMIN ACCESS (BACKEND ROLE CHECK)
+   */
+  async verifyDashboardAccess() {
+    try {
+      const primaryUrl = getEndpointUrl('dashboard_analytics');
+      const response = await requestWithFallback(primaryUrl, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      if (!response || !response.ok) {
+        return { success: false, authorized: false };
+      }
+      return await response.json();
+    } catch {
+      return { success: false, authorized: false };
+    }
   }
 };
 

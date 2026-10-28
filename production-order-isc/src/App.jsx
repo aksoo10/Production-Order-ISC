@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import LoginView from './components/LoginView';
 import ScannerView from './components/views/ScannerView';
 import OrdersListView from './components/views/OrdersListView';
+import DashboardChartView from './components/views/DashboardChartView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ExcelImportModal from './components/ExcelImportModal';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -1220,6 +1221,25 @@ export default function App() {
                 setIsImportModalOpen(true);
               }
             }}
+          />
+        );
+      case 'dashboard':
+        if (!isAdmin) {
+          return (
+            <div className="view-container">
+              <div className="alert-box alert-danger">
+                <strong>Akses Ditolak:</strong> Menu Dashboard Grafik hanya dapat diakses oleh Administrator.
+              </div>
+            </div>
+          );
+        }
+        return (
+          <DashboardChartView
+            orders={orders}
+            selectedGroup={selectedGroup}
+            isAdmin={isAdmin}
+            onSyncCloud={handleSyncCloud}
+            isLoadingCloud={isLoadingCloud}
           />
         );
       default:
