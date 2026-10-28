@@ -1,12 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
-  CheckCircle2,
-  Clock,
   Layers,
   ChevronRight,
   CheckCheck,
-  RotateCcw,
   FileText,
   X
 } from 'lucide-react';
@@ -353,125 +350,6 @@ export default function OrderPanel({
             </div>
           )}
 
-          {/* ALL STEPS SEQUENCE TABLE (Only shown for Admin, hidden for Operator) */}
-          {isAdmin && (
-            <div className="steps-sequence-section">
-              <div className="steps-section-header">
-                <h4 className="steps-section-title font-heading">
-                  Rangkaian Seluruh Langkah ({currentOrder.steps.length} Langkah):
-                </h4>
-                <span className="text-xs text-muted">
-                  Daftar langkah kerja dan verifikasi nomor konfirmasi SAP
-                </span>
-              </div>
-
-              <div className="steps-table-container">
-                <table className="steps-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '80px' }}>Langkah</th>
-                      <th>Nama Langkah</th>
-                      <th style={{ width: '180px' }}>No. Konfirmasi</th>
-                      <th style={{ width: '150px' }}>Status</th>
-                      {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentOrder.steps.map((st) => {
-                      const isStepComplete = String(st.Status).toLowerCase() === 'selesai';
-                      const isActive =
-                        currentOrder.activeStep &&
-                        Number(currentOrder.activeStep.Langkah) === Number(st.Langkah);
-
-                      return (
-                        <tr
-                          key={st.Langkah}
-                          className={`step-row ${isActive ? 'row-active' : ''} ${isStepComplete ? 'row-completed' : ''}`}
-                        >
-                          {/* Step Number */}
-                          <td className="step-num-cell">
-                            <span className={`step-badge-number ${isActive ? 'active' : ''} ${isStepComplete ? 'done' : ''}`}>
-                              {isStepComplete ? <CheckCircle2 size={13} /> : st.Langkah}
-                            </span>
-                          </td>
-
-                          {/* Step Name */}
-                          <td className="step-name-cell">
-                            <div className="step-name-text">{st.NamaLangkah}</div>
-                            {isActive && (
-                              <span className="active-tag-inline">
-                                <span className="active-pulse-mini"></span> Langkah Aktif
-                              </span>
-                            )}
-                          </td>
-
-                          {/* No Konfirmasi */}
-                          <td className="step-konf-cell font-mono">
-                            <span className="konf-number">{st.NoKonfirmasi}</span>
-                          </td>
-
-                          {/* Status Badge */}
-                          <td className="step-status-cell">
-                            {isStepComplete ? (
-                              <span className="status-badge status-selesai">
-                                <CheckCircle2 size={12} />
-                                Selesai
-                              </span>
-                            ) : String(st.Status).toLowerCase() === 'not started' ? (
-                              <span className="status-badge status-pending">
-                                <Clock size={12} />
-                                Not Started
-                              </span>
-                            ) : isActive ? (
-                              <span className="status-badge status-berjalan active">
-                                <span className="pulse-dot-small"></span>
-                                Langkah Aktif
-                              </span>
-                            ) : (
-                              <span className="status-badge status-pending">
-                                <Clock size={12} />
-                                Menunggu
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Action Column (Only shown for Admin, hidden for Operator) */}
-                          {isAdmin && (
-                            <td className="step-action-cell" style={{ textAlign: 'center' }}>
-                              {!isStepComplete ? (
-                                <button
-                                  type="button"
-                                  className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'} flex items-center justify-center gap-1 mx-auto`}
-                                  onClick={() => onMarkStepFinished(currentOrder.NoProduksi, st.Langkah)}
-                                  title={`Tandai Langkah ${st.Langkah} Selesai`}
-                                >
-                                  <CheckCircle2 size={12} />
-                                  <span>Selesai</span>
-                                </button>
-                              ) : (
-                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                  <span className="text-xs text-muted font-mono">Terverifikasi</span>
-                                  <button
-                                    type="button"
-                                    className="btn btn-xs btn-outline-warning flex items-center gap-1"
-                                    onClick={() => onRevertStep && onRevertStep(currentOrder.NoProduksi, st.Langkah, st.id || st.ID)}
-                                    title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
-                                  >
-                                    <RotateCcw size={11} />
-                                    <span>Belum Selesai</span>
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         /* Empty / Select Prompt */
