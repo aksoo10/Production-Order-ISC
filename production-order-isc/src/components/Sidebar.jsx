@@ -25,6 +25,15 @@ export default function Sidebar({
   ordersCount
 }) {
   const navItems = [
+    ...(isAdmin ? [{
+      id: 'dashboard',
+      label: 'Dashboard → Only Chart',
+      shortLabel: 'Chart',
+      icon: BarChart3,
+      badge: 'ADMIN',
+      badgeColor: '#8B5CF6',
+      desc: 'Visualisasi Grafik Database'
+    }] : []),
     {
       id: 'scanner',
       label: 'Terminal Scanner SAP',
@@ -51,16 +60,7 @@ export default function Sidebar({
       badge: 'PROG / FIN',
       badgeColor: '#0284C7',
       desc: 'Pelacakan Langkah & Barcode'
-    },
-    ...(isAdmin ? [{
-      id: 'dashboard',
-      label: 'Dashboard → Only Chart',
-      shortLabel: 'Chart',
-      icon: BarChart3,
-      badge: 'ADMIN',
-      badgeColor: '#8B5CF6',
-      desc: 'Visualisasi Grafik Database'
-    }] : [])
+    }
   ];
 
   return (
