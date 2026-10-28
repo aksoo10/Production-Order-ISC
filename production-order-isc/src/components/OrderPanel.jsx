@@ -143,12 +143,12 @@ export default function OrderPanel({
       {/* Panel Header */}
       <div className="panel-header">
         <div className="panel-title-group">
-          <div className="panel-step-badge">KOLOM 2</div>
-          <h2 className="panel-title">Order Produksi (SAP Order & Langkah)</h2>
+          <div className="panel-step-badge">COLUMN 2</div>
+          <h2 className="panel-title">Production Orders (SAP Order & Steps)</h2>
         </div>
         <span className="panel-count-badge">
           <FileText size={13} />
-          {filteredOrders.length} Order
+          {filteredOrders.length} Orders
         </span>
       </div>
 
@@ -159,7 +159,7 @@ export default function OrderPanel({
           <input
             type="text"
             className="search-input"
-            placeholder="Cari No. Produksi atau langkah kerja..."
+            placeholder="Search Production No. or operation step..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -180,10 +180,10 @@ export default function OrderPanel({
           value={selectedOrderNo || ''}
           onChange={(e) => onSelectOrderNo(e.target.value)}
         >
-          <option value="">-- Pilih No. Produksi --</option>
+          <option value="">-- Select Production No. --</option>
           {filteredOrders.map((ord) => (
             <option key={ord.NoProduksi} value={ord.NoProduksi}>
-              Order {ord.NoProduksi} ({ord.completedSteps}/{ord.totalSteps} Selesai) - {ord.ProductGroup}
+              Order {ord.NoProduksi} ({ord.completedSteps}/{ord.totalSteps} Completed) - {ord.ProductGroup}
             </option>
           ))}
         </select>
@@ -195,7 +195,7 @@ export default function OrderPanel({
           {/* Order Summary Ribbon */}
           <div className="order-summary-ribbon">
             <div className="ribbon-left">
-              <span className="order-label">NOMOR PRODUKSI:</span>
+              <span className="order-label">PRODUCTION ORDER NO.:</span>
               <h3 className="order-number-title font-mono">{currentOrder.NoProduksi}</h3>
               <span className="group-tag">{currentOrder.ProductGroup || 'PKW'}</span>
             </div>
@@ -204,29 +204,29 @@ export default function OrderPanel({
               {!isAdmin ? (
                 <div className="operator-step-select-wrapper flex items-center gap-2">
                   <span className="text-xs font-mono text-muted font-semibold whitespace-nowrap">
-                    {currentOrder.completedSteps} dari {currentOrder.totalSteps} Selesai:
+                    {currentOrder.completedSteps} of {currentOrder.totalSteps} Completed:
                   </span>
                   <select
                     className="order-quick-dropdown font-mono"
                     value={displayStep?.Langkah || ''}
                     onChange={(e) => setSelectedStepNum(Number(e.target.value))}
-                    title="Pilih Langkah Kerja"
+                    title="Select Operation Step"
                     style={{ minWidth: '220px', height: '36px', fontSize: '0.8rem', padding: '0 8px' }}
                   >
                     {currentOrder.steps.map((st) => {
-                      const isStepComplete = String(st.Status).toLowerCase() === 'selesai';
+                      const isStepComplete = String(st.Status).toLowerCase() === 'selesai' || String(st.Status).toLowerCase() === 'completed';
                       const isActive =
                         currentOrder.activeStep &&
                         Number(currentOrder.activeStep.Langkah) === Number(st.Langkah);
                       const statusTag = isStepComplete
-                        ? 'Selesai'
+                        ? 'Completed'
                         : isActive
-                        ? 'Langkah Aktif'
-                        : 'Menunggu';
+                        ? 'Active Step'
+                        : 'Pending';
 
                       return (
                         <option key={st.Langkah} value={st.Langkah}>
-                          Langkah {st.Langkah}: {st.NamaLangkah} ({statusTag})
+                          Step {st.Langkah}: {st.NamaLangkah} ({statusTag})
                         </option>
                       );
                     })}
@@ -235,7 +235,7 @@ export default function OrderPanel({
               ) : (
                 <div className="progress-stat-block">
                   <span className="progress-text font-mono">
-                    {currentOrder.completedSteps} dari {currentOrder.totalSteps} Langkah Selesai
+                    {currentOrder.completedSteps} of {currentOrder.totalSteps} Steps Completed
                   </span>
                   <div className="progress-bar-track">
                     <div
@@ -251,7 +251,7 @@ export default function OrderPanel({
               {currentOrder.isComplete && (
                 <div className="completed-badge-pill">
                   <CheckCheck size={16} />
-                  <span>Order Selesai</span>
+                  <span>Order Completed</span>
                 </div>
               )}
             </div>
@@ -265,14 +265,14 @@ export default function OrderPanel({
                   <span className="active-pulse-dot"></span>
                   <span className="font-heading font-bold text-cyan tracking-wider">
                     {currentOrder.activeStep && Number(currentOrder.activeStep.Langkah) === Number(displayStep.Langkah)
-                      ? 'LANGKAH AKTIF SAAT INI'
-                      : String(displayStep.Status).toLowerCase() === 'selesai'
-                      ? 'LANGKAH TELAH SELESAI'
-                      : `LANGKAH KE-${displayStep.Langkah}`}
+                      ? 'CURRENT ACTIVE STEP'
+                      : (String(displayStep.Status).toLowerCase() === 'selesai' || String(displayStep.Status).toLowerCase() === 'completed')
+                      ? 'STEP COMPLETED'
+                      : `STEP ${displayStep.Langkah}`}
                   </span>
                 </div>
                 <span className="step-seq-pill">
-                  Langkah ke-{displayStep.Langkah} dari {currentOrder.totalSteps}
+                  Step {displayStep.Langkah} of {currentOrder.totalSteps}
                 </span>
               </div>
 
@@ -280,13 +280,13 @@ export default function OrderPanel({
                 {/* Step Description & Confirmation Number Header */}
                 <div className="spotlight-header-meta">
                   <div className="step-name-box">
-                    <span className="text-muted text-xs tracking-wider uppercase font-semibold">Nama Langkah:</span>
+                    <span className="text-muted text-xs tracking-wider uppercase font-semibold">Step Name:</span>
                     <h4 className="active-step-title">{displayStep.NamaLangkah}</h4>
                   </div>
 
                   <div className="meta-right-controls">
                     <div className="konfirmasi-meta-box">
-                      <span className="text-muted text-xs tracking-wider uppercase font-semibold">No. Konfirmasi SAP:</span>
+                      <span className="text-muted text-xs tracking-wider uppercase font-semibold">SAP Confirmation No.:</span>
                       <div className="konfirmasi-display font-mono">
                         <span>{displayStep.NoKonfirmasi || currentOrder.NoProduksi}</span>
                       </div>
@@ -294,14 +294,14 @@ export default function OrderPanel({
 
                     <div className="status-barcode-meta-box">
                       <span className="text-muted text-xs tracking-wider uppercase font-semibold">
-                        Status Barcode:
+                        Barcode Status:
                       </span>
                       <div className="status-barcode-select-wrapper">
                         <select
                           className={`status-barcode-select font-mono ${isDisplayStepFinished ? 'status-fin' : 'status-prog'}`}
                           value={currentBarcodeStatus}
                           onChange={(e) => handleBarcodeStatusChange(e.target.value)}
-                          title="Ubah Status Barcode Langkah Kerja"
+                          title="Change Operation Step Barcode Status"
                         >
                           <option value="PROG">PROG — In Progress</option>
                           <option value="FIN">FIN — Finished</option>
@@ -315,9 +315,9 @@ export default function OrderPanel({
                 <div className="spotlight-barcode-wrapper">
                   <BarcodeCard
                     value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
-                    label="BARCODE NO. KONFIRMASI"
-                    subtitle={`Langkah ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
-                    badgeText="2. Scan No. Konfirmasi ke SAP"
+                    label="CONFIRMATION NO. BARCODE"
+                    subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
+                    badgeText="2. Scan Confirmation No. to SAP"
                     highlightColor="#00A3E0"
                     height={80}
                     width={2.2}
@@ -329,18 +329,18 @@ export default function OrderPanel({
           ) : (
             <div className="order-all-completed-banner">
               <CheckCheck size={40} color="#10B981" />
-              <div className="all-completed-title">Semua Langkah Order Ini Telah Selesai!</div>
+              <div className="all-completed-title">All Steps in this Order are Completed!</div>
               <div className="all-completed-subtitle">
-                Seluruh {currentOrder.totalSteps} langkah telah selesai diproses di bengkel ISC.
+                All {currentOrder.totalSteps} steps have been completed in the ISC workshop.
               </div>
               <div className="completed-status-dropdown-row">
-                <span className="text-xs text-muted font-semibold">Status Barcode Order:</span>
+                <span className="text-xs text-muted font-semibold">Order Barcode Status:</span>
                 <div className="status-barcode-select-wrapper">
                   <select
                     className="status-barcode-select font-mono status-fin"
                     value="FIN"
                     onChange={(e) => handleBarcodeStatusChange(e.target.value, currentOrder.steps[currentOrder.steps.length - 1])}
-                    title="Ubah Status Barcode Order"
+                    title="Change Order Barcode Status"
                   >
                     <option value="PROG">PROG — In Progress</option>
                     <option value="FIN">FIN — Finished</option>
@@ -366,7 +366,7 @@ export default function OrderPanel({
                   <span className="group-tag">{ord.ProductGroup}</span>
                 </div>
                 <div className="quick-card-steps">
-                  <span>{ord.completedSteps} / {ord.totalSteps} Selesai</span>
+                  <span>{ord.completedSteps} / {ord.totalSteps} Completed</span>
                   <div className="mini-progress-track">
                     <div
                       className="mini-progress-fill"
@@ -376,11 +376,11 @@ export default function OrderPanel({
                 </div>
                 {ord.activeStep && (
                   <div className="quick-card-active-step">
-                    Aktif: Step {ord.activeStep.Langkah} - {ord.activeStep.NamaLangkah}
+                    Active: Step {ord.activeStep.Langkah} - {ord.activeStep.NamaLangkah}
                   </div>
                 )}
                 <div className="quick-card-footer">
-                  <span>Buka Order & Barcode</span>
+                  <span>Open Order & Barcodes</span>
                   <ChevronRight size={14} />
                 </div>
               </div>
@@ -389,9 +389,9 @@ export default function OrderPanel({
 
           <div className="prompt-instruction-banner">
             <Layers size={22} className="text-cyan mb-1" />
-            <div className="instruction-title">Pilih Nomor Order Produksi</div>
+            <div className="instruction-title">Select Production Order Number</div>
             <p className="instruction-text">
-              Pilih salah satu order produksi di atas atau melalui kolom pencarian untuk menampilkan rangkaian langkah kerja dan barcode konfirmasi SAP.
+              Select a production order above or use the search bar to display the operation steps and SAP confirmation barcodes.
             </p>
           </div>
         </div>

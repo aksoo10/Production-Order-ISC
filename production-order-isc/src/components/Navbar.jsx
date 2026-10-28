@@ -63,23 +63,23 @@ export default function Navbar({
         {/* Product Group Filter */}
         <div className="filter-pill-group">
           <Layers size={14} className="filter-icon" />
-          <span className="filter-label">Grup:</span>
+          <span className="filter-label">Group:</span>
           <select
             className="filter-select"
             value={selectedGroup}
             onChange={(e) => setSelectedGroup(e.target.value)}
-            title="Saring data berdasarkan Product Group"
+            title="Filter data by Product Group"
           >
-            <option value="ALL">Semua Grup ({availableGroups.length})</option>
+            <option value="ALL">All Groups ({availableGroups.length})</option>
             {availableGroups.map((grp) => (
               <option key={grp} value={grp}>
-                Grup {grp}
+                Group {grp}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Operator Filter (Murni Dropdown Filter, Tanpa Search) */}
+        {/* Operator Filter */}
         <div className="filter-pill-group">
           <UserCheck size={14} className="filter-icon" />
           <span className="filter-label">OPERATOR:</span>
@@ -95,9 +95,9 @@ export default function Navbar({
                 onSelectOperator(op || null);
               }
             }}
-            title="Saring data berdasarkan Operator"
+            title="Filter data by Operator"
           >
-            <option value="">Semua Operator ({allPersonnel.length})</option>
+            <option value="">All Operators ({allPersonnel.length})</option>
             {allPersonnel.map((op) => (
               <option key={op.NoPersonal || op.Nama} value={op.NoPersonal}>
                 {op.Nama}
@@ -111,10 +111,10 @@ export default function Navbar({
           type="button"
           className="btn btn-sm btn-danger-soft"
           onClick={onLogout}
-          title="Keluar dari sesi ini dan kembali ke halaman login"
+          title="Sign out of this session and return to login page"
         >
           <LogOut size={14} />
-          <span>Keluar</span>
+          <span>Logout</span>
         </button>
       </div>
     </header>

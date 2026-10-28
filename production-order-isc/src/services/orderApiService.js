@@ -93,7 +93,7 @@ export const orderApiService = {
 
       if (!response || !response.ok) {
         const errorText = response ? await response.text() : 'No response from server';
-        throw new Error(`Gagal mengambil data dari cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
+        throw new Error(`Failed to fetch cloud data (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
       }
 
       const json = await response.json();
@@ -117,7 +117,7 @@ export const orderApiService = {
    */
   _normalizeItem(it) {
     const orderNum = String(it.orderNo || it.NoProduksi || it.prodOrderNo || '').trim();
-    const titleVal = String(it.title || it.NamaLangkah || (orderNum ? `Order ${orderNum}` : 'Proses Produksi')).trim();
+    const titleVal = String(it.title || it.NamaLangkah || (orderNum ? `Order ${orderNum}` : 'Production Process')).trim();
     const custVal = String(it.customers || it.Customer || 'ANDRITZ ISC Internal').trim();
     const groupVal = String(it.orderDivision || it.ProductGroup || 'PKW').trim();
     const descVal = String(it.materialDescription || it.shortDescSO || titleVal).trim();
@@ -170,7 +170,7 @@ export const orderApiService = {
 
         if (!response || !response.ok) {
           const errorText = response ? await response.text() : 'No response from server';
-          throw new Error(`Gagal membuat order di cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
+          throw new Error(`Failed to create order in cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
         }
       }
 
@@ -208,7 +208,7 @@ export const orderApiService = {
 
         if (!response || !response.ok) {
           const errorText = response ? await response.text() : 'No response from server';
-          throw new Error(`Gagal mengupdate order di cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
+          throw new Error(`Failed to update order in cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
         }
       }
 
@@ -244,7 +244,7 @@ export const orderApiService = {
           console.warn('[orderApiService] Item not found in SharePoint upstream, completing local deletion:', numId);
           return { success: true, notFoundInCloud: true };
         }
-        throw new Error(`Gagal menghapus order di cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
+        throw new Error(`Failed to delete order in cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
       }
 
       const json = await response.json();

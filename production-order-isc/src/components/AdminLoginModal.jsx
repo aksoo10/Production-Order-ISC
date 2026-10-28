@@ -23,7 +23,7 @@ export default function AdminLoginModal({
       setPassword('');
       onSuccess();
     } else {
-      setErrorMsg('Sandi salah. Sandi bawaan adalah: admin123');
+      setErrorMsg('Incorrect password. Default password is: admin123');
     }
   };
 
@@ -44,8 +44,8 @@ export default function AdminLoginModal({
               <ShieldCheck size={20} color="#00A3E0" />
             </div>
             <div>
-              <h3 className="modal-title font-heading">Masuk Administrator ISC</h3>
-              <p className="modal-desc">Khusus Supervisor & Admin Produksi Bengkel</p>
+              <h3 className="modal-title font-heading">ISC Administrator Login</h3>
+              <p className="modal-desc">Dedicated to Workshop Production Supervisors & Admins</p>
             </div>
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose}>
@@ -65,14 +65,14 @@ export default function AdminLoginModal({
 
             <div className="form-group">
               <label className="form-label">
-                Kata Sandi Admin:
+                Admin Password:
               </label>
               <div className="password-input-wrapper">
                 <Lock size={16} className="input-icon-left text-muted" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="form-control pl-9 pr-9 font-mono"
-                  placeholder="Masukkan sandi (default: admin123)"
+                  placeholder="Enter password (default: admin123)"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
@@ -84,13 +84,13 @@ export default function AdminLoginModal({
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowPassword(!showPassword)}
-                  title={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
+                  title={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
               <span className="form-hint">
-                Sandi awal bawaan sistem adalah <code className="font-mono">admin123</code>
+                Default system initial password is <code className="font-mono">admin123</code>
               </span>
             </div>
 
@@ -102,12 +102,12 @@ export default function AdminLoginModal({
                   className="text-btn text-xs text-muted"
                   onClick={() => setShowForgotPrompt(true)}
                 >
-                  Lupa sandi?
+                  Forgot password?
                 </button>
               ) : (
                 <div className="forgot-reset-panel">
                   <div className="text-xs text-muted mb-2">
-                    Sandi tersimpan di browser ini. Jika lupa, Anda dapat mereset sandi kembali ke bawaan pabrik: <strong className="text-white font-mono">admin123</strong>.
+                    Password is stored in this browser. If forgotten, you can reset it to factory default: <strong className="text-white font-mono">admin123</strong>.
                   </div>
                   <button
                     type="button"
@@ -115,7 +115,7 @@ export default function AdminLoginModal({
                     onClick={handleReset}
                   >
                     <RotateCcw size={12} />
-                    <span>Reset Sandi ke admin123</span>
+                    <span>Reset Password to admin123</span>
                   </button>
                 </div>
               )}
@@ -125,11 +125,11 @@ export default function AdminLoginModal({
           {/* Modal Footer */}
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>
-              Batal
+              Cancel
             </button>
             <button type="submit" className="btn btn-primary-gradient">
               <ShieldCheck size={16} />
-              <span>Masuk Admin</span>
+              <span>Login Admin</span>
             </button>
           </div>
         </form>

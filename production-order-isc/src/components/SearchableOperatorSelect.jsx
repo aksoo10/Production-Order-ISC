@@ -15,7 +15,7 @@ export default function SearchableOperatorSelect({
   selectedOperator = null,
   onSelectOperator,
   variant = 'panel', // 'panel' or 'navbar'
-  placeholder = 'Cari atau pilih nama operator...',
+  placeholder = 'Search or select operator name...',
   selectedGroup = 'ALL'
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -124,7 +124,7 @@ export default function SearchableOperatorSelect({
               setTimeout(() => inputRef.current?.focus(), 50);
             }
           }}
-          title="Pilih operator bengkel"
+          title="Select workshop operator"
         >
           <UserCheck size={14} className="filter-icon text-cyan" />
           <span className="filter-label">OPERATOR:</span>
@@ -132,7 +132,7 @@ export default function SearchableOperatorSelect({
             {selectedOperator ? (
               <strong>{selectedOperator.Nama}</strong>
             ) : (
-              `Semua Operator (${allPersonnel.length})`
+              `All Operators (${allPersonnel.length})`
             )}
           </span>
           <ChevronDown
@@ -150,7 +150,7 @@ export default function SearchableOperatorSelect({
                 ref={inputRef}
                 type="text"
                 className="dropdown-search-input"
-                placeholder="Cari nama atau No. Personal..."
+                placeholder="Search name or Personnel No...."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -175,7 +175,7 @@ export default function SearchableOperatorSelect({
               >
                 <div className="dropdown-option-left">
                   <div className="avatar-chip-xs">ALL</div>
-                  <span className="dropdown-op-name">Semua Operator ({allPersonnel.length})</span>
+                  <span className="dropdown-op-name">All Operators ({allPersonnel.length})</span>
                 </div>
                 {!selectedOperator && <Check size={14} className="text-cyan" />}
               </div>
@@ -191,10 +191,10 @@ export default function SearchableOperatorSelect({
                       <Plus size={12} />
                     </div>
                     <span className="dropdown-op-name font-mono">
-                      Gunakan: "{searchTerm.trim()}"
+                      Use: "{searchTerm.trim()}"
                     </span>
                   </div>
-                  <span className="custom-entry-badge">Input Manual</span>
+                  <span className="custom-entry-badge">Manual Input</span>
                 </div>
               )}
 
@@ -253,7 +253,7 @@ export default function SearchableOperatorSelect({
             ref={inputRef}
             type="text"
             className="combobox-field-input"
-            placeholder={selectedOperator ? `${selectedOperator.Nama} (No. ${selectedOperator.NoPersonal})` : placeholder}
+            placeholder={selectedOperator ? `${selectedOperator.Nama} (ID: ${selectedOperator.NoPersonal})` : placeholder}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -269,7 +269,7 @@ export default function SearchableOperatorSelect({
               type="button"
               className="combobox-action-btn clear-btn"
               onClick={handleClear}
-              title="Bersihkan / Kosongkan Operator"
+              title="Clear Operator"
             >
               <X size={14} />
             </button>
@@ -285,7 +285,7 @@ export default function SearchableOperatorSelect({
                 setTimeout(() => inputRef.current?.focus(), 50);
               }
             }}
-            title="Buka / Tutup Daftar Operator"
+            title="Open / Close Operator List"
           >
             <ChevronDown size={16} />
           </button>
@@ -297,7 +297,7 @@ export default function SearchableOperatorSelect({
         <div className="searchable-combobox-dropdown panel-dropdown-menu">
           <div className="dropdown-menu-header">
             <div className="text-xs text-muted font-semibold uppercase tracking-wider">
-              {searchTerm ? `Hasil Pencarian (${filteredPersonnel.length})` : `Semua Operator Terdaftar (${allPersonnel.length})`}
+              {searchTerm ? `Search Results (${filteredPersonnel.length})` : `All Registered Operators (${allPersonnel.length})`}
             </div>
             {selectedOperator && (
               <button
@@ -305,7 +305,7 @@ export default function SearchableOperatorSelect({
                 className="text-xs text-cyan hover:underline cursor-pointer"
                 onClick={() => handleSelect(null)}
               >
-                Reset Pilihan
+                Reset Selection
               </button>
             )}
           </div>
@@ -323,24 +323,24 @@ export default function SearchableOperatorSelect({
                   </div>
                   <div className="dropdown-op-meta">
                     <span className="dropdown-op-name font-semibold text-cyan">
-                      Gunakan No. Personal: "{searchTerm.trim()}"
+                      Use Personnel No.: "{searchTerm.trim()}"
                     </span>
-                    <span className="text-xs text-muted">Input manual untuk scanner SAP</span>
+                    <span className="text-xs text-muted">Manual input for SAP scanner</span>
                   </div>
                 </div>
-                <span className="custom-entry-badge">Gunakan Ini</span>
+                <span className="custom-entry-badge">Use This</span>
               </div>
             )}
 
             {filteredPersonnel.length === 0 && !searchTerm.trim() ? (
               <div className="p-4 text-center text-muted text-xs">
-                Tidak ada data operator.
+                No operator data found.
               </div>
             ) : filteredPersonnel.length === 0 && searchTerm.trim() ? (
               <div className="p-4 text-center text-muted text-xs">
-                Tidak ditemukan operator dengan nama atau No. Personal "{searchTerm}".
+                No operator found with name or Personnel No. "{searchTerm}".
                 <div className="mt-1 text-cyan font-medium">
-                  Klik opsi input manual di atas untuk tetap menggunakan nomor ini.
+                  Click the manual input option above to use this number.
                 </div>
               </div>
             ) : (
@@ -363,7 +363,7 @@ export default function SearchableOperatorSelect({
                           <span className="group-pill-xs">{op.ProductGroup || 'PKW'}</span>
                         </div>
                         <div className="dropdown-op-no font-mono">
-                          No. Personal: <strong>{op.NoPersonal}</strong>
+                          Personnel No.: <strong>{op.NoPersonal}</strong>
                         </div>
                       </div>
                     </div>
@@ -372,10 +372,10 @@ export default function SearchableOperatorSelect({
                       {isSelected ? (
                         <span className="selected-indicator">
                           <BadgeCheck size={18} className="text-cyan" />
-                          <span className="text-xs font-semibold text-cyan ml-1">Terpilih</span>
+                          <span className="text-xs font-semibold text-cyan ml-1">Selected</span>
                         </span>
                       ) : (
-                        <span className="select-action-text text-xs text-muted">Pilih</span>
+                        <span className="select-action-text text-xs text-muted">Select</span>
                       )}
                     </div>
                   </div>

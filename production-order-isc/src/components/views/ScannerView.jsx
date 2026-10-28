@@ -18,7 +18,7 @@ export default function ScannerView({
 }) {
   return (
     <div className="workspace-grid">
-      {/* Kolom 1: Operator Bengkel */}
+      {/* Column 1: Workshop Operators */}
       <OperatorPanel
         personnel={personnel}
         selectedOperator={selectedOperator}
@@ -26,7 +26,7 @@ export default function ScannerView({
         selectedGroup={selectedGroup}
       />
 
-      {/* Kolom 2: Order Produksi & Langkah Aktif Barcode */}
+      {/* Column 2: Production Orders & Active Step Barcode */}
       <OrderPanel
         orders={orders}
         selectedOrderNo={selectedOrderNo}

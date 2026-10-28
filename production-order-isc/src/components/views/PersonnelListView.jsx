@@ -39,9 +39,9 @@ export default function PersonnelListView({
       {/* Header */}
       <div className="view-header-row">
         <div>
-          <h2 className="view-title">Data Personel & Barcode Operator Bengkel</h2>
+          <h2 className="view-title">Personnel & Workshop Operator Barcodes</h2>
           <p className="view-subtitle">
-            Katalog ID personel bengkel ISC untuk pemindaian No. Personal langsung ke SAP
+            ISC workshop personnel directory for direct scanning of Personnel Numbers into SAP
           </p>
         </div>
 
@@ -50,7 +50,7 @@ export default function PersonnelListView({
           <input
             type="text"
             className="search-input"
-            placeholder="Cari nama operator, No. Personal..."
+            placeholder="Search operator name, Personnel No...."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -62,8 +62,8 @@ export default function PersonnelListView({
         {filtered.length === 0 ? (
           <div className="empty-state-large" style={{ gridColumn: '1 / -1' }}>
             <Users size={32} className="text-muted mb-2" />
-            <div className="font-bold text-main">Tidak ada operator yang cocok</div>
-            <div className="text-xs text-muted">Coba ubah kata kunci pencarian atau filter grup di atas.</div>
+            <div className="font-bold text-main">No matching operators found</div>
+            <div className="text-xs text-muted">Try changing your search terms or group filter above.</div>
           </div>
         ) : (
           filtered.map((op, idx) => (
@@ -78,7 +78,7 @@ export default function PersonnelListView({
                     <span className="group-tag">{op.ProductGroup || 'PKW'}</span>
                   </div>
                   <div className="text-xs font-mono text-muted">
-                    No. Personal: <strong className="text-cyan">{op.NoPersonal}</strong>
+                    Personnel No.: <strong className="text-cyan">{op.NoPersonal}</strong>
                   </div>
                 </div>
               </div>
@@ -87,9 +87,9 @@ export default function PersonnelListView({
               <div className="personnel-barcode-box">
                 <BarcodeCard
                   value={op.NoPersonal}
-                  label="NO. PERSONAL"
+                  label="PERSONNEL NO."
                   subtitle={op.Nama}
-                  badgeText="Scan ke SAP"
+                  badgeText="Scan to SAP"
                   height={56}
                   fontSize={15}
                   compact={true}
@@ -101,10 +101,10 @@ export default function PersonnelListView({
                   type="button"
                   className="btn btn-sm btn-outline-cyan w-full"
                   onClick={() => onSelectOperatorAndOpenScanner(op)}
-                  title="Pilih operator ini dan buka di terminal scanner"
+                  title="Select this operator and open in scanner terminal"
                 >
                   <Scan size={14} />
-                  <span>Gunakan di Terminal Scanner</span>
+                  <span>Use in Scanner Terminal</span>
                 </button>
               </div>
             </div>

@@ -214,9 +214,9 @@ export default function DashboardChartView({
     });
 
     return [
-      { label: 'Tunggal (1 Step)', count: singleStep, color: '#00A3E0' },
-      { label: 'Menengah (2-4 Step)', count: mediumStep, color: '#38BDF8' },
-      { label: 'Kompleks (5+ Step)', count: multiStep, color: '#818CF8' }
+      { label: 'Single (1 Step)', count: singleStep, color: '#00A3E0' },
+      { label: 'Medium (2-4 Steps)', count: mediumStep, color: '#38BDF8' },
+      { label: 'Complex (5+ Steps)', count: multiStep, color: '#818CF8' }
     ];
   }, [filteredOrders]);
 
@@ -294,11 +294,11 @@ export default function DashboardChartView({
           <div className="denied-icon-wrap">
             <ShieldAlert size={48} color="#EF4444" />
           </div>
-          <h3 className="denied-title font-heading">Akses Terbatas — Khusus Admin</h3>
+          <h3 className="denied-title font-heading">Access Restricted — Administrator Only</h3>
           <p className="denied-desc">
-            Halaman <strong>Dashboard → Only Chart</strong> ini dilindungi dengan validasi hak akses
-            ganda (Frontend & Backend). Anda harus memiliki peran Administrator untuk mengakses data
-            dan visualisasi grafik analitik ini.
+            The <strong>Dashboard → Only Chart</strong> view is protected by dual role validation
+            (Frontend & Backend). You must have Administrator privileges to access analytics and
+            visual chart data.
           </p>
         </div>
       </div>
@@ -313,7 +313,7 @@ export default function DashboardChartView({
           <div className="flex items-center gap-2">
             <h2 className="view-title font-heading flex items-center gap-2">
               <BarChart3 className="text-cyan" size={24} />
-              <span>Dashboard Analitik & Visualisasi Grafik</span>
+              <span>Analytics Dashboard & Chart Visualizations</span>
             </h2>
           </div>
         </div>
@@ -322,17 +322,17 @@ export default function DashboardChartView({
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <div className="filter-pill-group">
             <Filter size={14} className="filter-icon" />
-            <span className="filter-label">Filter Grup:</span>
+            <span className="filter-label">Group Filter:</span>
             <select
               className="filter-select font-mono"
               value={localGroupFilter}
               onChange={(e) => setLocalGroupFilter(e.target.value)}
-              title="Pilih Product Group"
+              title="Select Product Group"
             >
-              <option value="ALL">Semua Grup ({groupedOrders.length} Order)</option>
+              <option value="ALL">All Groups ({groupedOrders.length} Orders)</option>
               {availableGroups.map((grp) => (
                 <option key={grp} value={grp}>
-                  Grup {grp}
+                  Group {grp}
                 </option>
               ))}
             </select>
@@ -344,10 +344,10 @@ export default function DashboardChartView({
               className="btn btn-sm btn-outline flex items-center gap-1.5"
               onClick={() => onSyncCloud(true)}
               disabled={isLoadingCloud}
-              title="Muat ulang data terbaru dari cloud SharePoint"
+              title="Reload latest data from SharePoint cloud"
             >
               <RotateCcw size={14} className={isLoadingCloud ? 'animate-spin text-cyan' : ''} />
-              <span>{isLoadingCloud ? 'Sinkron...' : 'Segarkan'}</span>
+              <span>{isLoadingCloud ? 'Syncing...' : 'Refresh'}</span>
             </button>
           )}
         </div>
@@ -357,25 +357,25 @@ export default function DashboardChartView({
       <div className="kpi-ribbon-grid chart-kpi-ribbon">
         <div className="kpi-card">
           <div className="kpi-num text-cyan font-mono">{summaryKPI.totalOrders}</div>
-          <div className="kpi-label">Total Order Produksi</div>
+          <div className="kpi-label">Total Production Orders</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-emerald-500 font-mono">{summaryKPI.completedOrders}</div>
-          <div className="kpi-label">Order Selesai Penuh</div>
+          <div className="kpi-label">Fully Completed Orders</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-amber-500 font-mono">{summaryKPI.inProgressOrders}</div>
-          <div className="kpi-label">Order Sedang Berjalan</div>
+          <div className="kpi-label">In Progress Orders</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num font-mono" style={{ color: '#0284C7' }}>
             {summaryKPI.completedSteps} / {summaryKPI.totalSteps}
           </div>
-          <div className="kpi-label">Langkah Selesai</div>
+          <div className="kpi-label">Steps Completed</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-cyan font-mono">{summaryKPI.stepCompletionRate}%</div>
-          <div className="kpi-label">Tingkat Penyelesaian</div>
+          <div className="kpi-label">Completion Rate</div>
         </div>
       </div>
 
@@ -386,9 +386,9 @@ export default function DashboardChartView({
           <div className="chart-card-header">
             <div className="chart-card-title flex items-center gap-2 font-heading">
               <PieChart size={18} className="text-cyan" />
-              <span>Status Distribusi Order Produksi</span>
+              <span>Production Order Status Distribution</span>
             </div>
-            <span className="chart-card-badge font-mono">{summaryKPI.totalOrders} Order</span>
+            <span className="chart-card-badge font-mono">{summaryKPI.totalOrders} Orders</span>
           </div>
 
           <div className="chart-card-body flex items-center justify-around flex-wrap gap-4">
@@ -404,7 +404,7 @@ export default function DashboardChartView({
               </svg>
               <div className="donut-center-label">
                 <span className="donut-center-val font-mono">{summaryKPI.orderCompletionRate}%</span>
-                <span className="donut-center-sub">Selesai</span>
+                <span className="donut-center-sub">Completed</span>
               </div>
             </div>
 
@@ -417,9 +417,9 @@ export default function DashboardChartView({
               >
                 <span className="legend-indicator" style={{ backgroundColor: '#10B981' }}></span>
                 <div className="legend-info">
-                  <div className="legend-label font-semibold">Selesai Penuh</div>
+                  <div className="legend-label font-semibold">Fully Completed</div>
                   <div className="legend-val font-mono text-xs text-muted">
-                    {summaryKPI.completedOrders} order ({summaryKPI.orderCompletionRate}%)
+                    {summaryKPI.completedOrders} orders ({summaryKPI.orderCompletionRate}%)
                   </div>
                 </div>
               </div>
@@ -431,9 +431,9 @@ export default function DashboardChartView({
               >
                 <span className="legend-indicator" style={{ backgroundColor: '#00A3E0' }}></span>
                 <div className="legend-info">
-                  <div className="legend-label font-semibold">Sedang Berjalan</div>
+                  <div className="legend-label font-semibold">In Progress</div>
                   <div className="legend-val font-mono text-xs text-muted">
-                    {summaryKPI.inProgressOrders} order (
+                    {summaryKPI.inProgressOrders} orders (
                     {summaryKPI.totalOrders > 0
                       ? Math.round((summaryKPI.inProgressOrders / summaryKPI.totalOrders) * 100)
                       : 0}
@@ -449,9 +449,9 @@ export default function DashboardChartView({
               >
                 <span className="legend-indicator" style={{ backgroundColor: '#F59E0B' }}></span>
                 <div className="legend-info">
-                  <div className="legend-label font-semibold">Belum Mulai</div>
+                  <div className="legend-label font-semibold">Not Started</div>
                   <div className="legend-val font-mono text-xs text-muted">
-                    {summaryKPI.notStartedOrders} order (
+                    {summaryKPI.notStartedOrders} orders (
                     {summaryKPI.totalOrders > 0
                       ? Math.round((summaryKPI.notStartedOrders / summaryKPI.totalOrders) * 100)
                       : 0}
@@ -468,9 +468,9 @@ export default function DashboardChartView({
           <div className="chart-card-header">
             <div className="chart-card-title flex items-center gap-2 font-heading">
               <Activity size={18} className="text-cyan" />
-              <span>Status Barcode Tiket (PROG vs FIN)</span>
+              <span>Barcode Ticket Status (PROG vs FIN)</span>
             </div>
-            <span className="chart-card-badge font-mono">{summaryKPI.totalSteps} Tiket Langkah</span>
+            <span className="chart-card-badge font-mono">{summaryKPI.totalSteps} Step Tickets</span>
           </div>
 
           <div className="chart-card-body flex items-center justify-around flex-wrap gap-4">
@@ -485,7 +485,7 @@ export default function DashboardChartView({
                 <span className="donut-center-val font-mono">
                   {summaryKPI.totalSteps > 0 ? Math.round((summaryKPI.finBarcodeSteps / summaryKPI.totalSteps) * 100) : 0}%
                 </span>
-                <span className="donut-center-sub">FIN Tiket</span>
+                <span className="donut-center-sub">FIN Tickets</span>
               </div>
             </div>
 
@@ -496,7 +496,7 @@ export default function DashboardChartView({
                 <div className="legend-info">
                   <div className="legend-label font-semibold">FIN — Finished</div>
                   <div className="legend-val font-mono text-xs text-muted">
-                    {summaryKPI.finBarcodeSteps} langkah (
+                    {summaryKPI.finBarcodeSteps} steps (
                     {summaryKPI.totalSteps > 0
                       ? Math.round((summaryKPI.finBarcodeSteps / summaryKPI.totalSteps) * 100)
                       : 0}
@@ -510,7 +510,7 @@ export default function DashboardChartView({
                 <div className="legend-info">
                   <div className="legend-label font-semibold">PROG — In Progress</div>
                   <div className="legend-val font-mono text-xs text-muted">
-                    {summaryKPI.progBarcodeSteps} langkah (
+                    {summaryKPI.progBarcodeSteps} steps (
                     {summaryKPI.totalSteps > 0
                       ? Math.round((summaryKPI.progBarcodeSteps / summaryKPI.totalSteps) * 100)
                       : 0}
@@ -520,7 +520,7 @@ export default function DashboardChartView({
               </div>
 
               <div className="chart-mini-note text-xs text-muted pt-1">
-                ✓ Mengintegrasikan pemindaian barcode konfirmasi SAP bengkel ISC
+                ✓ Integrates ISC workshop SAP confirmation barcode scanning
               </div>
             </div>
           </div>
@@ -531,26 +531,26 @@ export default function DashboardChartView({
           <div className="chart-card-header">
             <div className="chart-card-title flex items-center gap-2 font-heading">
               <Layers size={18} className="text-cyan" />
-              <span>Volume & Progres per Product Group (Divisi)</span>
+              <span>Volume & Progress by Product Group (Division)</span>
             </div>
-            <span className="chart-card-badge font-mono">{groupStats.length} Grup Terdeteksi</span>
+            <span className="chart-card-badge font-mono">{groupStats.length} Groups Detected</span>
           </div>
 
           <div className="chart-card-body">
             {groupStats.length === 0 ? (
-              <div className="text-muted text-center py-6">Tidak ada data untuk grup ini.</div>
+              <div className="text-muted text-center py-6">No data available for this group.</div>
             ) : (
               <div className="bar-chart-list">
                 {groupStats.map((grp) => (
                   <div key={grp.group} className="bar-chart-row">
                     <div className="bar-chart-meta">
                       <div className="bar-chart-name font-mono font-bold text-main">
-                        Grup {grp.group}
+                        Group {grp.group}
                       </div>
                       <div className="bar-chart-stats font-mono text-xs text-muted">
-                        <span>{grp.totalOrders} Order</span>
+                        <span>{grp.totalOrders} Orders</span>
                         <span>•</span>
-                        <span>{grp.completedSteps}/{grp.totalSteps} Langkah</span>
+                        <span>{grp.completedSteps}/{grp.totalSteps} Steps</span>
                         <span className="font-bold text-cyan">({grp.percent}%)</span>
                       </div>
                     </div>
@@ -577,14 +577,14 @@ export default function DashboardChartView({
           <div className="chart-card-header">
             <div className="chart-card-title flex items-center gap-2 font-heading">
               <TrendingUp size={18} className="text-cyan" />
-              <span>Distribusi Customer Terbanyak</span>
+              <span>Top Customer Distribution</span>
             </div>
-            <span className="chart-card-badge font-mono">Top 5 Klien</span>
+            <span className="chart-card-badge font-mono">Top 5 Clients</span>
           </div>
 
           <div className="chart-card-body">
             {customerStats.length === 0 ? (
-              <div className="text-muted text-center py-6">Tidak ada data customer.</div>
+              <div className="text-muted text-center py-6">No customer data available.</div>
             ) : (
               <div className="customer-rank-list">
                 {customerStats.map((c, idx) => {
@@ -597,7 +597,7 @@ export default function DashboardChartView({
                           <span className="font-semibold text-main truncate" style={{ maxWidth: 180 }}>
                             {c.customer}
                           </span>
-                          <span className="font-mono text-muted">{c.count} Order ({percent}%)</span>
+                          <span className="font-mono text-muted">{c.count} Orders ({percent}%)</span>
                         </div>
                         <div className="rank-bar-track">
                           <div
@@ -621,9 +621,9 @@ export default function DashboardChartView({
           <div className="chart-card-header">
             <div className="chart-card-title flex items-center gap-2 font-heading">
               <Clock size={18} className="text-cyan" />
-              <span>Kompleksitas Rangkaian Langkah Order</span>
+              <span>Order Step Complexity Distribution</span>
             </div>
-            <span className="chart-card-badge font-mono">Struktur Pengerjaan</span>
+            <span className="chart-card-badge font-mono">Work Breakdown</span>
           </div>
 
           <div className="chart-card-body">
@@ -637,7 +637,7 @@ export default function DashboardChartView({
                     <div className="flex justify-between items-center text-xs mb-1">
                       <span className="font-semibold text-main">{item.label}</span>
                       <span className="font-mono text-muted">
-                        {item.count} Order <strong className="text-cyan">({percent}%)</strong>
+                        {item.count} Orders <strong className="text-cyan">({percent}%)</strong>
                       </span>
                     </div>
                     <div className="complexity-track">
@@ -652,10 +652,10 @@ export default function DashboardChartView({
             </div>
 
             <div className="complexity-footer-summary mt-4 pt-3 border-t flex justify-between text-xs text-muted font-mono">
-              <span>Rata-rata: {(summaryKPI.totalSteps / Math.max(1, summaryKPI.totalOrders)).toFixed(1)} langkah/order</span>
+              <span>Average: {(summaryKPI.totalSteps / Math.max(1, summaryKPI.totalOrders)).toFixed(1)} steps/order</span>
               <span className="text-emerald-500 font-bold flex items-center gap-1">
                 <CheckCircle2 size={13} />
-                Aktif Terverifikasi
+                Verified Active
               </span>
             </div>
           </div>

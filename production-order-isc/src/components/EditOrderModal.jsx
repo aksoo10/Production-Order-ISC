@@ -136,22 +136,22 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
     setError('');
 
     if (!formData.orderNo.trim()) {
-      setError('Nomor Order Produksi (orderNo) wajib diisi.');
+      setError('Production Order Number (orderNo) is required.');
       return;
     }
 
     if (!formData.id || formData.id <= 0) {
-      setError('Item ini tidak memiliki ID SharePoint valid untuk proses update.');
+      setError('This item does not have a valid SharePoint ID for updating.');
       return;
     }
 
     if (steps.length === 0) {
-      setError('Minimal harus ada 1 langkah pengerjaan.');
+      setError('At least 1 process step is required.');
       return;
     }
 
     const allCompleted = steps.every(
-      (s) => String(s.Status).toLowerCase() === 'selesai'
+      (s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed'
     );
 
     onSubmit({
@@ -192,7 +192,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nomor Order Produksi *
+                  Production Order Number *
                 </label>
                 <input
                   type="text"
@@ -206,7 +206,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Divisi / Product Group
+                  Division / Product Group
                 </label>
                 <select
                   name="orderDivision"
@@ -228,7 +228,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
             <div className="mb-3">
               <label className="input-label font-bold text-xs text-muted mb-1 block">
-                Judul Pekerjaan / Nama Komponen *
+                Job Title / Component Name *
               </label>
               <input
                 type="text"
@@ -243,7 +243,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nama Customer
+                  Customer Name
                 </label>
                 <input
                   type="text"
@@ -256,7 +256,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nomor Dokumen SO
+                  SO Document Number
                 </label>
                 <input
                   type="text"
@@ -271,7 +271,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nomor WBS Produksi
+                  Production WBS Number
                 </label>
                 <input
                   type="text"
@@ -284,7 +284,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Jumlah Order (Qty)
+                  Order Quantity (Qty)
                 </label>
                 <input
                   type="number"
@@ -298,13 +298,13 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
               </div>
             </div>
 
-            {/* JUMLAH LANGKAH: FLEKSIBEL DENGAN TOMBOL '+' */}
+            {/* FLEXIBLE NUMBER OF STEPS */}
             <div className="mb-3 p-3 bg-slate-900/60 rounded-md border border-slate-700">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Layers size={16} className="text-cyan" />
                   <label className="input-label font-bold text-xs text-white uppercase tracking-wider mb-0">
-                    Jumlah Langkah: <span className="text-cyan font-mono text-sm ml-1">{steps.length} Langkah</span>
+                    Total Steps: <span className="text-cyan font-mono text-sm ml-1">{steps.length} Steps</span>
                   </label>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -313,7 +313,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                     className="btn btn-xs btn-outline flex items-center justify-center p-1 text-xs"
                     onClick={() => handleRemoveStep(steps.length - 1)}
                     disabled={steps.length <= 1}
-                    title="Kurangi langkah terakhir (-)"
+                    title="Remove last step (-)"
                   >
                     <Minus size={13} />
                   </button>
@@ -321,16 +321,16 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                     type="button"
                     className="btn btn-xs btn-primary flex items-center gap-1 font-bold text-xs px-2.5 py-1"
                     onClick={handleAddStep}
-                    title="Tambah satu langkah (+)"
+                    title="Add one step (+)"
                   >
                     <Plus size={14} />
-                    <span>Tambah Langkah (+)</span>
+                    <span>Add Step (+)</span>
                   </button>
                 </div>
               </div>
 
               <p className="text-xs text-muted mb-2.5">
-                Jumlah langkah fleksibel dapat ditambah satu per satu dengan tombol <strong>+</strong> sesuai alur pengerjaan bengkel.
+                Flexible steps can be added individually with the <strong>+</strong> button according to workshop workflow.
               </p>
 
               <div className="space-y-2">
@@ -346,7 +346,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                     <input
                       type="text"
                       className="modal-input text-xs flex-1"
-                      placeholder={`Nama Langkah ${idx + 1}`}
+                      placeholder={`Step Name ${idx + 1}`}
                       value={st.NamaLangkah}
                       onChange={(e) => handleStepChange(idx, 'NamaLangkah', e.target.value)}
                       required
@@ -355,10 +355,10 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                     <input
                       type="text"
                       className="modal-input text-xs font-mono w-32 flex-shrink-0"
-                      placeholder="No. Konfirmasi"
+                      placeholder="Confirmation No."
                       value={st.NoKonfirmasi}
                       onChange={(e) => handleStepChange(idx, 'NoKonfirmasi', e.target.value)}
-                      title="Nomor Konfirmasi SAP"
+                      title="SAP Confirmation Number"
                     />
 
                     <select
@@ -367,8 +367,8 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                       onChange={(e) => handleStepChange(idx, 'Status', e.target.value)}
                     >
                       <option value="Not Started">Not Started</option>
-                      <option value="Berjalan">Berjalan</option>
-                      <option value="Selesai">Selesai</option>
+                      <option value="Berjalan">In Progress</option>
+                      <option value="Selesai">Completed</option>
                     </select>
 
                     {steps.length > 1 && (
@@ -376,7 +376,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                         type="button"
                         className="btn btn-xs btn-danger p-1 flex-shrink-0"
                         onClick={() => handleRemoveStep(idx)}
-                        title="Hapus langkah ini"
+                        title="Delete this step"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -389,7 +389,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Rencana Mulai
+                  Planned Start Date
                 </label>
                 <input
                   type="date"
@@ -402,7 +402,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Target Selesai
+                  Planned Finish Date
                 </label>
                 <input
                   type="date"
@@ -416,7 +416,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
             <div>
               <label className="input-label font-bold text-xs text-muted mb-1 block">
-                Status Pekerjaan
+                Work Status
               </label>
               <select
                 name="status"
@@ -424,8 +424,8 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
                 value={formData.status}
                 onChange={handleChange}
               >
-                <option value={0}>Sedang Berjalan (0 - In Progress)</option>
-                <option value={1}>Sudah Selesai (1 - Finished)</option>
+                <option value={0}>In Progress (0)</option>
+                <option value={1}>Completed (1)</option>
               </select>
             </div>
           </div>
@@ -438,7 +438,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
               onClick={onClose}
               disabled={isLoading}
             >
-              Batal
+              Cancel
             </button>
             <button
               type="submit"
@@ -448,12 +448,12 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Memperbarui Cloud...</span>
+                  <span>Updating Cloud...</span>
                 </>
               ) : (
                 <>
                   <Save size={16} />
-                  <span>Simpan Perubahan</span>
+                  <span>Save Changes</span>
                 </>
               )}
             </button>

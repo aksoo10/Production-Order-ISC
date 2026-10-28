@@ -11,7 +11,7 @@ export default function BarcodeCard({
   width = 2.2,
   fontSize = 17,
   showBadge = true,
-  badgeText = "Scan ke SAP",
+  badgeText = "Scan to SAP",
   highlightColor = "#00A3E0",
   compact = false
 }) {
@@ -78,7 +78,7 @@ export default function BarcodeCard({
     return (
       <div className="barcode-empty-box">
         <Scan size={24} className="text-muted" />
-        <span>Pilih item untuk menampilkan barcode</span>
+        <span>Select an item to display barcode</span>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function BarcodeCard({
             <button
               type="button"
               className="barcode-btn-icon"
-              title="Salin nomor"
+              title="Copy value"
               onClick={handleCopy}
             >
               {copied ? <Check size={15} color="#10B981" /> : <Copy size={15} />}
@@ -113,7 +113,7 @@ export default function BarcodeCard({
             <button
               type="button"
               className="barcode-btn-icon"
-              title="Perbesar barcode ke layar penuh"
+              title="Enlarge barcode to fullscreen"
               onClick={() => setIsModalOpen(true)}
             >
               <Maximize2 size={15} />
@@ -125,7 +125,7 @@ export default function BarcodeCard({
         <div
           className="barcode-svg-wrapper"
           onClick={() => setIsModalOpen(true)}
-          title="Klik untuk memperbesar tampilan barcode"
+          title="Click to enlarge barcode view"
         >
           <svg ref={svgRef} className="barcode-svg"></svg>
         </div>
@@ -133,7 +133,7 @@ export default function BarcodeCard({
         {/* Footer / Helper Text */}
         <div className="barcode-card-footer">
           <span className="barcode-hint-text">
-            Arahkan scanner ke barcode di atas (Format: Code 128)
+            Point scanner at the barcode above (Format: Code 128)
           </span>
           <span className="barcode-val-badge font-mono">{value}</span>
         </div>
@@ -145,8 +145,8 @@ export default function BarcodeCard({
           <div className="modal-content barcode-modal-zoom" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <h3 className="modal-title font-heading">{label} — Mode Scan Penuh</h3>
-                <p className="modal-desc">{subtitle || 'Barcode resolusi tinggi untuk pembacaan scanner jarak jauh'}</p>
+                <h3 className="modal-title font-heading">{label} — Fullscreen Scan Mode</h3>
+                <p className="modal-desc">{subtitle || 'High-resolution barcode for long-range scanner reading'}</p>
               </div>
               <div className="modal-actions-right">
                 <div className="zoom-btn-group">
@@ -154,7 +154,7 @@ export default function BarcodeCard({
                     type="button"
                     className="btn btn-sm btn-outline"
                     onClick={() => setModalScale(prev => Math.max(0.8, prev - 0.2))}
-                    title="Perkecil (-)"
+                    title="Zoom out (-)"
                   >
                     <Minus size={16} strokeWidth={2.2} />
                   </button>
@@ -163,7 +163,7 @@ export default function BarcodeCard({
                     type="button"
                     className="btn btn-sm btn-outline"
                     onClick={() => setModalScale(prev => Math.min(1.8, prev + 0.2))}
-                    title="Perbesar (+)"
+                    title="Zoom in (+)"
                   >
                     <Plus size={16} strokeWidth={2.2} />
                   </button>
@@ -184,13 +184,13 @@ export default function BarcodeCard({
               </div>
               <div className="enlarged-instructions">
                 <Scan size={22} color="#00A3E0" className="pulse-icon" />
-                <span>Langsung arahkan laser scanner ke monitor ini. Data akan otomatis masuk ke SAP.</span>
+                <span>Direct the laser scanner at this screen. Data will automatically input into SAP.</span>
               </div>
             </div>
 
             <div className="modal-footer justify-between">
               <div className="font-mono text-sm text-muted">
-                Nilai Barcode: <strong className="text-white">{value}</strong>
+                Barcode Value: <strong className="text-white">{value}</strong>
               </div>
               <div className="flex gap-2">
                 <button
@@ -199,14 +199,14 @@ export default function BarcodeCard({
                   onClick={handleCopy}
                 >
                   {copied ? <Check size={16} color="#10B981" /> : <Copy size={16} />}
-                  {copied ? "Tersalin!" : "Salin Teks"}
+                  {copied ? "Copied!" : "Copy Text"}
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={() => setIsModalOpen(false)}
                 >
-                  Tutup Tampilan
+                  Close View
                 </button>
               </div>
             </div>

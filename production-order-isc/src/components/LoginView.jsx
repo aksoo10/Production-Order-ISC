@@ -61,7 +61,7 @@ export default function LoginView({
     const validAdminPass = ['admin123', adminPassword, 'admin', 'isc-admin'];
 
     if (!validAdminUsers.includes(u)) {
-      setErrorMsg('Username administrator tidak ditemukan. Gunakan admin@andritz.com');
+      setErrorMsg('Administrator username not found. Use admin@andritz.com');
       return;
     }
 
@@ -72,7 +72,7 @@ export default function LoginView({
         operator: null
       });
     } else {
-      setErrorMsg('Password administrator tidak sesuai.');
+      setErrorMsg('Incorrect administrator password.');
     }
   };
 
@@ -81,7 +81,7 @@ export default function LoginView({
     setErrorMsg('');
     onLoginSuccess({
       role: 'user',
-      username: 'Operator Bengkel',
+      username: 'Workshop Operator',
       operator: null
     });
   };
@@ -112,7 +112,7 @@ export default function LoginView({
             <span className="andritz-logotype-cyan" style={{ fontSize: '1.6rem', fontWeight: 800 }}>ISC</span>
           </div>
 
-          <h2 className="login-title font-heading">Portal Masuk Bengkel Produksi</h2>
+          <h2 className="login-title font-heading">Production Workshop Login Portal</h2>
         </div>
 
         {/* Role Switcher Tabs */}
@@ -128,7 +128,7 @@ export default function LoginView({
             <ShieldCheck size={18} />
             <div className="text-left">
               <div className="tab-title">Supervisor / Admin</div>
-              <div className="tab-sub">Akses Manajemen ISC</div>
+              <div className="tab-sub">ISC Management Access</div>
             </div>
           </button>
 
@@ -142,8 +142,8 @@ export default function LoginView({
           >
             <Users size={18} />
             <div className="text-left">
-              <div className="tab-title">Operator Bengkel</div>
-              <div className="tab-sub text-emerald-400 font-semibold">Tautan Langsung (Tanpa Password)</div>
+              <div className="tab-title">Workshop Operator</div>
+              <div className="tab-sub text-emerald-400 font-semibold">Direct Access (No Password)</div>
             </div>
           </button>
         </div>
@@ -160,7 +160,7 @@ export default function LoginView({
         {roleTab === 'admin' && (
           <form onSubmit={handleAdminSubmit} className="login-form-body">
             <div className="form-group">
-              <label className="form-label">Username Administrator:</label>
+              <label className="form-label">Administrator Username:</label>
               <div className="password-input-wrapper">
                 <User size={16} className="input-icon-left text-muted" />
                 <input
@@ -176,13 +176,13 @@ export default function LoginView({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Password Administrator:</label>
+              <label className="form-label">Administrator Password:</label>
               <div className="password-input-wrapper">
                 <Lock size={16} className="input-icon-left text-muted" />
                 <input
                   type={showAdminPass ? 'text' : 'password'}
                   className="form-control pl-9 pr-9 font-mono"
-                  placeholder="Masukkan password admin"
+                  placeholder="Enter admin password"
                   value={adminPass}
                   onChange={(e) => setAdminPass(e.target.value)}
                   required
@@ -203,7 +203,7 @@ export default function LoginView({
               style={{ height: '44px', fontSize: '0.95rem' }}
             >
               <ShieldCheck size={18} />
-              <span>Masuk sebagai Administrator</span>
+              <span>Login as Administrator</span>
             </button>
           </form>
         )}
@@ -219,7 +219,7 @@ export default function LoginView({
               onClick={handleDirectOperatorLogin}
             >
               <Scan size={20} />
-              <span>Masuk Langsung sebagai Operator</span>
+              <span>Direct Login as Operator</span>
               <ArrowRight size={18} />
             </button>
           </div>

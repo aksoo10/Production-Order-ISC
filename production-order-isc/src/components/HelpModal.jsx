@@ -17,14 +17,14 @@ export default function HelpModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'A', title: 'A. Persiapan Data Excel', icon: FileSpreadsheet },
-    { id: 'B', title: 'B. Siapkan Halaman / Server', icon: Monitor },
-    { id: 'C', title: 'C. Setup Admin Awal', icon: ShieldCheck },
-    { id: 'D', title: 'D. Tes Sebelum Dipakai', icon: CheckCircle2 },
-    { id: 'E', title: 'E. Pasang di Bengkel', icon: Monitor },
-    { id: 'F', title: 'F. Pemakaian Operator', icon: Scan },
-    { id: 'G', title: 'G. Pembaruan Rutin Admin', icon: RefreshCw },
-    { id: 'H', title: 'H. Solusi Masalah Umum', icon: AlertTriangle }
+    { id: 'A', title: 'A. Excel Data Preparation', icon: FileSpreadsheet },
+    { id: 'B', title: 'B. Page & Server Setup', icon: Monitor },
+    { id: 'C', title: 'C. Initial Admin Setup', icon: ShieldCheck },
+    { id: 'D', title: 'D. Pre-Deployment Testing', icon: CheckCircle2 },
+    { id: 'E', title: 'E. Workshop Installation', icon: Monitor },
+    { id: 'F', title: 'F. Operator Usage', icon: Scan },
+    { id: 'G', title: 'G. Regular Admin Updates', icon: RefreshCw },
+    { id: 'H', title: 'H. Troubleshooting & FAQ', icon: AlertTriangle }
   ];
 
   return (
@@ -37,8 +37,8 @@ export default function HelpModal({ isOpen, onClose }) {
               <HelpCircle size={20} color="#00A3E0" />
             </div>
             <div>
-              <h3 className="modal-title font-heading">Panduan Resmi Operasional ISC</h3>
-              <p className="modal-desc">Petunjuk persiapan SAP, pemakaian scanner, dan administrasi order</p>
+              <h3 className="modal-title font-heading">Official ISC Operational Guide</h3>
+              <p className="modal-desc">Instructions for SAP preparation, scanner usage, and order administration</p>
             </div>
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose}>
@@ -70,126 +70,126 @@ export default function HelpModal({ isOpen, onClose }) {
           <div className="help-content-area">
             {activeTab === 'A' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">A. Persiapan Data (Ekspor SAP ke Excel)</h4>
+                <h4 className="help-section-title">A. Data Preparation (SAP Export to Excel)</h4>
                 <ul className="help-bullet-list">
-                  <li><strong>Format Baris Langkah:</strong> Wajib <strong>1 baris per langkah</strong> (<code className="font-mono">Step 1</code>, <code className="font-mono">Step 2</code>, <code className="font-mono">Step 3</code>, dst. atau angka 1, 2, 3). <em>Bukan total langkah dalam satu baris.</em></li>
-                  <li><strong>Nomor Konfirmasi Tetap Sama:</strong> Seluruh baris langkah untuk No. Produksi yang sama harus menggunakan <strong>NoKonfirmasi yang sama</strong> agar sinkron dengan tiket barcode pengerjaan.</li>
-                  <li><strong>Sheet Order:</strong> Buat sheet bernama persis <code className="font-mono">Order</code> dengan kolom:
+                  <li><strong>Step Row Format:</strong> Must be <strong>1 row per step</strong> (<code className="font-mono">Step 1</code>, <code className="font-mono">Step 2</code>, <code className="font-mono">Step 3</code>, etc., or numbers 1, 2, 3). <em>Not total steps collapsed into a single row.</em></li>
+                  <li><strong>Confirmation Number Remains Uniform:</strong> All step rows for the same Production Order No. should share the <strong>same NoKonfirmasi</strong> so that they match the job ticket barcodes.</li>
+                  <li><strong>Order Sheet:</strong> Name the sheet exactly <code className="font-mono">Order</code> with columns:
                     <div className="code-snippet font-mono">NoProduksi, ProductGroup, Langkah, NamaLangkah, NoKonfirmasi, Status</div>
                   </li>
-                  <li><strong>Status:</strong> Diisi <code className="font-mono text-emerald-400">Selesai</code> atau <code className="font-mono text-cyan-400">Berjalan</code>. Isi apa pun selain "Selesai" dianggap belum selesai.</li>
-                  <li><strong>Format kolom nomor:</strong> Wajib diformat sebagai <strong className="text-white">Text</strong> di Excel supaya angka nol di depan (seperti 00123) tidak hilang.</li>
-                  <li><strong>Sheet Personel:</strong> Buat sheet bernama persis <code className="font-mono">Personel</code> dengan kolom:
+                  <li><strong>Status:</strong> Filled with <code className="font-mono text-emerald-400">Completed</code> (or <code className="font-mono text-emerald-400">Selesai</code>) or <code className="font-mono text-cyan-400">In Progress</code> (or <code className="font-mono text-cyan-400">Berjalan</code>). Any value other than "Completed"/"Selesai" is considered unfinished.</li>
+                  <li><strong>Number Column Format:</strong> Must be formatted as <strong className="text-white">Text</strong> in Excel so leading zeros (e.g. 00123) are not stripped.</li>
+                  <li><strong>Personnel Sheet:</strong> Name the sheet exactly <code className="font-mono">Personel</code> with columns:
                     <div className="code-snippet font-mono">NoPersonal, Nama, ProductGroup</div>
-                    <em>Contoh: NoPersonal (1001, PKW), NoPersonal (1002, PULP).</em>
+                    <em>Example: NoPersonal (1001, PKW), NoPersonal (1002, PULP).</em>
                   </li>
-                  <li><strong>Pembersihan baris:</strong> Buang langkah SAP yang tidak dipakai bengkel (contoh saat rapat: dari 26 langkah disederhanakan jadi langkah-langkah utama pengerjaan).</li>
+                  <li><strong>Row Filtering:</strong> Remove auxiliary SAP steps not executed in the workshop to keep the screen focused on primary physical operations.</li>
                 </ul>
               </div>
             )}
 
             {activeTab === 'B' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">B. Penyiapan Halaman & Mode Offline</h4>
+                <h4 className="help-section-title">B. Page Setup & Offline Mode</h4>
                 <ul className="help-bullet-list">
-                  <li>Aplikasi ini dirancang untuk dapat diakses oleh PC bengkel melalui jaringan lokal (LAN) server ISC atau langsung dibuka di browser lokal.</li>
-                  <li><strong>Mode Offline Penuh:</strong> Pustaka pembaca Excel (SheetJS) dan pembuat barcode (JsBarcode) telah dibundel secara mandiri di dalam sistem. Aplikasi dapat berjalan 100% offline tanpa koneksi internet luar.</li>
-                  <li>Dapat ditempatkan di server lokal ISC bengkel atau di-deploy langsung pada Laragon lokal.</li>
+                  <li>This application is built to be accessed by workshop PCs across the ISC local network (LAN) or opened directly in a local browser.</li>
+                  <li><strong>Full Offline Mode:</strong> Excel parsing libraries (SheetJS) and barcode rendering (JsBarcode) are bundled locally. The application functions 100% offline without requiring internet access.</li>
+                  <li>Deployable directly on the ISC local server or local Laragon / web server environments.</li>
                 </ul>
               </div>
             )}
 
             {activeTab === 'C' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">C. Setup Admin (Sekali di Awal)</h4>
+                <h4 className="help-section-title">C. Admin Setup (Initial Setup)</h4>
                 <ol className="help-step-list">
-                  <li>Buka halaman aplikasi di browser.</li>
-                  <li>Klik tombol <strong className="text-cyan">Masuk admin</strong> di pojok kanan atas.</li>
-                  <li>Ketik username: <code className="font-mono font-bold text-white">admin@andritz.com</code> dan kata sandi: <code className="font-mono font-bold text-white">admin123</code>, lalu klik <strong className="text-cyan">Masuk</strong>.</li>
-                  <li>Ganti sandi: Klik tombol <strong className="text-white">Ganti Sandi</strong>, masukkan sandi baru (minimal 6 karakter), lalu klik Ganti sandi.</li>
-                  <li>Klik <strong className="text-white">Impor Excel</strong>, pilih file Excel yang telah disiapkan di tahap A.</li>
-                  <li>Pastikan daftar order dan operator langsung muncul dengan benar di Kolom 1 dan Kolom 2.</li>
+                  <li>Open the application URL in your browser.</li>
+                  <li>Click the <strong className="text-cyan">Admin Login</strong> button in the top right corner.</li>
+                  <li>Enter username: <code className="font-mono font-bold text-white">admin@andritz.com</code> and password: <code className="font-mono font-bold text-white">admin123</code>, then click <strong className="text-cyan">Login</strong>.</li>
+                  <li>Change Password: Click the <strong className="text-white">Change Password</strong> button, enter a new password (min. 6 characters), and submit.</li>
+                  <li>Click <strong className="text-white">Import Excel</strong>, select the Excel file prepared in Step A.</li>
+                  <li>Verify that the orders and operator personnel immediately appear in Column 1 and Column 2.</li>
                 </ol>
               </div>
             )}
 
             {activeTab === 'D' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">D. Prosedur Tes Sebelum Dipakai</h4>
+                <h4 className="help-section-title">D. Pre-Deployment Test Procedure</h4>
                 <ul className="help-bullet-list">
-                  <li>Pilih satu operator di Kolom 1, pilih satu order di Kolom 2.</li>
-                  <li>Pastikan hanya <strong>satu langkah</strong> yang berstatus <em>“Langkah aktif”</em>.</li>
-                  <li><strong>Scan dengan alat scanner bengkel ke kolom SAP:</strong>
+                  <li>Select an operator in Column 1, select an order in Column 2.</li>
+                  <li>Verify that only <strong>one step</strong> is marked with <em>“Current Active Step”</em>.</li>
+                  <li><strong>Scan with the workshop handheld scanner into SAP:</strong>
                     <ol className="sub-step-list mt-1">
-                      <li>Scan barcode No. Personal operator ke SAP.</li>
-                      <li>Scan barcode No. Konfirmasi langkah aktif ke SAP.</li>
+                      <li>Scan the operator's Personnel No. barcode into SAP.</li>
+                      <li>Scan the active step's Confirmation No. barcode into SAP.</li>
                     </ol>
                   </li>
-                  <li>Pastikan data terbaca dengan baik di monitor bengkel bawah. Jika sulit terbaca karena jarak scanner, gunakan tombol <strong>Perbesar Layar (+)</strong> atau tekan <code>Ctrl +</code> pada keyboard browser.</li>
-                  <li>Klik <strong className="text-emerald-400">Tandai Selesai</strong> pada langkah aktif dan pastikan langkah berikutnya otomatis berubah menjadi langkah aktif.</li>
-                  <li>Klik <strong className="text-cyan">Unduh Order (Excel)</strong> untuk memastikan file hasil status terbaru berhasil diekspor.</li>
+                  <li>Confirm scanner reads the screen accurately. If distant, click the <strong>Enlarge Fullscreen</strong> icon on the barcode card.</li>
+                  <li>Click <strong className="text-emerald-400">Mark Completed</strong> on the active step and verify the next step automatically becomes active.</li>
+                  <li>Click <strong className="text-cyan">Download Orders (Excel)</strong> to ensure updated status records can be exported cleanly.</li>
                 </ul>
               </div>
             )}
 
             {activeTab === 'E' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">E. Pemasangan di Monitor Bengkel</h4>
+                <h4 className="help-section-title">E. Workshop Monitor Installation</h4>
                 <ul className="help-bullet-list">
-                  <li>Admin klik tombol <strong className="text-danger">Keluar</strong> supaya halaman kembali ke mode pengguna (tombol impor dan tombol Tandai Selesai akan tersembunyi dari operator biasa).</li>
-                  <li>Simpan halaman aplikasi sebagai <strong>Bookmark</strong> atau <strong>Desktop Shortcut</strong> di PC bengkel.</li>
-                  <li><strong>Atur Layar (Dual-Monitor):</strong> Satu monitor untuk membuka SAP, dan satu monitor untuk membuka aplikasi Barcode ISC ini.</li>
+                  <li>Admin clicks the <strong className="text-danger">Logout</strong> button to return the terminal to operator mode (admin-only controls will be hidden).</li>
+                  <li>Save the web page as a <strong>Bookmark</strong> or <strong>Desktop Shortcut</strong> on the workshop PC.</li>
+                  <li><strong>Display Setup (Dual-Monitor):</strong> One monitor dedicated to SAP terminal inputs, and one monitor displaying this ISC Barcode Portal.</li>
                 </ul>
               </div>
             )}
 
             {activeTab === 'F' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">F. Pemakaian Rutin oleh Operator (Mode Pengguna)</h4>
+                <h4 className="help-section-title">F. Routine Operator Usage (Operator Mode)</h4>
                 <ul className="help-bullet-list">
-                  <li>Ketik nama atau nomor personal Anda di kotak pencarian Kolom 1, lalu klik nama.</li>
-                  <li>Pilih nomor order produksi yang sedang dikerjakan di Kolom 2 (gunakan filter grup di atas jika perlu).</li>
-                  <li>Arahkan scanner ke layar:
+                  <li>Search or select your name/personnel number in Column 1.</li>
+                  <li>Select the production order you are working on in Column 2 (filter by product group if necessary).</li>
+                  <li>Direct the scanner at the screen:
                     <ul className="mt-1">
-                      <li>Scan barcode <strong>No. Personal</strong> ke SAP.</li>
-                      <li>Scan barcode <strong>No. Konfirmasi</strong> langkah aktif ke SAP.</li>
+                      <li>Scan the <strong>Personnel No.</strong> barcode into SAP.</li>
+                      <li>Scan the <strong>Confirmation No.</strong> barcode for the active step into SAP.</li>
                     </ul>
                   </li>
-                  <li>Operator hanya melihat dan scan. Status langkah akan diperbarui saat supervisor/admin menandainya selesai atau mengimpor update SAP.</li>
+                  <li>Operators simply view and scan. Operation step statuses are managed through the central admin updates and SAP syncing.</li>
                 </ul>
               </div>
             )}
 
             {activeTab === 'G' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">G. Pembaruan Rutin oleh Admin</h4>
+                <h4 className="help-section-title">G. Regular Admin Maintenance</h4>
                 <ul className="help-bullet-list">
-                  <li>Masuk sebagai admin menggunakan sandi Anda.</li>
-                  <li>Impor file ekspor SAP terbaru secara berkala supaya status ikut diperbarui secara massal.</li>
-                  <li>Klik <strong className="text-cyan">Unduh Order</strong> untuk cadangan (backup), kemudian klik <strong className="text-danger">Keluar</strong>.</li>
-                  <li>Untuk penambahan operator baru, cukup tambahkan barisnya di sheet <code>Personel</code> pada file Excel, lalu impor ulang.</li>
+                  <li>Log in as administrator using your admin credentials.</li>
+                  <li>Periodically import updated SAP export files to batch-update order progress across the workshop.</li>
+                  <li>Click <strong className="text-cyan">Download Orders</strong> to create local Excel backups, then click <strong className="text-danger">Logout</strong>.</li>
+                  <li>To add new operators, simply add a row to the <code>Personel</code> sheet in Excel and re-import.</li>
                 </ul>
               </div>
             )}
 
             {activeTab === 'H' && (
               <div className="help-section-card">
-                <h4 className="help-section-title">H. Solusi Masalah Umum</h4>
+                <h4 className="help-section-title">H. Common Issues & Troubleshooting</h4>
                 <div className="faq-item">
-                  <div className="faq-q">Pesan: "File harus punya sheet Personel dan Order..."</div>
-                  <div className="faq-a">Nama sheet di Excel salah. Pastikan ejaan dan huruf kapital sama persis: <code>Personel</code> dan <code>Order</code>.</div>
+                  <div className="faq-q">Message: "File must contain both Personel and Order sheets..."</div>
+                  <div className="faq-a">Sheet names in Excel are incorrect. Ensure exact capitalization: <code>Personel</code> and <code>Order</code>.</div>
                 </div>
                 <div className="faq-item">
-                  <div className="faq-q">Nama atau order tidak muncul di daftar</div>
-                  <div className="faq-a">Filter grup di bagian atas header sedang membatasi tampilan. Ubah pilihan dropdown ke <strong>"Semua grup"</strong>.</div>
+                  <div className="faq-q">Names or orders are not visible in the lists</div>
+                  <div className="faq-a">The group filter in the navigation bar might be restricting viewable data. Set the dropdown filter to <strong>"All Groups"</strong>.</div>
                 </div>
                 <div className="faq-item">
-                  <div className="faq-q">Data hilang atau tidak sama di PC bengkel lain</div>
-                  <div className="faq-a">Data tersimpan di penyimpanan browser lokal (localStorage). Lakukan impor Excel di browser PC bengkel yang digunakan oleh operator.</div>
+                  <div className="faq-q">Data is not synchronized on another workshop PC</div>
+                  <div className="faq-a">Data is stored in local browser storage (localStorage). Re-import the Excel file on the target workshop browser or connect to the shared network server.</div>
                 </div>
                 <div className="faq-item">
-                  <div className="faq-q">Lupa kata sandi admin</div>
-                  <div className="faq-a">Buka modal Masuk Admin, klik <em>"Lupa sandi?"</em> dan pilih tombol <strong>"Reset Sandi ke admin123"</strong> untuk mengembalikannya ke sandi awal bawaan.</div>
+                  <div className="faq-q">Forgot admin password</div>
+                  <div className="faq-a">Open the Admin Login dialog, click <em>"Forgot password?"</em>, and click <strong>"Reset Password to admin123"</strong> to restore default credentials.</div>
                 </div>
               </div>
             )}
@@ -199,7 +199,7 @@ export default function HelpModal({ isOpen, onClose }) {
         {/* Footer */}
         <div className="modal-footer">
           <button type="button" className="btn btn-primary" onClick={onClose}>
-            Tutup Panduan
+            Close Guide
           </button>
         </div>
       </div>

@@ -178,7 +178,7 @@ export default function ProgressTrackerView({
           <div className="flex items-center gap-2">
             <h2 className="view-title font-heading flex items-center gap-2">
               <ListChecks className="text-cyan" size={24} />
-              <span>Progress Tracker Rangkaian Langkah Kerja</span>
+              <span>Operation Steps Progress Tracker</span>
             </h2>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function ProgressTrackerView({
             <input
               type="text"
               className="search-input"
-              placeholder="Cari order, langkah, konfirmasi..."
+              placeholder="Search order, step, confirmation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -200,17 +200,17 @@ export default function ProgressTrackerView({
           {/* Group Filter */}
           <div className="filter-pill-group">
             <Layers size={14} className="filter-icon" />
-            <span className="filter-label">Grup:</span>
+            <span className="filter-label">Group:</span>
             <select
               className="filter-select font-mono"
               value={groupFilter}
               onChange={(e) => setGroupFilter(e.target.value)}
-              title="Filter berdasarkan Product Group"
+              title="Filter by Product Group"
             >
-              <option value="ALL">Semua Grup ({availableGroups.length})</option>
+              <option value="ALL">All Groups ({availableGroups.length})</option>
               {availableGroups.map((grp) => (
                 <option key={grp} value={grp}>
-                  Grup {grp}
+                  Group {grp}
                 </option>
               ))}
             </select>
@@ -224,9 +224,9 @@ export default function ProgressTrackerView({
               className="filter-select font-mono"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              title="Filter berdasarkan Status Barcode"
+              title="Filter by Barcode Status"
             >
-              <option value="ALL">Semua Status</option>
+              <option value="ALL">All Statuses</option>
               <option value="PROG">PROG — In Progress</option>
               <option value="FIN">FIN — Finished</option>
             </select>
@@ -234,15 +234,15 @@ export default function ProgressTrackerView({
 
           {/* Order Selector */}
           <div className="filter-pill-group">
-            <span className="filter-label">Pilih Order:</span>
+            <span className="filter-label">Select Order:</span>
             <select
               className="filter-select font-mono"
               value={selectedOrderFilter}
               onChange={(e) => setSelectedOrderFilter(e.target.value)}
-              title="Pilih Order Tertentu"
+              title="Select Specific Order"
               style={{ maxWidth: '160px' }}
             >
-              <option value="ALL">Tampilkan Semua ({ordersGrouped.length})</option>
+              <option value="ALL">Show All ({ordersGrouped.length})</option>
               {ordersGrouped.map((ord) => (
                 <option key={ord.NoProduksi} value={ord.NoProduksi}>
                   #{ord.NoProduksi} ({ord.completedSteps}/{ord.totalSteps})
@@ -258,10 +258,10 @@ export default function ProgressTrackerView({
               className="btn btn-sm btn-outline flex items-center gap-1.5"
               onClick={() => onSyncCloud(true)}
               disabled={isLoadingCloud}
-              title="Segarkan data terbaru dari database cloud"
+              title="Refresh latest data from cloud database"
             >
               <RotateCcw size={14} className={isLoadingCloud ? 'animate-spin text-cyan' : ''} />
-              <span>{isLoadingCloud ? 'Sinkron...' : 'Segarkan'}</span>
+              <span>{isLoadingCloud ? 'Syncing...' : 'Refresh'}</span>
             </button>
           )}
         </div>
@@ -271,25 +271,25 @@ export default function ProgressTrackerView({
       <div className="kpi-ribbon-grid tracker-kpi-ribbon">
         <div className="kpi-card">
           <div className="kpi-num text-cyan font-mono">{stats.totalOrders}</div>
-          <div className="kpi-label">Total Order Produksi</div>
+          <div className="kpi-label">Total Production Orders</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-emerald-500 font-mono">{stats.completedOrders}</div>
-          <div className="kpi-label">Order Selesai (FIN)</div>
+          <div className="kpi-label">Completed Orders (FIN)</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-amber-500 font-mono">{stats.activeOrders}</div>
-          <div className="kpi-label">Order Berjalan (PROG)</div>
+          <div className="kpi-label">In Progress Orders (PROG)</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num font-mono" style={{ color: '#0284C7' }}>
             {stats.completedSteps} / {stats.totalSteps}
           </div>
-          <div className="kpi-label">Total Langkah Selesai</div>
+          <div className="kpi-label">Total Steps Completed</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-cyan font-mono">{stats.percent}%</div>
-          <div className="kpi-label">Progres Global</div>
+          <div className="kpi-label">Overall Progress</div>
         </div>
       </div>
 
@@ -298,10 +298,10 @@ export default function ProgressTrackerView({
         {filteredOrders.length === 0 ? (
           <div className="chart-card text-center py-10">
             <div className="text-muted font-heading text-sm mb-1">
-              Tidak ada order yang cocok dengan filter atau pencarian Anda.
+              No orders match your filter or search criteria.
             </div>
             <div className="text-xs text-muted">
-              Coba reset filter grup atau ubah kata kunci pencarian.
+              Try resetting the group filter or changing search terms.
             </div>
           </div>
         ) : (
@@ -335,7 +335,7 @@ export default function ProgressTrackerView({
                     {/* Order Progress Indicator */}
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-muted font-semibold">
-                        {ord.completedSteps}/{ord.totalSteps} Selesai ({percent}%)
+                        {ord.completedSteps}/{ord.totalSteps} Completed ({percent}%)
                       </span>
                       <div className="progress-bar-track" style={{ width: '100px' }}>
                         <div
@@ -373,7 +373,7 @@ export default function ProgressTrackerView({
                         type="button"
                         className="btn btn-xs btn-outline flex items-center gap-1 font-mono"
                         onClick={() => onSelectOrderAndOpenScanner(ord.NoProduksi)}
-                        title="Buka order ini di Terminal Scanner SAP"
+                        title="Open this order in SAP Scanner Terminal"
                       >
                         <Scan size={12} />
                         <span>Scan</span>
@@ -387,10 +387,10 @@ export default function ProgressTrackerView({
                 <div className="steps-sequence-section tracker-table-wrap">
                   <div className="steps-section-header">
                     <h4 className="steps-section-title font-heading">
-                      Rangkaian Seluruh Langkah ({ord.steps.length} Langkah):
+                      All Operation Steps ({ord.steps.length} Steps):
                     </h4>
                     <span className="text-xs text-muted">
-                      Daftar langkah kerja dan verifikasi nomor konfirmasi SAP
+                      List of operation steps and SAP confirmation numbers
                     </span>
                   </div>
 
@@ -398,17 +398,18 @@ export default function ProgressTrackerView({
                     <table className="steps-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '80px' }}>Langkah</th>
-                          <th>Nama Langkah</th>
-                          <th style={{ width: '180px' }}>No. Konfirmasi</th>
+                          <th style={{ width: '80px' }}>Step</th>
+                          <th>Step Name</th>
+                          <th style={{ width: '180px' }}>Confirmation No.</th>
                           <th style={{ width: '210px' }}>Status</th>
-                          <th style={{ minWidth: '170px', textAlign: 'center' }}>Aksi</th>
+                          <th style={{ minWidth: '170px', textAlign: 'center' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {ord.steps.map((st) => {
                           const isStepComplete =
                             String(st.Status || '').toLowerCase() === 'selesai' ||
+                            String(st.Status || '').toLowerCase() === 'completed' ||
                             st.status === 1;
                           const isActive =
                             ord.activeStep &&
@@ -444,11 +445,11 @@ export default function ProgressTrackerView({
                               {/* 2. NAMA LANGKAH */}
                               <td className="step-name-cell">
                                 <div className="step-name-text">
-                                  {st.NamaLangkah || `Langkah Produksi ${st.Langkah}`}
+                                  {st.NamaLangkah || `Production Step ${st.Langkah}`}
                                 </div>
                                 {isActive && (
                                   <span className="active-tag-inline">
-                                    <span className="active-pulse-mini"></span> Langkah Aktif
+                                    <span className="active-pulse-mini"></span> Active Step
                                   </span>
                                 )}
                               </td>
@@ -465,7 +466,7 @@ export default function ProgressTrackerView({
                                   {isStepComplete ? (
                                     <span className="status-badge status-selesai">
                                       <CheckCircle2 size={12} />
-                                      Selesai
+                                      Completed
                                     </span>
                                   ) : String(st.Status || '').toLowerCase() === 'not started' ? (
                                     <span className="status-badge status-pending">
@@ -475,12 +476,12 @@ export default function ProgressTrackerView({
                                   ) : isActive ? (
                                     <span className="status-badge status-berjalan active">
                                       <span className="pulse-dot-small"></span>
-                                      Langkah Aktif
+                                      Active Step
                                     </span>
                                   ) : (
                                     <span className="status-badge status-pending">
                                       <Clock size={12} />
-                                      Menunggu
+                                      Pending
                                     </span>
                                   )}
 
@@ -501,7 +502,7 @@ export default function ProgressTrackerView({
                                             st.id || st.ID
                                           );
                                         }}
-                                        title="Ubah Status Barcode Langkah Ini (PROG vs FIN)"
+                                        title="Change Barcode Status for this Step (PROG vs FIN)"
                                       >
                                         <option value="PROG">PROG</option>
                                         <option value="FIN">FIN</option>
@@ -551,15 +552,15 @@ export default function ProgressTrackerView({
                                         );
                                       }
                                     }}
-                                    title={`Tandai Langkah ${st.Langkah} Selesai`}
+                                    title={`Mark Step ${st.Langkah} Completed`}
                                   >
                                     <CheckCircle2 size={12} />
-                                    <span>Selesai</span>
+                                    <span>Complete</span>
                                   </button>
                                 ) : (
                                   <div className="flex items-center justify-center gap-1.5 flex-wrap">
                                     <span className="text-xs text-muted font-mono">
-                                      Terverifikasi
+                                      Verified
                                     </span>
 
                                     {/* Revert button: strictly for Admin */}
@@ -582,10 +583,10 @@ export default function ProgressTrackerView({
                                             );
                                           }
                                         }}
-                                        title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                                        title={`Admin: Revert Step ${st.Langkah} to Incomplete`}
                                       >
                                         <RotateCcw size={11} />
-                                        <span>Belum Selesai</span>
+                                        <span>Revert</span>
                                       </button>
                                     )}
                                   </div>

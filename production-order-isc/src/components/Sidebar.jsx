@@ -27,25 +27,25 @@ export default function Sidebar({
       icon: BarChart3,
       badge: 'ADMIN',
       badgeColor: '#8B5CF6',
-      desc: 'Visualisasi Grafik Database'
+      desc: 'Database Chart Visualization'
     }] : []),
     {
       id: 'scanner',
-      label: 'Terminal Scanner SAP',
+      label: 'SAP Scanner Terminal',
       shortLabel: 'Scan',
       icon: Scan,
       badge: 'LIVE',
       badgeColor: '#10B981',
-      desc: 'Kolom Operator & Barcode Aktif'
+      desc: 'Active Operator & Barcode'
     },
     {
       id: 'orders',
-      label: 'Daftar Order Produksi',
+      label: 'Production Order List',
       shortLabel: 'Order',
       icon: Layers,
       badge: ordersCount,
       badgeColor: '#00A3E0',
-      desc: 'Monitoring Rangkaian Langkah'
+      desc: 'Step Sequence Monitoring'
     },
     {
       id: 'tracker',
@@ -54,7 +54,7 @@ export default function Sidebar({
       icon: ListChecks,
       badge: 'PROG / FIN',
       badgeColor: '#0284C7',
-      desc: 'Pelacakan Langkah & Barcode'
+      desc: 'Step & Barcode Tracking'
     }
   ];
 
@@ -64,24 +64,24 @@ export default function Sidebar({
       <div className="sidebar-header">
         {!collapsed && (
           <div className="sidebar-title-badge">
-            <span className="sidebar-section-title">NAVIGASI BENGKEL</span>
+            <span className="sidebar-section-title">WORKSHOP NAVIGATION</span>
           </div>
         )}
         <button
           type="button"
           className="sidebar-collapse-btn"
           onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+          title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
 
-      {/* Scrollable Body: Workshop Navigation & Supervisor Controls directly together */}
+      {/* Scrollable Body */}
       <div className="sidebar-body">
         {/* Main Navigation List */}
         <div className="sidebar-nav-section">
-          {!collapsed && <div className="sidebar-group-label">MENU WORKSHOP</div>}
+          {!collapsed && <div className="sidebar-group-label">WORKSHOP MENU</div>}
           <nav className="sidebar-nav-list">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -126,7 +126,7 @@ export default function Sidebar({
             <div className="user-mode-card">
               <div className="flex items-center gap-2 mb-1">
                 <UserCheck size={14} className="text-cyan" />
-                <span className="font-bold text-xs text-white">Sesi Operator Aktif</span>
+                <span className="font-bold text-xs text-white">Active Operator Session</span>
               </div>
               <div className="text-xs font-semibold text-main mb-1" style={{ color: '#E2E8F0' }}>
                 {currentUser?.username || 'Operator'}
@@ -147,10 +147,10 @@ export default function Sidebar({
           type="button"
           className="sidebar-logout-btn"
           onClick={onLogout}
-          title="Keluar dari sesi ini dan kembali ke halaman login"
+          title="Sign out of this session and return to login page"
         >
           <LogOut size={16} />
-          {!collapsed && <span>Keluar ({isAdmin ? 'Admin' : 'Operator'})</span>}
+          {!collapsed && <span>Logout ({isAdmin ? 'Admin' : 'Operator'})</span>}
         </button>
       </div>
     </aside>

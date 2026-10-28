@@ -95,17 +95,17 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
     setError('');
 
     if (!formData.orderNo.trim()) {
-      setError('Nomor Order Produksi (orderNo) wajib diisi.');
+      setError('Production Order Number (orderNo) is required.');
       return;
     }
 
     if (!formData.title.trim()) {
-      setError('Judul Pekerjaan / Order wajib diisi.');
+      setError('Job / Order Title is required.');
       return;
     }
 
     if (steps.length === 0) {
-      setError('Minimal harus ada 1 langkah pengerjaan.');
+      setError('At least 1 process step is required.');
       return;
     }
 
@@ -126,7 +126,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
         <div className="modal-header">
           <div className="flex items-center gap-2">
             <CloudUpload className="text-cyan" size={20} />
-            <h3 className="modal-title">Tambah Order Produksi ke Cloud (SharePoint)</h3>
+            <h3 className="modal-title">Add Production Order to Cloud (SharePoint)</h3>
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose} disabled={isLoading}>
             <X size={18} />
@@ -146,13 +146,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nomor Order Produksi (Wajib) *
+                  Production Order Number (Required) *
                 </label>
                 <input
                   type="text"
                   name="orderNo"
                   className="modal-input font-mono"
-                  placeholder="Contoh: 10045690"
+                  placeholder="Example: 10045690"
                   value={formData.orderNo}
                   onChange={handleChange}
                   required
@@ -161,7 +161,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Divisi / Product Group *
+                  Division / Product Group *
                 </label>
                 <select
                   name="orderDivision"
@@ -183,13 +183,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
             <div className="mb-3">
               <label className="input-label font-bold text-xs text-muted mb-1 block">
-                Judul Pekerjaan / Nama Komponen *
+                Job Title / Component Name *
               </label>
               <input
                 type="text"
                 name="title"
                 className="modal-input"
-                placeholder="Contoh: Impeller D450 Machining & Dynamic Balancing"
+                placeholder="Example: Impeller D450 Machining & Dynamic Balancing"
                 value={formData.title}
                 onChange={handleChange}
                 required
@@ -199,13 +199,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nama Customer
+                  Customer Name
                 </label>
                 <input
                   type="text"
                   name="customers"
                   className="modal-input"
-                  placeholder="Contoh: PT Semen Padang"
+                  placeholder="Example: PT Semen Padang"
                   value={formData.customers}
                   onChange={handleChange}
                 />
@@ -213,13 +213,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nomor Dokumen SO
+                  SO Document Number
                 </label>
                 <input
                   type="text"
                   name="soDocument"
                   className="modal-input font-mono"
-                  placeholder="Contoh: SO-2026-88022"
+                  placeholder="Example: SO-2026-88022"
                   value={formData.soDocument}
                   onChange={handleChange}
                 />
@@ -229,13 +229,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Nomor WBS Produksi
+                  Production WBS Number
                 </label>
                 <input
                   type="text"
                   name="wbsProdNo"
                   className="modal-input font-mono"
-                  placeholder="Contoh: WBS-ISC-PKW-050"
+                  placeholder="Example: WBS-ISC-PKW-050"
                   value={formData.wbsProdNo}
                   onChange={handleChange}
                 />
@@ -243,7 +243,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Jumlah Order (Qty)
+                  Order Quantity (Qty)
                 </label>
                 <input
                   type="number"
@@ -257,13 +257,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
               </div>
             </div>
 
-            {/* JUMLAH LANGKAH: FLEKSIBEL DENGAN TOMBOL '+' */}
+            {/* FLEXIBLE NUMBER OF STEPS */}
             <div className="mb-3 p-3 bg-slate-900/60 rounded-md border border-slate-700">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Layers size={16} className="text-cyan" />
                   <label className="input-label font-bold text-xs text-white uppercase tracking-wider mb-0">
-                    Jumlah Langkah: <span className="text-cyan font-mono text-sm ml-1">{steps.length} Langkah</span>
+                    Total Steps: <span className="text-cyan font-mono text-sm ml-1">{steps.length} Steps</span>
                   </label>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -272,7 +272,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                     className="btn btn-xs btn-outline flex items-center justify-center p-1 text-xs"
                     onClick={() => handleRemoveStep(steps.length - 1)}
                     disabled={steps.length <= 1}
-                    title="Kurangi langkah terakhir (-)"
+                    title="Remove last step (-)"
                   >
                     <Minus size={13} />
                   </button>
@@ -280,16 +280,16 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                     type="button"
                     className="btn btn-xs btn-primary flex items-center gap-1 font-bold text-xs px-2.5 py-1"
                     onClick={handleAddStep}
-                    title="Tambah satu langkah (+)"
+                    title="Add one step (+)"
                   >
                     <Plus size={14} />
-                    <span>Tambah Langkah (+)</span>
+                    <span>Add Step (+)</span>
                   </button>
                 </div>
               </div>
 
               <p className="text-xs text-muted mb-2.5">
-                Jumlah langkah fleksibel dapat ditambah satu per satu dengan tombol <strong>+</strong> sesuai alur pengerjaan bengkel.
+                Flexible steps can be added individually with the <strong>+</strong> button according to workshop workflow.
               </p>
 
               <div className="space-y-2">
@@ -305,7 +305,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                     <input
                       type="text"
                       className="modal-input text-xs flex-1"
-                      placeholder={`Nama Langkah ${idx + 1}`}
+                      placeholder={`Step Name ${idx + 1}`}
                       value={st.NamaLangkah}
                       onChange={(e) => handleStepChange(idx, 'NamaLangkah', e.target.value)}
                       required
@@ -314,10 +314,10 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                     <input
                       type="text"
                       className="modal-input text-xs font-mono w-32 flex-shrink-0"
-                      placeholder="No. Konfirmasi"
+                      placeholder="Confirmation No."
                       value={st.NoKonfirmasi}
                       onChange={(e) => handleStepChange(idx, 'NoKonfirmasi', e.target.value)}
-                      title="Nomor Konfirmasi SAP"
+                      title="SAP Confirmation Number"
                     />
 
                     <select
@@ -326,8 +326,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                       onChange={(e) => handleStepChange(idx, 'Status', e.target.value)}
                     >
                       <option value="Not Started">Not Started</option>
-                      <option value="Berjalan">Berjalan</option>
-                      <option value="Selesai">Selesai</option>
+                      <option value="Berjalan">In Progress</option>
+                      <option value="Selesai">Completed</option>
                     </select>
 
                     {steps.length > 1 && (
@@ -335,7 +335,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                         type="button"
                         className="btn btn-xs btn-danger p-1 flex-shrink-0"
                         onClick={() => handleRemoveStep(idx)}
-                        title="Hapus langkah ini"
+                        title="Delete this step"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -348,13 +348,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Kode Material SAP
+                  SAP Material Code
                 </label>
                 <input
                   type="text"
                   name="materialNo"
                   className="modal-input font-mono"
-                  placeholder="Contoh: MAT-SS316-012"
+                  placeholder="Example: MAT-SS316-012"
                   value={formData.materialNo}
                   onChange={handleChange}
                 />
@@ -362,13 +362,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Deskripsi Material
+                  Material Description
                 </label>
                 <input
                   type="text"
                   name="materialDescription"
                   className="modal-input"
-                  placeholder="Contoh: SS 316 L Casting"
+                  placeholder="Example: SS 316 L Casting"
                   value={formData.materialDescription}
                   onChange={handleChange}
                 />
@@ -378,7 +378,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Rencana Mulai (Plan Start)
+                  Planned Start Date
                 </label>
                 <input
                   type="date"
@@ -391,7 +391,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
               <div>
                 <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Target Selesai (Plan Finish)
+                  Planned Finish Date
                 </label>
                 <input
                   type="date"
@@ -405,7 +405,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
             <div>
               <label className="input-label font-bold text-xs text-muted mb-1 block">
-                Status Awal
+                Initial Status
               </label>
               <select
                 name="status"
@@ -413,8 +413,8 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                 value={formData.status}
                 onChange={handleChange}
               >
-                <option value={0}>Sedang Berjalan (0 - In Progress)</option>
-                <option value={1}>Sudah Selesai (1 - Finished)</option>
+                <option value={0}>In Progress (0)</option>
+                <option value={1}>Completed (1)</option>
               </select>
             </div>
           </div>
@@ -427,7 +427,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
               onClick={onClose}
               disabled={isLoading}
             >
-              Batal
+              Cancel
             </button>
             <button
               type="submit"
@@ -437,12 +437,12 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Menyimpan ke Cloud...</span>
+                  <span>Saving to Cloud...</span>
                 </>
               ) : (
                 <>
                   <Plus size={16} />
-                  <span>Simpan Order Baru</span>
+                  <span>Save New Order</span>
                 </>
               )}
             </button>

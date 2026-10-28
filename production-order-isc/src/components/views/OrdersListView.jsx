@@ -155,7 +155,7 @@ export default function OrdersListView({
       <div className="view-header-row">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="view-title">Daftar Seluruh Order Produksi (SAP & Cloud)</h2>
+            <h2 className="view-title">All Production Orders (SAP & Cloud)</h2>
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export default function OrdersListView({
             <input
               type="text"
               className="search-input"
-              placeholder="Cari order, customer, langkah..."
+              placeholder="Search order, customer, step..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -179,7 +179,7 @@ export default function OrdersListView({
               type="button"
               className="btn btn-outline flex items-center gap-1.5 text-xs font-semibold"
               onClick={onOpenImport}
-              title="Import Data Order dari file Excel (.xlsx / .xls) ke Database"
+              title="Import order data from Excel file (.xlsx / .xls) into database"
             >
               <Upload size={14} className="text-cyan" />
               <span>Import Excel</span>
@@ -192,10 +192,10 @@ export default function OrdersListView({
               type="button"
               className="btn btn-outline flex items-center gap-1.5 text-xs font-semibold"
               onClick={onExportExcel}
-              title="Unduh seluruh data order produksi ke file Excel (.xlsx)"
+              title="Download all production orders to Excel file (.xlsx)"
             >
               <Download size={14} className="text-cyan" />
-              <span>Unduh Order</span>
+              <span>Download Orders</span>
             </button>
           )}
 
@@ -205,10 +205,10 @@ export default function OrdersListView({
               type="button"
               className="btn btn-primary flex items-center gap-1 text-xs"
               onClick={() => setIsCreateModalOpen(true)}
-              title="Buat order baru langsung ke SharePoint"
+              title="Create new order directly in SharePoint"
             >
               <Plus size={14} />
-              <span>Tambah Order</span>
+              <span>Add Order</span>
             </button>
           )}
         </div>
@@ -218,21 +218,21 @@ export default function OrdersListView({
       <div className="kpi-ribbon-grid">
         <div className="kpi-card">
           <div className="kpi-num text-cyan font-mono">{stats.totalOrders}</div>
-          <div className="kpi-label">Total Order Produksi</div>
+          <div className="kpi-label">Total Production Orders</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-emerald-500 font-mono">{stats.completedOrders}</div>
-          <div className="kpi-label">Order Selesai Penuh</div>
+          <div className="kpi-label">Fully Completed Orders</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num text-amber-500 font-mono">{stats.activeOrders}</div>
-          <div className="kpi-label">Order Sedang Berjalan</div>
+          <div className="kpi-label">In Progress Orders</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-num font-mono">
             {stats.completedSteps} / {stats.totalSteps}
           </div>
-          <div className="kpi-label">Total Langkah Selesai</div>
+          <div className="kpi-label">Total Steps Completed</div>
         </div>
       </div>
 
@@ -242,19 +242,19 @@ export default function OrdersListView({
           <table className="steps-table">
             <thead>
               <tr>
-                <th style={{ width: '150px' }}>No. Produksi</th>
+                <th style={{ width: '150px' }}>Production Order No.</th>
                 <th style={{ width: '100px' }}>Group</th>
-                <th>Pekerjaan & Customer</th>
-                <th>Progres Pengerjaan</th>
-                <th style={{ width: '130px' }}>Status Order</th>
-                <th style={{ width: '220px', textAlign: 'center' }}>Aksi</th>
+                <th>Job & Customer</th>
+                <th>Work Progress</th>
+                <th style={{ width: '130px' }}>Order Status</th>
+                <th style={{ width: '220px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    Tidak ada order yang sesuai dengan pencarian atau filter grup.
+                    No orders match your search or group filter.
                   </td>
                 </tr>
               ) : (
@@ -281,7 +281,7 @@ export default function OrdersListView({
                         <td>
                           <div className="flex flex-col">
                             <span className="font-semibold text-main text-xs" style={{ color: 'var(--text-main)' }}>
-                              {ord.title || ord.activeStep?.NamaLangkah || 'Order Produksi ISC'}
+                              {ord.title || ord.activeStep?.NamaLangkah || 'ISC Production Order'}
                             </span>
                             {ord.customers && (
                               <span className="text-xs text-muted" style={{ fontSize: '0.72rem' }}>
@@ -293,7 +293,7 @@ export default function OrdersListView({
                         <td>
                           <div className="flex flex-col gap-1" style={{ width: '160px' }}>
                             <div className="flex justify-between text-xs font-mono text-muted">
-                              <span>{ord.completedSteps}/{ord.totalSteps} Selesai</span>
+                              <span>{ord.completedSteps}/{ord.totalSteps} Completed</span>
                               <span>{percent}%</span>
                             </div>
                             <div className="progress-bar-track" style={{ width: '100%' }}>
@@ -305,7 +305,7 @@ export default function OrdersListView({
                           {ord.isComplete ? (
                             <span className="status-badge status-selesai">
                               <CheckCircle2 size={13} />
-                              Selesai
+                              Completed
                             </span>
                           ) : ord.steps.length > 0 && ord.steps.every((s) => String(s.Status).toLowerCase() === 'not started') ? (
                             <span className="status-badge status-pending">
@@ -315,7 +315,7 @@ export default function OrdersListView({
                           ) : (
                             <span className="status-badge status-berjalan active">
                               <Clock size={13} />
-                              Berjalan
+                              In Progress
                             </span>
                           )}
                         </td>
@@ -325,7 +325,7 @@ export default function OrdersListView({
                               type="button"
                               className="btn btn-xs btn-primary"
                               onClick={() => onSelectOrderAndOpenScanner(ord.NoProduksi)}
-                              title="Buka di terminal scanner untuk pemindaian barcode"
+                              title="Open in scanner terminal for barcode scanning"
                             >
                               <Scan size={12} />
                               <span>Scan</span>
@@ -335,9 +335,9 @@ export default function OrdersListView({
                               type="button"
                               className="btn btn-xs btn-outline"
                               onClick={() => setExpandedOrder(isExpanded ? null : ord.NoProduksi)}
-                              title="Lihat detail langkah"
+                              title="View step details"
                             >
-                              <span>{isExpanded ? 'Tutup' : 'Langkah'}</span>
+                              <span>{isExpanded ? 'Close' : 'Steps'}</span>
                             </button>
 
                             {/* Edit Button (UPDATE) */}
@@ -346,7 +346,7 @@ export default function OrdersListView({
                                 type="button"
                                 className="btn btn-xs btn-secondary"
                                 onClick={() => setOrderToEdit(ord)}
-                                title="Edit order di SharePoint"
+                                title="Edit order in SharePoint"
                               >
                                 <Edit3 size={12} />
                               </button>
@@ -358,7 +358,7 @@ export default function OrdersListView({
                                 type="button"
                                 className="btn btn-xs btn-danger"
                                 onClick={() => setOrderToDelete(ord)}
-                                title="Hapus order dari SharePoint"
+                                title="Delete order from SharePoint"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -372,22 +372,22 @@ export default function OrdersListView({
                         <tr className="expanded-row-details">
                           <td colSpan={6} style={{ padding: '16px 24px', backgroundColor: 'var(--bg-surface-elevated)' }}>
                             <div className="font-bold text-xs uppercase text-muted mb-2 tracking-wider">
-                              Rangkaian Langkah Order {ord.NoProduksi}:
+                              Operation Steps for Order {ord.NoProduksi}:
                             </div>
                             <div className="steps-table-container">
                               <table className="steps-table">
                                 <thead>
                                   <tr>
                                     <th style={{ width: '70px' }}>Step</th>
-                                    <th>Nama Langkah</th>
-                                    <th style={{ width: '160px' }}>No. Konfirmasi</th>
+                                    <th>Step Name</th>
+                                    <th style={{ width: '160px' }}>Confirmation No.</th>
                                     <th style={{ width: '140px' }}>Status</th>
-                                    {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Aksi</th>}
+                                    {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Action</th>}
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {ord.steps.map((st) => {
-                                    const isDone = String(st.Status).toLowerCase() === 'selesai';
+                                    const isDone = String(st.Status).toLowerCase() === 'selesai' || String(st.Status).toLowerCase() === 'completed';
                                     const isNotStarted = String(st.Status).toLowerCase() === 'not started';
                                     const isActive =
                                       ord.activeStep && Number(ord.activeStep.Langkah) === Number(st.Langkah);
@@ -399,13 +399,13 @@ export default function OrdersListView({
                                         <td className="font-mono text-cyan font-bold">{st.NoKonfirmasi}</td>
                                         <td>
                                           {isDone ? (
-                                            <span className="status-badge status-selesai">Selesai</span>
+                                            <span className="status-badge status-selesai">Completed</span>
                                           ) : isNotStarted ? (
                                             <span className="status-badge status-pending">Not Started</span>
                                           ) : isActive ? (
-                                            <span className="status-badge status-berjalan active">Langkah Aktif</span>
+                                            <span className="status-badge status-berjalan active">Active Step</span>
                                           ) : (
-                                            <span className="status-badge status-pending">Menunggu</span>
+                                            <span className="status-badge status-pending">Pending</span>
                                           )}
                                         </td>
                                         {isAdmin && (
@@ -415,21 +415,21 @@ export default function OrdersListView({
                                                 type="button"
                                                 className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'}`}
                                                 onClick={() => onMarkStepFinished(ord.NoProduksi, st.Langkah)}
-                                                title={`Tandai Langkah ${st.Langkah} Selesai`}
+                                                title={`Mark Step ${st.Langkah} Completed`}
                                               >
-                                                Selesai
+                                                Complete
                                               </button>
                                             ) : (
                                               <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                                <span className="text-xs text-muted font-mono">Terverifikasi</span>
+                                                <span className="text-xs text-muted font-mono">Verified</span>
                                                 <button
                                                   type="button"
                                                   className="btn btn-xs btn-outline-warning flex items-center gap-1"
                                                   onClick={() => onRevertStep && onRevertStep(ord.NoProduksi, st.Langkah, st.id || st.ID)}
-                                                  title={`Admin: Kembalikan Langkah ${st.Langkah} ke Belum Selesai`}
+                                                  title={`Admin: Revert Step ${st.Langkah} to Incomplete`}
                                                 >
                                                   <RotateCcw size={11} />
-                                                  <span>Belum Selesai</span>
+                                                  <span>Revert</span>
                                                 </button>
                                               </div>
                                             )}
@@ -477,16 +477,16 @@ export default function OrdersListView({
             <div className="modal-header">
               <div className="flex items-center gap-2 text-rose-500">
                 <AlertTriangle size={20} />
-                <h3 className="modal-title" style={{ color: '#EF4444' }}>Konfirmasi Hapus Order</h3>
+                <h3 className="modal-title" style={{ color: '#EF4444' }}>Confirm Order Deletion</h3>
               </div>
             </div>
             <div className="modal-body">
               <p className="text-sm mb-2">
-                Apakah Anda yakin ingin menghapus Order <strong>#{orderToDelete.NoProduksi}</strong>
-                {orderToDelete.id > 0 && ` (SharePoint ID: ${orderToDelete.id})`} dari sistem dan cloud?
+                Are you sure you want to delete Order <strong>#{orderToDelete.NoProduksi}</strong>
+                {orderToDelete.id > 0 && ` (SharePoint ID: ${orderToDelete.id})`} from the system and cloud?
               </p>
               <p className="text-xs text-muted">
-                Tindakan ini akan menghapus data permanen dari SharePoint List dan tabel lokal.
+                This action will permanently delete the data from SharePoint List and local storage.
               </p>
             </div>
             <div className="modal-footer">
@@ -496,7 +496,7 @@ export default function OrdersListView({
                 onClick={() => setOrderToDelete(null)}
                 disabled={isLoadingCloud}
               >
-                Batal
+                Cancel
               </button>
               <button
                 type="button"
@@ -507,12 +507,12 @@ export default function OrdersListView({
                 {isLoadingCloud ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    <span>Menghapus...</span>
+                    <span>Deleting...</span>
                   </>
                 ) : (
                   <>
                     <Trash2 size={14} />
-                    <span>Hapus Permanen</span>
+                    <span>Permanently Delete</span>
                   </>
                 )}
               </button>

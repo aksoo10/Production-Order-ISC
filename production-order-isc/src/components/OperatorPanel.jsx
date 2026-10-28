@@ -41,16 +41,16 @@ export default function OperatorPanel({
       {/* Panel Header */}
       <div className="panel-header">
         <div className="panel-title-group">
-          <div className="panel-step-badge">KOLOM 1</div>
-          <h2 className="panel-title">Operator Bengkel (Personel)</h2>
+          <div className="panel-step-badge">COLUMN 1</div>
+          <h2 className="panel-title">Workshop Operators (Personnel)</h2>
         </div>
         <span className="panel-count-badge">
           <Users size={13} />
-          {allPersonnel.length} Operator
+          {allPersonnel.length} Operators
         </span>
       </div>
 
-      {/* Operator Filter Dropdown (Murni Filter Dropdown, Tanpa Search) */}
+      {/* Operator Filter Dropdown (Pure Filter Dropdown, No Search) */}
       <div className="operator-select-field-section">
         <div className="operator-filter-pill-container">
           <div className="combobox-field-label">
@@ -69,12 +69,12 @@ export default function OperatorPanel({
                 onSelectOperator(op || null);
               }
             }}
-            title="Pilih Operator Bengkel"
+            title="Select Workshop Operator"
           >
-            <option value="">-- Pilih Operator ({allPersonnel.length}) --</option>
+            <option value="">-- Select Operator ({allPersonnel.length}) --</option>
             {allPersonnel.map((op) => (
               <option key={op.NoPersonal || op.Nama} value={op.NoPersonal}>
-                {op.Nama} — No. Personal: {op.NoPersonal} ({op.ProductGroup || 'PKW'})
+                {op.Nama} — Personnel No.: {op.NoPersonal} ({op.ProductGroup || 'PKW'})
               </option>
             ))}
           </select>
@@ -91,17 +91,17 @@ export default function OperatorPanel({
             <div className="showcase-meta">
               <div className="showcase-name-row">
                 <h3 className="showcase-name">{activeOperator.Nama}</h3>
-                <span className="group-tag">{activeOperator.ProductGroup || 'UMUM'}</span>
+                <span className="group-tag">{activeOperator.ProductGroup || 'GENERAL'}</span>
               </div>
               <div className="showcase-no font-mono">
-                No. Personal: <strong>{activeOperator.NoPersonal}</strong>
+                Personnel No.: <strong>{activeOperator.NoPersonal}</strong>
               </div>
             </div>
             <button
               type="button"
               className="btn-icon-subtle"
               onClick={() => onSelectOperator(null)}
-              title="Ganti atau kosongkan operator"
+              title="Change or clear operator"
             >
               <X size={16} />
             </button>
@@ -111,9 +111,9 @@ export default function OperatorPanel({
           <div className="showcase-barcode-section">
             <BarcodeCard
               value={activeOperator.NoPersonal}
-              label="BARCODE NO. PERSONAL"
+              label="PERSONNEL NO. BARCODE"
               subtitle={`Operator: ${activeOperator.Nama} (${activeOperator.ProductGroup || '-'})`}
-              badgeText="1. Scan No. Personal ke SAP"
+              badgeText="1. Scan Personnel No. to SAP"
               highlightColor="#00A3E0"
               height={64}
               fontSize={16}
@@ -123,9 +123,9 @@ export default function OperatorPanel({
       ) : (
         <div className="operator-select-prompt">
           <UserCheck size={32} className="text-cyan mb-2" />
-          <div className="prompt-title">Pilih Operator di Dropdown Atas</div>
+          <div className="prompt-title">Select Operator from Dropdown Above</div>
           <div className="prompt-subtitle">
-            Pilih nama operator pada filter dropdown di atas untuk menampilkan Barcode No. Personal yang akan di-scan ke SAP.
+            Select an operator name from the filter dropdown above to display the Personnel No. barcode to scan into SAP.
           </div>
         </div>
       )}

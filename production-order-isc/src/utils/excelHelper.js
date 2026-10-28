@@ -49,7 +49,7 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
     if (!sheetNames || sheetNames.length === 0) {
       return {
         success: false,
-        error: 'File Excel tidak memiliki sheet yang dapat dibaca.'
+        error: 'Excel file does not contain readable sheets.'
       };
     }
 
@@ -114,7 +114,7 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
     if (!rawOrder || rawOrder.length === 0) {
       return {
         success: false,
-        error: `Sheet "${orderSheetName}" kosong atau tidak memiliki baris data.`
+        error: `Sheet "${orderSheetName}" is empty or has no data rows.`
       };
     }
 
@@ -259,7 +259,7 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
     if (orders.length === 0) {
       return {
         success: false,
-        error: 'Tidak ditemukan data order yang valid di dalam file Excel ini.'
+        error: 'No valid order records found in this Excel file.'
       };
     }
 
@@ -273,7 +273,7 @@ export function parseExcelFile(arrayBuffer, currentPersonnel = []) {
   } catch (err) {
     return {
       success: false,
-      error: `Gagal membaca file Excel: ${err.message || 'Format tidak valid'}`
+      error: `Failed to parse Excel file: ${err.message || 'Invalid format'}`
     };
   }
 }
@@ -407,32 +407,32 @@ export function downloadTemplateExcel() {
   personnelWs['!cols'] = [{ wch: 16 }, { wch: 28 }, { wch: 16 }];
   XLSX.utils.book_append_sheet(wb, personnelWs, 'Personel');
 
-  // 3. Sheet Panduan Format
+  // 3. Sheet Format Guide
   const guideData = [
     {
-      "Ketentuan Format": "1. Format Langkah (Step)",
-      "Aturan Wajib": "Wajib 1 baris per langkah (BUKAN total langkah). Ditulis 'Step 1', 'Step 2', dst. atau angka 1, 2, 3.",
-      "Contoh": "Order dengan 3 langkah dibuat menjadi 3 baris terpisah dengan NoProduksi yang sama."
+      "Format Requirement": "1. Step Format",
+      "Mandatory Rule": "Must be 1 row per step (NOT total steps collapsed into one row). Written as 'Step 1', 'Step 2', etc., or numbers 1, 2, 3.",
+      "Example": "An order with 3 steps must be entered across 3 distinct rows sharing the same NoProduksi."
     },
     {
-      "Ketentuan Format": "2. Nomor Konfirmasi",
-      "Aturan Wajib": "Nomor Konfirmasi (NoKonfirmasi) TETAP SAMA untuk seluruh langkah pada satu No. Produksi yang sama.",
-      "Contoh": "Order 4800115516: Step 1 = 100014, Step 2 = 100014, Step 3 = 100014 (nomor konfirmasi seragam)."
+      "Format Requirement": "2. Confirmation Number",
+      "Mandatory Rule": "Confirmation Number (NoKonfirmasi) REMAINS IDENTICAL for all steps within the same Production Order No.",
+      "Example": "Order 4800115516: Step 1 = 100014, Step 2 = 100014, Step 3 = 100014 (uniform confirmation barcode)."
     },
     {
-      "Ketentuan Format": "3. Nama Sheet",
-      "Aturan Wajib": "Nama sheet data order harus persis 'Order' dan data personel harus persis 'Personel'.",
-      "Contoh": "Sheet 1: Order, Sheet 2: Personel"
+      "Format Requirement": "3. Sheet Names",
+      "Mandatory Rule": "The order data sheet must be named 'Order' and the personnel sheet must be named 'Personel'.",
+      "Example": "Sheet 1: Order, Sheet 2: Personel"
     },
     {
-      "Ketentuan Format": "4. Status Pengerjaan",
-      "Aturan Wajib": "Isi dengan 'Selesai' untuk langkah yang tuntas, atau 'Berjalan' untuk yang sedang/belum selesai.",
-      "Contoh": "Selesai / Berjalan"
+      "Format Requirement": "4. Work Status",
+      "Mandatory Rule": "Enter 'Completed' (or 'Selesai') for finished steps, or 'In Progress' (or 'Berjalan') for pending/active steps.",
+      "Example": "Completed / In Progress"
     }
   ];
   const guideWs = XLSX.utils.json_to_sheet(guideData);
   guideWs['!cols'] = [{ wch: 26 }, { wch: 65 }, { wch: 65 }];
-  XLSX.utils.book_append_sheet(wb, guideWs, 'Panduan_Format');
+  XLSX.utils.book_append_sheet(wb, guideWs, 'Format_Guide');
 
   XLSX.writeFile(wb, 'Format_Template_Order_Personel_ISC.xlsx');
 }

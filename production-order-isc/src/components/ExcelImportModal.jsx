@@ -53,21 +53,21 @@ export default function ExcelImportModal({
     const ext = fileName.split('.').pop()?.toLowerCase();
 
     if (!ext || !['xlsx', 'xls'].includes(ext)) {
-      setErrorMsg('Format file tidak didukung. Harap pilih atau unggah file dokumen Excel berekstensi .xlsx atau .xls.');
+      setErrorMsg('Unsupported file format. Please upload an Excel document (.xlsx or .xls).');
       setFile(null);
       setPreviewData(null);
       return;
     }
 
     if (fileObj.size === 0) {
-      setErrorMsg('File Excel yang dipilih kosong (0 bytes). Harap pilih file yang berisi data order.');
+      setErrorMsg('The selected Excel file is empty (0 bytes). Please select a file with order data.');
       setFile(null);
       setPreviewData(null);
       return;
     }
 
     if (fileObj.size > 25 * 1024 * 1024) {
-      setErrorMsg('Ukuran file terlalu besar (maksimal 25 MB). Harap pilih file dengan ukuran lebih kecil.');
+      setErrorMsg('File size too large (maximum 25 MB). Please select a smaller file.');
       setFile(null);
       setPreviewData(null);
       return;
@@ -85,12 +85,12 @@ export default function ExcelImportModal({
         const result = parseExcelFile(buffer, currentPersonnel);
 
         if (!result.success) {
-          setErrorMsg(result.error || 'Gagal memproses susunan kolom file Excel.');
+          setErrorMsg(result.error || 'Failed to process Excel column structure.');
           return;
         }
 
         if (!result.orders || result.orders.length === 0) {
-          setErrorMsg('Tidak ditemukan baris data order yang valid di dalam file Excel ini.');
+          setErrorMsg('No valid order data rows found in this Excel file.');
           return;
         }
 
@@ -141,14 +141,14 @@ export default function ExcelImportModal({
           personnelSheetFound: result.personnelSheetFound
         });
       } catch (err) {
-        setErrorMsg(`Gagal memproses file Excel: ${err.message || 'Terjadi kesalahan sistem saat membaca berkas'}`);
+        setErrorMsg(`Failed to process Excel file: ${err.message || 'System error while reading file'}`);
       } finally {
         setParsing(false);
       }
     };
 
     reader.onerror = () => {
-      setErrorMsg('Gagal membaca file dari penyimpanan komputer.');
+      setErrorMsg('Failed to read file from storage.');
       setParsing(false);
     };
 
@@ -163,7 +163,7 @@ export default function ExcelImportModal({
     if (duplicateMode === 'skip') {
       ordersToProcess = previewData.orders.filter((o) => !o.isDuplicate);
       if (ordersToProcess.length === 0) {
-        setErrorMsg('Tidak ada order baru untuk diimpor. Seluruh order dalam file sudah ada di database dan opsi "Lewati Duplikat" aktif.');
+        setErrorMsg('No new orders to import. All orders in the file already exist in the database and "Skip Duplicates" is selected.');
         return;
       }
     }
@@ -182,7 +182,7 @@ export default function ExcelImportModal({
       setPreviewData(null);
       onClose();
     } catch (err) {
-      setErrorMsg(`Gagal menyimpan ke database cloud: ${err.message || 'Terjadi kesalahan sistem'}`);
+      setErrorMsg(`Failed to save to cloud database: ${err.message || 'System error occurred'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,14 +207,14 @@ export default function ExcelImportModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="modal-title font-heading">Impor Data Excel SAP</h3>
+                <h3 className="modal-title font-heading">Import SAP Excel Data</h3>
                 <span className="badge badge-admin-role flex items-center gap-1 text-xs">
                   <ShieldCheck size={12} />
-                  Khusus Admin
+                  Admin Only
                 </span>
               </div>
               <p className="modal-desc">
-                Unggah file Excel (.xlsx / .xls) untuk mengimpor dan memperbarui data order bengkel ke database SharePoint
+                Upload Excel file (.xlsx / .xls) to import and update workshop order data in SharePoint database
               </p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function ExcelImportModal({
             className="modal-close-btn"
             disabled={isSubmitting}
             onClick={handleModalClose}
-            title="Tutup modal"
+            title="Close modal"
           >
             &times;
           </button>
@@ -256,13 +256,13 @@ export default function ExcelImportModal({
                 <>
                   <div className="file-name-highlight font-mono">{file.name}</div>
                   <div className="file-size-text text-muted">
-                    {(file.size / 1024).toFixed(1)} KB — Klik untuk mengganti file
+                    {(file.size / 1024).toFixed(1)} KB — Click to change file
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="dropzone-title">Klik atau Seret Berkas Excel (.xlsx / .xls) ke Sini</div>
-                  <div className="dropzone-sub">Mendukung file ekspor SAP dan template standar ISC bengkel</div>
+                  <div className="dropzone-title">Click or Drag & Drop Excel File (.xlsx / .xls) Here</div>
+                  <div className="dropzone-sub">Supports SAP export files and standard ISC workshop templates</div>
                 </>
               )}
             </div>
@@ -272,7 +272,7 @@ export default function ExcelImportModal({
           {parsing && (
             <div className="flex items-center justify-center gap-2 p-3 text-cyan">
               <Loader2 size={18} className="animate-spin" />
-              <span className="text-xs font-semibold">Sedang memeriksa dan memvalidasi struktur file Excel...</span>
+              <span className="text-xs font-semibold">Checking and validating Excel file structure...</span>
             </div>
           )}
 
@@ -281,7 +281,7 @@ export default function ExcelImportModal({
             <div className="alert-box alert-danger">
               <AlertCircle size={18} className="flex-shrink-0" />
               <div className="alert-content">
-                <strong>Perhatian:</strong> {errorMsg}
+                <strong>Notice:</strong> {errorMsg}
               </div>
             </div>
           )}
@@ -292,7 +292,7 @@ export default function ExcelImportModal({
               <div className="preview-header">
                 <CheckCircle2 size={18} color="#059669" />
                 <span className="font-bold text-main">
-                  File Siap Diimpor (Sheet: "{previewData.sourceSheet}")
+                  File Ready for Import (Sheet: "{previewData.sourceSheet}")
                 </span>
               </div>
 
@@ -300,23 +300,23 @@ export default function ExcelImportModal({
               <div className="preview-metrics-grid preview-metrics-4">
                 <div className="preview-metric-card">
                   <div className="metric-val text-cyan font-mono">{previewData.uniqueOrders}</div>
-                  <div className="metric-lbl">Total Order File</div>
+                  <div className="metric-lbl">Total File Orders</div>
                 </div>
                 <div className="preview-metric-card">
                   <div className="metric-val font-mono" style={{ color: '#059669' }}>
                     {previewData.newOrderCount}
                   </div>
-                  <div className="metric-lbl">Order Baru</div>
+                  <div className="metric-lbl">New Orders</div>
                 </div>
                 <div className="preview-metric-card">
                   <div className="metric-val font-mono" style={{ color: previewData.duplicateOrderCount > 0 ? '#D97706' : 'var(--text-muted)' }}>
                     {previewData.duplicateOrderCount}
                   </div>
-                  <div className="metric-lbl">Order Duplikat / Ada</div>
+                  <div className="metric-lbl">Duplicate / Existing Orders</div>
                 </div>
                 <div className="preview-metric-card">
                   <div className="metric-val text-cyan font-mono">{previewData.totalSteps}</div>
-                  <div className="metric-lbl">Total Langkah</div>
+                  <div className="metric-lbl">Total Steps</div>
                 </div>
               </div>
 
@@ -325,7 +325,7 @@ export default function ExcelImportModal({
                 <div className="duplicate-resolution-card">
                   <div className="duplicate-card-title flex items-center gap-1.5 text-xs font-bold">
                     <AlertTriangle size={15} color="#D97706" />
-                    <span>Pengecekan Data: Ditemukan {previewData.duplicateOrderCount} order yang sudah ada di database</span>
+                    <span>Data Check: Found {previewData.duplicateOrderCount} orders that already exist in database</span>
                   </div>
                   <div className="duplicate-options-row">
                     <label className={`duplicate-radio-label ${duplicateMode === 'update' ? 'active' : ''}`}>
@@ -337,8 +337,8 @@ export default function ExcelImportModal({
                         onChange={() => setDuplicateMode('update')}
                       />
                       <div className="radio-text-box">
-                        <span className="font-semibold text-xs">Perbarui data yang sudah ada (Update Existing)</span>
-                        <span className="text-muted text-xs block">Data order di database akan disinkronkan & diperbarui dengan data baru dari file Excel</span>
+                        <span className="font-semibold text-xs">Update existing records (Update Existing)</span>
+                        <span className="text-muted text-xs block">Order data in database will be synchronized & updated with new data from Excel</span>
                       </div>
                     </label>
 
@@ -351,8 +351,8 @@ export default function ExcelImportModal({
                         onChange={() => setDuplicateMode('skip')}
                       />
                       <div className="radio-text-box">
-                        <span className="font-semibold text-xs">Lewati order duplikat (Skip Duplicates)</span>
-                        <span className="text-muted text-xs block">Hanya {previewData.newOrderCount} order baru yang diimpor; data lama di database tetap dipertahankan</span>
+                        <span className="font-semibold text-xs">Skip duplicate orders (Skip Duplicates)</span>
+                        <span className="text-muted text-xs block">Only {previewData.newOrderCount} new orders will be imported; existing records remain unchanged</span>
                       </div>
                     </label>
                   </div>
@@ -365,11 +365,11 @@ export default function ExcelImportModal({
                   <table className="guide-sample-table">
                     <thead>
                       <tr>
-                        <th>NoProduksi</th>
-                        <th>Status Data</th>
-                        <th>Langkah</th>
-                        <th>NamaLangkah</th>
-                        <th>NoKonfirmasi</th>
+                        <th>Production Order No.</th>
+                        <th>Data Status</th>
+                        <th>Step</th>
+                        <th>Step Name</th>
+                        <th>Confirmation No.</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -380,11 +380,11 @@ export default function ExcelImportModal({
                           <td>
                             {o.isDuplicate ? (
                               <span className="badge badge-amber text-xs font-semibold">
-                                Duplikat {duplicateMode === 'skip' ? '(Dilewati)' : '(Diperbarui)'}
+                                Duplicate {duplicateMode === 'skip' ? '(Skipped)' : '(Updated)'}
                               </span>
                             ) : (
                               <span className="badge badge-emerald text-xs font-semibold">
-                                Baru
+                                New
                               </span>
                             )}
                           </td>
@@ -392,8 +392,8 @@ export default function ExcelImportModal({
                           <td className="truncate" style={{ maxWidth: 160 }}>{o.NamaLangkah}</td>
                           <td><span className="guide-conf-tag">{o.NoKonfirmasi}</span></td>
                           <td>
-                            <span className={`status-badge text-xs ${o.Status === 'Selesai' ? 'status-selesai' : 'status-berjalan'}`}>
-                              {o.Status}
+                            <span className={`status-badge text-xs ${String(o.Status).toLowerCase() === 'selesai' || String(o.Status).toLowerCase() === 'completed' ? 'status-selesai' : 'status-berjalan'}`}>
+                              {String(o.Status).toLowerCase() === 'selesai' || String(o.Status).toLowerCase() === 'completed' ? 'Completed' : 'In Progress'}
                             </span>
                           </td>
                         </tr>
@@ -410,9 +410,9 @@ export default function ExcelImportModal({
             <div className="alert-box alert-info flex items-center gap-3 mt-2">
               <Loader2 size={20} className="animate-spin text-cyan flex-shrink-0" />
               <div className="alert-content">
-                <strong>Menyimpan dan Mengimpor ke Database Cloud...</strong>
+                <strong>Saving and Importing to Cloud Database...</strong>
                 <div className="text-xs">
-                  Sedang mengirim data order ke SharePoint via Power Automate dan memperbarui tabel secara otomatis. Mohon jangan menutup halaman.
+                  Sending order data to SharePoint via Power Automate and automatically refreshing table. Please do not close this page.
                 </div>
               </div>
             </div>
@@ -426,10 +426,10 @@ export default function ExcelImportModal({
             className="btn btn-sm btn-outline"
             disabled={isSubmitting}
             onClick={downloadTemplateExcel}
-            title="Unduh contoh template format Excel"
+            title="Download sample Excel template format"
           >
             <Download size={14} />
-            <span>Unduh Contoh Format</span>
+            <span>Download Template Format</span>
           </button>
 
           <div className="flex gap-2">
@@ -439,7 +439,7 @@ export default function ExcelImportModal({
               disabled={isSubmitting}
               onClick={handleModalClose}
             >
-              Batal
+              Cancel
             </button>
             <button
               type="button"
@@ -450,15 +450,15 @@ export default function ExcelImportModal({
               {isSubmitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Mengimpor ke Cloud...</span>
+                  <span>Importing to Cloud...</span>
                 </>
               ) : (
                 <>
                   <Upload size={16} />
                   <span>
                     {duplicateMode === 'skip' && previewData?.duplicateOrderCount > 0
-                      ? `Impor ${previewData.newOrderCount} Order Baru`
-                      : 'Terapkan & Simpan ke Cloud'}
+                      ? `Import ${previewData.newOrderCount} New Orders`
+                      : 'Apply & Save to Cloud'}
                   </span>
                 </>
               )}

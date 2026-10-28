@@ -395,13 +395,13 @@ export default function App() {
       } else {
         setActiveTab('dashboard');
       }
-      showToast('Berhasil masuk sebagai Administrator ISC!', 'success');
+      showToast('Successfully logged in as ISC Administrator!', 'success');
     } else {
       if (session.operator) {
         setSelectedOperator(session.operator);
       }
       setActiveTab('scanner');
-      showToast(`Selamat datang di Bengkel ISC, ${session.username}!`, 'success');
+      showToast(`Welcome to ISC Workshop, ${session.username}!`, 'success');
     }
   };
 
@@ -426,7 +426,7 @@ export default function App() {
       window.history.replaceState({}, '', window.location.pathname);
     }
     setActiveTab('scanner');
-    showToast('Anda telah keluar dari sistem.', 'info');
+    showToast('You have logged out of the system.', 'info');
   };
 
   // Helper to read and save persistent custom order steps registry
@@ -493,11 +493,11 @@ export default function App() {
 
       if (nextActive) {
         showToast(
-          `Langkah ${stepNumber} Selesai! Langkah ${nextActive.Langkah} (${nextActive.NamaLangkah}) kini aktif.`,
+          `Step ${stepNumber} Completed! Step ${nextActive.Langkah} (${nextActive.NamaLangkah}) is now active.`,
           'success'
         );
       } else {
-        showToast(`Seluruh langkah untuk Order ${orderNo} telah selesai!`, 'success');
+        showToast(`All steps for Order ${orderNo} are completed!`, 'success');
       }
 
       // Auto-sync status to SharePoint if order has cloud ID
@@ -574,7 +574,7 @@ export default function App() {
       return updated;
     });
 
-    showToast(`Langkah ${stepNumber} Order #${sOrderNo} dikembalikan ke Belum Selesai (Berjalan).`, 'info');
+    showToast(`Step ${stepNumber} of Order #${sOrderNo} reverted to In Progress.`, 'info');
   };
 
   // Update step status via Status Barcode dropdown (PROG vs FIN) with backend synchronization
@@ -650,9 +650,9 @@ export default function App() {
     });
 
     if (isFinished) {
-      showToast(`Status Barcode Langkah ${stepNumber} diubah ke FIN (Finished) & disimpan ke database.`, 'success');
+      showToast(`Barcode status for Step ${stepNumber} changed to FIN (Finished) and saved to database.`, 'success');
     } else {
-      showToast(`Status Barcode Langkah ${stepNumber} diubah ke PROG (In Progress) & disimpan ke database.`, 'info');
+      showToast(`Barcode status for Step ${stepNumber} changed to PROG (In Progress) and saved to database.`, 'info');
     }
   };
 
@@ -784,19 +784,19 @@ export default function App() {
         }
         if (!silent) {
           showToast(
-            `Berhasil menyinkronkan ${validOrders.length || res.total} order dari SharePoint Cloud!`,
+            `Successfully synchronized ${validOrders.length || res.total} orders from SharePoint Cloud!`,
             'success'
           );
         }
       } else {
         if (!silent) {
-          showToast('Data dari cloud kosong atau tidak berformat array.', 'info');
+          showToast('Cloud data is empty or invalid format.', 'info');
         }
       }
     } catch (err) {
       console.warn('[SyncCloud] Warning:', err);
       if (!silent) {
-        showToast(`Gagal menyinkronkan cloud: ${err.message}`, 'error');
+        showToast(`Failed to sync cloud: ${err.message}`, 'error');
       }
     } finally {
       setIsLoadingCloud(false);
@@ -868,7 +868,7 @@ export default function App() {
         : [{ ...orderData, ProductGroup: prodGroup }];
 
       await orderApiService.createOrders(itemsToCreate);
-      showToast(`Order #${orderData.orderNo} (${itemsToCreate.length} langkah) berhasil disimpan ke SharePoint Cloud!`, 'success');
+      showToast(`Order #${orderData.orderNo} (${itemsToCreate.length} steps) successfully saved to SharePoint Cloud!`, 'success');
       setOrders((prev) => {
         const filtered = prev.filter((o) => String(o.NoProduksi || o.orderNo || '').trim() !== targetNo);
         const next = [...itemsToCreate, ...filtered];
@@ -877,7 +877,7 @@ export default function App() {
       });
       await handleSyncCloud(true);
     } catch (err) {
-      showToast(`Gagal membuat order: ${err.message}`, 'error');
+      showToast(`Failed to create order: ${err.message}`, 'error');
       setIsLoadingCloud(false);
     }
   };
@@ -914,7 +914,7 @@ export default function App() {
         status: finalStatus,
         ProductGroup: prodGroup
       });
-      showToast(`Perubahan Order #${orderData.orderNo} berhasil diupdate ke SharePoint!`, 'success');
+      showToast(`Order #${orderData.orderNo} changes successfully updated to SharePoint!`, 'success');
 
       setOrders((prev) => {
         if (hasSteps) {
@@ -969,7 +969,7 @@ export default function App() {
         return nextList;
       });
     } catch (err) {
-      showToast(`Gagal mengupdate order: ${err.message}`, 'error');
+      showToast(`Failed to update order: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
     }
@@ -1035,9 +1035,9 @@ export default function App() {
       if (selectedOrderNo === targetNo) {
         setSelectedOrderNo('');
       }
-      showToast(`Order #${targetNo} berhasil dihapus dari sistem & cloud.`, 'success');
+      showToast(`Order #${targetNo} successfully deleted from system & cloud.`, 'success');
     } catch (err) {
-      showToast(`Gagal menghapus order: ${err.message}`, 'error');
+      showToast(`Failed to delete order: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
     }
@@ -1062,19 +1062,19 @@ export default function App() {
       setStorageItem('isc_production_orders', nextList);
       return nextList;
     });
-    showToast(`Status seluruh langkah Order ${orderNo} dikembalikan ke Berjalan.`, 'info');
+    showToast(`All steps status for Order ${orderNo} reverted to In Progress.`, 'info');
   };
 
   // Excel Import Success Handler: Restricted strictly to Admin, persists to Cloud Database (SharePoint via Power Automate)
   const handleImportSuccess = async (newOrders, newPersonnel) => {
     // 1. Strict Security Gate
     if (!isAdmin) {
-      showToast('Akses ditolak: Hanya role Admin yang berhak mengimpor data Excel.', 'error');
-      throw new Error('Akses ditolak: Hanya role Admin yang berhak mengimpor data.');
+      showToast('Access denied: Only Admin role is authorized to import Excel data.', 'error');
+      throw new Error('Access denied: Only Admin role is authorized to import data.');
     }
 
     if (!Array.isArray(newOrders) || newOrders.length === 0) {
-      showToast('Tidak ada data order yang diproses.', 'warning');
+      showToast('No order data processed.', 'warning');
       return { success: true, count: 0 };
     }
 
@@ -1136,7 +1136,7 @@ export default function App() {
     });
 
     showToast(
-      `Menyimpan ${preparedOrders.length} order ke database SharePoint Cloud...`,
+      `Saving ${preparedOrders.length} orders to SharePoint Cloud database...`,
       'info'
     );
 
@@ -1149,7 +1149,7 @@ export default function App() {
       }
 
       showToast(
-        `Sukses! ${preparedOrders.length} data order berhasil diimpor & disinkronkan ke database SharePoint.`,
+        `Success! ${preparedOrders.length} order records imported and synced to SharePoint database.`,
         'success'
       );
 
@@ -1166,7 +1166,7 @@ export default function App() {
     } catch (cloudErr) {
       console.error('[handleImportSuccess] Error saving to cloud:', cloudErr);
       showToast(
-        `Order tersimpan lokal, namun gagal sync ke cloud: ${cloudErr.message}`,
+        `Orders saved locally, but cloud sync failed: ${cloudErr.message}`,
         'warning'
       );
       throw cloudErr;
@@ -1179,9 +1179,9 @@ export default function App() {
   const handleExportExcel = () => {
     try {
       exportToExcel(orders, personnel);
-      showToast('File Excel status terbaru berhasil diunduh.', 'success');
+      showToast('Latest Excel status file successfully downloaded.', 'success');
     } catch (err) {
-      showToast(`Gagal mengunduh Excel: ${err.message}`, 'error');
+      showToast(`Failed to download Excel: ${err.message}`, 'error');
     }
   };
 
@@ -1189,21 +1189,21 @@ export default function App() {
   const handleDownloadTemplate = () => {
     try {
       downloadTemplateExcel();
-      showToast('Format template Excel berhasil diunduh.', 'success');
+      showToast('Excel template format successfully downloaded.', 'success');
     } catch (err) {
-      showToast(`Gagal mengunduh template: ${err.message}`, 'error');
+      showToast(`Failed to download template: ${err.message}`, 'error');
     }
   };
 
   // Password management
   const handleUpdatePassword = (newPass) => {
     setAdminPassword(newPass);
-    showToast('Kata sandi admin berhasil diperbarui!', 'success');
+    showToast('Admin password successfully updated!', 'success');
   };
 
   const handleResetAdminPassword = () => {
     setAdminPassword('admin123');
-    showToast('Kata sandi admin telah direset ke default: admin123', 'info');
+    showToast('Admin password reset to default: admin123', 'info');
   };
 
   // Cross-view shortcuts
@@ -1297,7 +1297,7 @@ export default function App() {
           return (
             <div className="view-container">
               <div className="alert-box alert-danger">
-                <strong>Akses Ditolak:</strong> Menu Dashboard Grafik hanya dapat diakses oleh Administrator.
+                <strong>Access Denied:</strong> Dashboard Chart view can only be accessed by Administrators.
               </div>
             </div>
           );

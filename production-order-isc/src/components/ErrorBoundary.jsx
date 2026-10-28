@@ -61,14 +61,14 @@ export default class ErrorBoundary extends React.Component {
               className="font-heading text-lg font-bold"
               style={{ color: 'var(--text-main, #ffffff)', margin: '4px 0', fontSize: '1.25rem' }}
             >
-              Terjadi Kendala Memuat Tampilan
+              Display Error Encountered
             </h3>
 
             <p
               className="text-sm text-muted"
               style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem', lineHeight: '1.6' }}
             >
-              Sistem mendeteksi kendala pada menu yang dipilih. Klik tombol di bawah untuk memuat ulang tampilan dan kembali ke Terminal Scanner.
+              An error occurred while rendering this view. Click the button below to reload the display and return to the Scanner Terminal.
             </p>
 
             {this.state.error && (
@@ -99,7 +99,7 @@ export default class ErrorBoundary extends React.Component {
               style={{ padding: '10px 24px', fontSize: '0.95rem' }}
             >
               <RefreshCw size={16} />
-              <span>Muat Ulang Tampilan Menu</span>
+              <span>Reload Menu View</span>
             </button>
           </div>
         </div>
