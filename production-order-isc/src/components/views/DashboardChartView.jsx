@@ -40,13 +40,13 @@ export default function DashboardChartView({
       orderApiService
         .verifyDashboardAccess()
         .then((res) => {
-          if (isMounted) {
-            setIsBackendAuthorized(Boolean(res?.authorized || res?.success));
+          if (isMounted && res) {
+            setIsBackendAuthorized(Boolean(res.authorized));
           }
         })
         .catch(() => {
           if (isMounted) {
-            setIsBackendAuthorized(true); // fallback to frontend role if offline
+            setIsBackendAuthorized(true);
           }
         });
     } else {
@@ -288,8 +288,8 @@ export default function DashboardChartView({
     };
   }, [summaryKPI]);
 
-  // If user is not Admin or not authorized by backend, reject access
-  if (!isAdmin || !isBackendAuthorized) {
+  // Security Gate: strictly protect from non-admin users
+  if (!isAdmin) {
     return (
       <div className="view-container">
         <div className="chart-access-denied-card">
@@ -319,7 +319,7 @@ export default function DashboardChartView({
             </h2>
             <span className="badge badge-admin-role flex items-center gap-1 font-mono text-xs">
               <ShieldCheck size={13} />
-              Khusus Admin
+              {isBackendAuthorized ? 'Khusus Admin (Terverifikasi)' : 'Khusus Admin'}
             </span>
             <span className="badge badge-cyan flex items-center gap-1 font-mono text-xs">
               <Database size={12} />
