@@ -326,9 +326,6 @@ export default function DashboardChartView({
               Data Aktual Database
             </span>
           </div>
-          <p className="view-subtitle">
-            Pemantauan visual grafik performa produksi bengkel ISC secara real-time dari database SharePoint
-          </p>
         </div>
 
         {/* Filter Controls */}

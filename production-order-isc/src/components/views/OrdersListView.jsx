@@ -10,7 +10,6 @@ import {
   Edit3,
   Loader2,
   AlertTriangle,
-  Cloud,
   RotateCcw,
   Upload,
   Download
@@ -155,16 +154,9 @@ export default function OrdersListView({
       {/* View Header */}
       <div className="view-header-row">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2">
             <h2 className="view-title">Daftar Seluruh Order Produksi (SAP & Cloud)</h2>
-            <span className="badge badge-cyan flex items-center gap-1 font-mono text-xs">
-              <Cloud size={12} />
-              SharePoint Live
-            </span>
           </div>
-          <p className="view-subtitle">
-            Katalog order kerja, pemantauan progres langkah, dan sinkronisasi cloud real-time
-          </p>
         </div>
 
         {/* Action Controls & Search */}

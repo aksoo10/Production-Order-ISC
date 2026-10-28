@@ -8,7 +8,6 @@ import {
   Search,
   Filter,
   Layers,
-  Activity,
   ArrowRight
 } from 'lucide-react';
 
@@ -16,7 +15,7 @@ export default function ProgressTrackerView({
   orders = [],
   selectedGroup = 'ALL',
   isAdmin = false,
-  currentUser = null,
+  _currentUser = null,
   onMarkStepFinished,
   onRevertStep,
   onUpdateStepStatus,
@@ -176,19 +175,12 @@ export default function ProgressTrackerView({
       {/* 1. Header Toolbar */}
       <div className="view-header-row tracker-header-row">
         <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <div className="flex items-center gap-2">
             <h2 className="view-title font-heading flex items-center gap-2">
               <ListChecks className="text-cyan" size={24} />
               <span>Progress Tracker Rangkaian Langkah Kerja</span>
             </h2>
-            <span className="badge badge-cyan flex items-center gap-1 font-mono text-xs">
-              <Activity size={12} />
-              Live Tracker (PROG & FIN) • {isAdmin ? 'Akses Admin' : (currentUser?.name || 'Operator')}
-            </span>
           </div>
-          <p className="view-subtitle">
-            Pemantauan visual langkah kerja setiap order produksi, nomor konfirmasi SAP, status barcode PROG/FIN, dan eksekusi aksi
-          </p>
         </div>
 
         {/* Global Controls */}
