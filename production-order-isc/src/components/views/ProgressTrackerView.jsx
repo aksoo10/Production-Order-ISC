@@ -8,7 +8,8 @@ import {
   Search,
   Filter,
   Layers,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 
 export default function ProgressTrackerView({
@@ -184,9 +185,9 @@ export default function ProgressTrackerView({
         </div>
 
         {/* Global Controls */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
+        <div className="view-header-actions flex items-center gap-2 flex-wrap min-w-0">
           {/* Quick Search */}
-          <div className="panel-search-box" style={{ minWidth: '180px', flex: '1 1 200px' }}>
+          <div className="panel-search-box header-search-box">
             <Search size={16} className="search-icon" />
             <input
               type="text"
@@ -194,7 +195,18 @@ export default function ProgressTrackerView({
               placeholder="Search order, step, confirmation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search progress tracker"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchTerm('')}
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* Group Filter */}

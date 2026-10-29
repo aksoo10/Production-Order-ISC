@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Upload,
-  Download
+  Download,
+  X
 } from 'lucide-react';
 import CreateOrderModal from '../CreateOrderModal';
 import EditOrderModal from '../EditOrderModal';
@@ -160,9 +161,9 @@ export default function OrdersListView({
         </div>
 
         {/* Action Controls & Search */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
+        <div className="view-header-actions flex items-center gap-2 flex-wrap min-w-0">
           {/* Quick Search */}
-          <div className="panel-search-box" style={{ minWidth: '180px', flex: '1 1 200px' }}>
+          <div className="panel-search-box header-search-box">
             <Search size={16} className="search-icon" />
             <input
               type="text"
@@ -170,7 +171,18 @@ export default function OrdersListView({
               placeholder="Search order, customer, step..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search production orders"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchTerm('')}
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* Import Excel Button (Only for Admin) */}

@@ -159,15 +159,17 @@ export default function OrderPanel({
           <input
             type="text"
             className="search-input"
-            placeholder="Search Production No. or operation step..."
+            placeholder="Search Production No. or step..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search Production No. or step"
           />
           {searchTerm && (
             <button
               type="button"
               className="search-clear-btn"
               onClick={() => setSearchTerm('')}
+              title="Clear search"
             >
               <X size={14} />
             </button>

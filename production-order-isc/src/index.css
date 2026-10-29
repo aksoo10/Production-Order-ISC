@@ -1273,50 +1273,115 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--border-subtle);
 }
 
-/* Search input */
+/* Search input component - High-visibility Austrian industrial precision */
 .panel-search-box {
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 220px;
+}
+
+/* Dedicated styling for header toolbar search boxes (Orders List, Tracker, Personnel) */
+.header-search-box {
+  min-width: 280px;
+  max-width: 420px;
+  flex: 1 1 300px;
+}
+
+.view-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .search-icon {
   position: absolute;
-  left: 12px;
+  left: 13px;
   color: var(--text-muted);
   pointer-events: none;
+  transition: color var(--transition-fast);
+  z-index: 2;
+}
+
+.panel-search-box:focus-within .search-icon {
+  color: var(--atz-cyan);
 }
 
 .search-input {
   width: 100%;
   height: 40px;
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-sm);
-  padding-left: 36px;
-  padding-right: 32px;
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding-left: 38px;
+  padding-right: 36px;
   color: var(--text-main);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-family: var(--font-body);
+  font-weight: 500;
   outline: none;
-  transition: all var(--transition-fast);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
+
+.search-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.85;
+  font-size: 0.84rem;
+  font-weight: 400;
+}
+
+.search-input:hover {
+  border-color: var(--border-strong);
+}
+
 .search-input:focus {
   border-color: var(--atz-cyan);
   background-color: var(--bg-surface);
-  box-shadow: var(--shadow-highlight);
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.18), 0 1px 3px rgba(0, 163, 224, 0.08);
+}
+
+[data-theme="dark"] .search-input {
+  background-color: var(--bg-surface-elevated);
+  border-color: var(--border-medium);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .search-input:hover {
+  border-color: var(--border-strong);
+}
+
+[data-theme="dark"] .search-input:focus {
+  border-color: var(--atz-cyan);
+  background-color: var(--bg-surface);
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.28);
 }
 
 .search-clear-btn {
   position: absolute;
   right: 10px;
-  background: transparent;
-  border: none;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
   color: var(--text-muted);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 2;
 }
+
 .search-clear-btn:hover {
   color: var(--text-main);
+  background: var(--bg-surface-active);
+  border-color: var(--border-medium);
 }
 
 /* Operator Showcase */
@@ -1548,15 +1613,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .order-selector-bar .panel-search-box {
-  min-width: 180px;
-  flex: 1 1 200px;
+  min-width: 240px;
+  flex: 2 1 280px;
 }
 
 .order-quick-dropdown {
   height: 40px;
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
   color: var(--text-main);
   padding: 0 12px;
   font-family: var(--font-heading);
@@ -1564,21 +1629,34 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   outline: none;
   cursor: pointer;
-  min-width: 180px;
-  flex: 1 1 240px;
+  min-width: 200px;
+  flex: 1 1 220px;
   max-width: 100%;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: all var(--transition-fast);
+}
+.order-quick-dropdown:hover {
+  border-color: var(--border-strong);
 }
 .order-quick-dropdown:focus {
   border-color: var(--atz-cyan);
-  box-shadow: var(--shadow-highlight);
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.18);
 }
 .order-quick-dropdown option {
   background-color: var(--bg-surface);
   color: var(--text-main);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .header-search-box {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    order: -1;
+  }
+  .view-header-actions {
+    width: 100%;
+  }
   .order-selector-bar {
     flex-direction: column;
     align-items: stretch;

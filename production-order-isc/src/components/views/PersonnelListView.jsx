@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Users, Search, Scan } from 'lucide-react';
+import { Users, Search, Scan, X } from 'lucide-react';
 import BarcodeCard from '../BarcodeCard';
 
 export default function PersonnelListView({
@@ -45,7 +45,7 @@ export default function PersonnelListView({
           </p>
         </div>
 
-        <div className="panel-search-box" style={{ width: '320px' }}>
+        <div className="panel-search-box header-search-box">
           <Search size={16} className="search-icon" />
           <input
             type="text"
@@ -53,7 +53,18 @@ export default function PersonnelListView({
             placeholder="Search operator name, Personnel No...."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search operators"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              className="search-clear-btn"
+              onClick={() => setSearchTerm('')}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
 
