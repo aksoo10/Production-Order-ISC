@@ -38,6 +38,19 @@ export default function ProgressTrackerView({
     }
   }, [selectedGroup]);
 
+  // Smoothly scroll the expanded inline barcode into view if needed
+  React.useEffect(() => {
+    if (expandedBarcodeStepKey) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`barcode-box-${expandedBarcodeStepKey}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [expandedBarcodeStepKey]);
+
   // Group all steps by NoProduksi
   const ordersGrouped = useMemo(() => {
     const map = new Map();
@@ -476,34 +489,14 @@ export default function ProgressTrackerView({
 
                                 {/* 3. NO. KONFIRMASI */}
                                 <td className="step-konf-cell font-mono">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span
-                                      className="konf-number"
-                                      style={{ cursor: 'pointer' }}
-                                      onClick={toggleBarcode}
-                                      title="Klik untuk buka/tutup barcode konfirmasi SAP"
-                                    >
-                                      {st.NoKonfirmasi}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      className={`btn btn-xs ${isExpanded ? 'btn-primary' : barcodeStatus === 'FIN' ? 'btn-outline-cyan' : 'btn-outline'} font-mono flex items-center gap-1`}
-                                      onClick={toggleBarcode}
-                                      title={isExpanded ? 'Tutup tampilan barcode' : 'Tampilkan barcode SAP (Code 128) tepat di bawah langkah ini'}
-                                    >
-                                      {isExpanded ? (
-                                        <>
-                                          <X size={11} />
-                                          <span>Tutup</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Scan size={11} />
-                                          <span>Barcode</span>
-                                        </>
-                                      )}
-                                    </button>
-                                  </div>
+                                  <span
+                                    className="konf-number"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={toggleBarcode}
+                                    title="Klik untuk buka/tutup barcode konfirmasi SAP"
+                                  >
+                                    {st.NoKonfirmasi}
+                                  </span>
                                 </td>
 
                                 {/* 4. STATUS + BARCODE PROG/FIN */}
@@ -549,7 +542,7 @@ export default function ProgressTrackerView({
                                               st.id || st.ID
                                             );
                                             if (nextBStatus === 'FIN') {
-                                              setExpandedBarcodeStepKey(`${ord.NoProduksi}_${st.Langkah}`);
+                                              setExpandedBarcodeStepKey(stepKey);
                                             }
                                           }}
                                           title="Change Barcode Status for this Step (PROG vs FIN)"
@@ -601,9 +594,9 @@ export default function ProgressTrackerView({
                                             st.id || st.ID
                                           );
                                         }
-                                        setExpandedBarcodeStepKey(`${ord.NoProduksi}_${st.Langkah}`);
+                                        setExpandedBarcodeStepKey(stepKey);
                                       }}
-                                      title={`Mark Step ${st.Langkah} Completed & Show Barcode`}
+                                      title={`Selesaikan Step ${st.Langkah} & Tampilkan Barcode`}
                                     >
                                       <CheckCircle2 size={12} />
                                       <span>Complete</span>
@@ -614,7 +607,7 @@ export default function ProgressTrackerView({
                                         type="button"
                                         className={`btn btn-xs ${isExpanded ? 'btn-primary' : 'btn-outline-cyan'} font-mono flex items-center gap-1`}
                                         onClick={toggleBarcode}
-                                        title="Scan Confirmation Barcode (Code 128)"
+                                        title={isExpanded ? 'Tutup tampilan barcode' : 'Tampilkan barcode SAP (Code 128) tepat di bawah langkah ini'}
                                       >
                                         {isExpanded ? (
                                           <>
@@ -648,6 +641,9 @@ export default function ProgressTrackerView({
                                                 st.id || st.ID
                                               );
                                             }
+                                            if (expandedBarcodeStepKey === stepKey) {
+                                              setExpandedBarcodeStepKey(null);
+                                            }
                                           }}
                                           title={`Admin: Revert Step ${st.Langkah} to Incomplete`}
                                         >
@@ -662,7 +658,7 @@ export default function ProgressTrackerView({
 
                               {/* INLINE BARCODE DISPLAY RIGHT AT THE STEP ROW (No far scrolling, fits right in place) */}
                               {isExpanded && (
-                                <tr className="barcode-inline-row">
+                                <tr className="barcode-inline-row" id={`barcode-box-${stepKey}`}>
                                   <td colSpan={5} className="barcode-inline-cell">
                                     <div className="barcode-inline-box">
                                       <div className="barcode-inline-header">
