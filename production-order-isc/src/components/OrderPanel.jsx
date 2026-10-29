@@ -344,68 +344,45 @@ export default function OrderPanel({
                   </div>
                 </div>
 
-                {/* Barcode section: ONLY displayed when status is Finish (FIN) */}
+                {/* Barcode section: Always prominently displayed in Code 128 (both PROG & FIN) */}
                 <div className="spotlight-barcode-wrapper">
-                  {isDisplayStepFinished ? (
-                    <div className="w-full flex flex-col items-center">
-                      <BarcodeCard
-                        value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
-                        label="CONFIRMATION NO. BARCODE"
-                        subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
-                        badgeText="2. Scan Confirmation No. to SAP"
-                        highlightColor="#10B981"
-                        format="CODE128"
-                        height={80}
-                        width={2.2}
-                        fontSize={17}
-                      />
+                  <div className="w-full flex flex-col items-center">
+                    <BarcodeCard
+                      value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
+                      label="CONFIRMATION NO. BARCODE"
+                      subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
+                      badgeText="2. Scan Confirmation No. to SAP"
+                      highlightColor={isDisplayStepFinished ? "#10B981" : "#00A3E0"}
+                      format="CODE128"
+                      height={80}
+                      width={2.2}
+                      fontSize={17}
+                    />
 
-                      {/* Flow to Next Step without disruption */}
-                      {nextStep && (
-                        <div className="next-step-prompt-banner">
-                          <div className="next-step-prompt-text">
-                            <span className="step-done-check">
-                              <CheckCircle2 size={15} />
-                              Step {displayStep.Langkah} Finish
-                            </span>
-                            <span className="next-step-info">
-                              Langkah berikutnya: <strong>Step {nextStep.Langkah} — {nextStep.NamaLangkah}</strong>
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn btn-xs btn-primary flex items-center gap-1.5 font-mono"
-                            onClick={() => setSelectedStepNum(Number(nextStep.Langkah))}
-                            title={`Lanjut ke Step ${nextStep.Langkah}`}
-                          >
-                            <span>Lanjut ke Step {nextStep.Langkah}</span>
-                            <ArrowRight size={13} />
-                          </button>
+                    {/* Flow to Next Step without disruption when step is Finished */}
+                    {isDisplayStepFinished && nextStep && (
+                      <div className="next-step-prompt-banner">
+                        <div className="next-step-prompt-text">
+                          <span className="step-done-check">
+                            <CheckCircle2 size={15} />
+                            Step {displayStep.Langkah} Finish
+                          </span>
+                          <span className="next-step-info">
+                            Langkah berikutnya: <strong>Step {nextStep.Langkah} — {nextStep.NamaLangkah}</strong>
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="barcode-pending-placeholder">
-                      <div className="barcode-pending-icon-wrap">
-                        <Clock size={28} className="text-cyan animate-pulse" />
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-primary flex items-center gap-1.5 font-mono"
+                          onClick={() => setSelectedStepNum(Number(nextStep.Langkah))}
+                          title={`Lanjut ke Step ${nextStep.Langkah}`}
+                        >
+                          <span>Lanjut ke Step {nextStep.Langkah}</span>
+                          <ArrowRight size={13} />
+                        </button>
                       </div>
-                      <div className="barcode-pending-body">
-                        <h5 className="barcode-pending-title">Barcode Disembunyikan (Step Sedang Berjalan)</h5>
-                        <p className="barcode-pending-desc">
-                          Barcode SAP Confirmation No. <strong>{displayStep.NoKonfirmasi || currentOrder.NoProduksi}</strong> (Format: Code 128) akan otomatis muncul setelah status step diubah menjadi <strong>FIN (Finished)</strong>.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-success flex items-center gap-2 font-mono"
-                        onClick={() => handleBarcodeStatusChange('FIN')}
-                        title="Ubah status step ini ke FIN dan tampilkan barcode"
-                      >
-                        <CheckCircle2 size={15} />
-                        <span>Selesaikan Step & Tampilkan Barcode</span>
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

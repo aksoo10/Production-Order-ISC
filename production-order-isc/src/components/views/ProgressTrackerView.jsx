@@ -472,26 +472,25 @@ export default function ProgressTrackerView({
                               <td className="step-konf-cell font-mono">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="konf-number">{st.NoKonfirmasi}</span>
-                                  {barcodeStatus === 'FIN' && (
-                                    <button
-                                      type="button"
-                                      className="btn btn-xs btn-outline-cyan font-mono flex items-center gap-1"
-                                      onClick={() => {
-                                        const nextSt = ord.steps.find((s) => Number(s.Langkah) === Number(st.Langkah) + 1);
-                                        setActiveBarcodeModal({
-                                          orderNo: ord.NoProduksi,
-                                          stepNo: st.Langkah,
-                                          stepName: st.NamaLangkah,
-                                          noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
-                                          nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
-                                        });
-                                      }}
-                                      title="Scan SAP Confirmation Barcode (Code 128)"
-                                    >
-                                      <Scan size={11} />
-                                      <span>Barcode</span>
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs ${barcodeStatus === 'FIN' ? 'btn-outline-cyan' : 'btn-outline'} font-mono flex items-center gap-1`}
+                                    onClick={() => {
+                                      const nextSt = ord.steps.find((s) => Number(s.Langkah) === Number(st.Langkah) + 1);
+                                      setActiveBarcodeModal({
+                                        orderNo: ord.NoProduksi,
+                                        stepNo: st.Langkah,
+                                        stepName: st.NamaLangkah,
+                                        noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
+                                        barcodeStatus,
+                                        nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
+                                      });
+                                    }}
+                                    title="Scan SAP Confirmation Barcode (Code 128)"
+                                  >
+                                    <Scan size={11} />
+                                    <span>Barcode</span>
+                                  </button>
                                 </div>
                               </td>
 
@@ -623,6 +622,7 @@ export default function ProgressTrackerView({
                                           stepNo: st.Langkah,
                                           stepName: st.NamaLangkah,
                                           noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
+                                          barcodeStatus: 'FIN',
                                           nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
                                         });
                                       }}
@@ -707,8 +707,12 @@ export default function ProgressTrackerView({
           >
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <span className="badge-pill pill-fin font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                  FIN — FINISHED
+                <span className={`badge-pill font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                  activeBarcodeModal.barcodeStatus === 'PROG'
+                    ? 'pill-prog bg-sky-500/20 text-sky-500 border border-sky-500/30'
+                    : 'pill-fin bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                }`}>
+                  {activeBarcodeModal.barcodeStatus === 'PROG' ? 'PROG — IN PROGRESS' : 'FIN — FINISHED'}
                 </span>
                 <h3 className="font-heading font-bold text-base text-main">
                   SAP Confirmation Barcode
@@ -739,7 +743,7 @@ export default function ProgressTrackerView({
                 label="CONFIRMATION NO. BARCODE"
                 subtitle={`Step ${activeBarcodeModal.stepNo}: ${activeBarcodeModal.stepName}`}
                 badgeText="2. Scan Confirmation No. to SAP"
-                highlightColor="#10B981"
+                highlightColor={activeBarcodeModal.barcodeStatus === 'PROG' ? '#00A3E0' : '#10B981'}
                 format="CODE128"
                 height={85}
                 width={2.4}
