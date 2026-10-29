@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ListChecks,
   CheckCircle2,
@@ -471,7 +472,24 @@ export default function ProgressTrackerView({
                               {/* 3. NO. KONFIRMASI */}
                               <td className="step-konf-cell font-mono">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="konf-number">{st.NoKonfirmasi}</span>
+                                  <span
+                                    className="konf-number"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => {
+                                      const nextSt = ord.steps.find((s) => Number(s.Langkah) === Number(st.Langkah) + 1);
+                                      setActiveBarcodeModal({
+                                        orderNo: ord.NoProduksi,
+                                        stepNo: st.Langkah,
+                                        stepName: st.NamaLangkah,
+                                        noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
+                                        barcodeStatus,
+                                        nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
+                                      });
+                                    }}
+                                    title="Klik untuk lihat barcode SAP Confirmation No."
+                                  >
+                                    {st.NoKonfirmasi}
+                                  </span>
                                   <button
                                     type="button"
                                     className={`btn btn-xs ${barcodeStatus === 'FIN' ? 'btn-outline-cyan' : 'btn-outline'} font-mono flex items-center gap-1`}
@@ -674,104 +692,192 @@ export default function ProgressTrackerView({
         )}
       </div>
 
-      {/* 4. SAP Confirmation Barcode Modal when Step is FIN (Finished) */}
-      {activeBarcodeModal && (
+      {/* 4. SAP Confirmation Barcode Modal via Portal (always centered in viewport) */}
+      {activeBarcodeModal && typeof document !== 'undefined' && createPortal(
         <div
-          className="modal-overlay"
+          className="modal-backdrop"
           style={{
+            zIndex: 999999,
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.72)',
-            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999,
-            padding: '16px'
+            backgroundColor: 'rgba(0, 10, 20, 0.78)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            padding: '20px'
           }}
           onClick={() => setActiveBarcodeModal(null)}
         >
           <div
             className="modal-content"
             style={{
-              backgroundColor: 'var(--bg-card, #FFFFFF)',
-              border: '1px solid var(--border-color, #E2E8F0)',
-              borderRadius: '12px',
-              maxWidth: '560px',
+              maxWidth: '580px',
               width: '100%',
-              padding: '24px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
-              position: 'relative'
+              zIndex: 1000000,
+              backgroundColor: 'var(--bg-surface, #0E1726)',
+              border: '1px solid var(--border-medium, #20334D)',
+              borderRadius: '12px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <span className={`badge-pill font-mono text-xs font-bold px-2 py-0.5 rounded ${
-                  activeBarcodeModal.barcodeStatus === 'PROG'
-                    ? 'pill-prog bg-sky-500/20 text-sky-500 border border-sky-500/30'
-                    : 'pill-fin bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
-                }`}>
-                  {activeBarcodeModal.barcodeStatus === 'PROG' ? 'PROG — IN PROGRESS' : 'FIN — FINISHED'}
-                </span>
-                <h3 className="font-heading font-bold text-base text-main">
-                  SAP Confirmation Barcode
-                </h3>
+            {/* Modal Header */}
+            <div
+              className="modal-header"
+              style={{
+                padding: '16px 20px',
+                backgroundColor: 'var(--atz-header-bg, #041E42)',
+                borderBottom: '2px solid var(--atz-cyan, #00A3E0)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                color: '#FFFFFF'
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(0, 163, 224, 0.18)',
+                    border: '1px solid rgba(0, 163, 224, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Scan size={20} color="#00A3E0" />
+                </div>
+                <div>
+                  <h3 className="modal-title font-heading text-white font-bold" style={{ fontSize: '1.05rem', margin: 0 }}>
+                    SAP Confirmation Barcode
+                  </h3>
+                  <p className="modal-desc" style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.75)', margin: 0 }}>
+                    Order #{activeBarcodeModal.orderNo} • Step {activeBarcodeModal.stepNo}: {activeBarcodeModal.stepName}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
-                className="btn-icon text-muted hover:text-main"
+                className="modal-close-btn"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontSize: '26px',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                  padding: '0 4px'
+                }}
                 onClick={() => setActiveBarcodeModal(null)}
-                title="Close modal"
+                title="Tutup Modal"
               >
-                <X size={18} />
+                &times;
               </button>
             </div>
 
-            <div className="mb-4">
-              <div className="text-xs text-muted font-semibold uppercase tracking-wider mb-1">
-                Order #{activeBarcodeModal.orderNo} • Step {activeBarcodeModal.stepNo}
-              </div>
-              <h4 className="font-heading text-lg font-bold text-main">
-                {activeBarcodeModal.stepName}
-              </h4>
-            </div>
-
-            <div className="spotlight-barcode-wrapper mb-4">
-              <BarcodeCard
-                value={activeBarcodeModal.noKonfirmasi}
-                label="CONFIRMATION NO. BARCODE"
-                subtitle={`Step ${activeBarcodeModal.stepNo}: ${activeBarcodeModal.stepName}`}
-                badgeText="2. Scan Confirmation No. to SAP"
-                highlightColor={activeBarcodeModal.barcodeStatus === 'PROG' ? '#00A3E0' : '#10B981'}
-                format="CODE128"
-                height={85}
-                width={2.4}
-                fontSize={18}
-              />
-            </div>
-
-            {activeBarcodeModal.nextStep && (
-              <div className="next-step-prompt-banner mb-4">
-                <div className="next-step-prompt-text">
-                  <span className="step-done-check">
-                    <CheckCircle2 size={15} />
-                    Step {activeBarcodeModal.stepNo} Selesai
+            {/* Modal Body */}
+            <div
+              className="modal-body"
+              style={{
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                backgroundColor: 'var(--bg-surface, #0E1726)'
+              }}
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <span className="text-xs text-muted font-semibold uppercase tracking-wider block mb-0.5">
+                    SAP Confirmation No.:
                   </span>
-                  <span className="next-step-info">
-                    Langkah berikutnya: <strong>Step {activeBarcodeModal.nextStep.stepNo} — {activeBarcodeModal.nextStep.stepName}</strong>
-                  </span>
+                  <div className="font-mono text-2xl font-bold" style={{ color: '#00A3E0' }}>
+                    {activeBarcodeModal.noKonfirmasi}
+                  </div>
                 </div>
-              </div>
-            )}
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+                <span
+                  className={`barcode-badge-pill font-mono text-xs ${
+                    activeBarcodeModal.barcodeStatus === 'FIN' ? 'pill-fin' : 'pill-prog'
+                  }`}
+                  style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+                >
+                  {activeBarcodeModal.barcodeStatus === 'FIN' ? (
+                    <>
+                      <CheckCircle2 size={12} />
+                      <span>FIN — Finished</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock size={12} />
+                      <span>PROG — In Progress</span>
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* High Resolution Scannable Barcode */}
+              <div className="spotlight-barcode-wrapper" style={{ width: '100%' }}>
+                <BarcodeCard
+                  value={activeBarcodeModal.noKonfirmasi}
+                  label="CONFIRMATION NO. BARCODE"
+                  subtitle={`Step ${activeBarcodeModal.stepNo}: ${activeBarcodeModal.stepName}`}
+                  badgeText="Scan to SAP"
+                  highlightColor={activeBarcodeModal.barcodeStatus === 'FIN' ? '#10B981' : '#00A3E0'}
+                  format="CODE128"
+                  height={90}
+                  width={2.4}
+                  fontSize={18}
+                />
+              </div>
+
+              {activeBarcodeModal.nextStep && (
+                <div className="next-step-prompt-banner" style={{ marginTop: '4px' }}>
+                  <div className="next-step-prompt-text">
+                    <span className="step-done-check">
+                      <CheckCircle2 size={15} />
+                      Step {activeBarcodeModal.stepNo} Selesai
+                    </span>
+                    <span className="next-step-info">
+                      Langkah berikutnya: <strong>Step {activeBarcodeModal.nextStep.stepNo} — {activeBarcodeModal.nextStep.stepName}</strong>
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className="modal-footer"
+              style={{
+                padding: '12px 20px',
+                backgroundColor: 'var(--bg-surface-elevated, #162235)',
+                borderTop: '1px solid var(--border-medium, #20334D)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '10px'
+              }}
+            >
               <button
                 type="button"
-                className="btn btn-sm btn-primary font-mono px-4"
+                className="btn btn-sm btn-primary font-mono flex items-center gap-1.5"
                 onClick={() => setActiveBarcodeModal(null)}
               >
-                Selesai Pindai & Tutup
+                <span>Tutup / Selesai Pindai</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
               </button>
             </div>
           </div>
