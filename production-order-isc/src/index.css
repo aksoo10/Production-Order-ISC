@@ -4275,6 +4275,47 @@ select.modal-input option {
   margin-bottom: 12px;
 }
 
+/* Inline Step Barcode Row inside Progress Tracker */
+.barcode-inline-row {
+  background-color: rgba(0, 163, 224, 0.04);
+  border-top: 1px dashed var(--atz-cyan-border);
+  border-bottom: 2px solid var(--border-medium);
+  animation: fadeIn 0.18s ease-out;
+}
+
+[data-theme="dark"] .barcode-inline-row {
+  background-color: rgba(0, 163, 224, 0.06);
+}
+
+.barcode-inline-cell {
+  padding: 14px 18px !important;
+}
+
+.barcode-inline-box {
+  background-color: var(--bg-card);
+  border: 1px solid var(--atz-cyan-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .barcode-inline-box {
+  background-color: rgba(14, 23, 38, 0.95);
+  border-color: rgba(0, 163, 224, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.barcode-inline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
 .status-barcode-select-wrapper.mini-select {
   display: inline-flex;
   align-items: center;
