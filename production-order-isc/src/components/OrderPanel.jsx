@@ -5,7 +5,10 @@ import {
   ChevronRight,
   CheckCheck,
   FileText,
-  X
+  X,
+  Clock,
+  CheckCircle2,
+  ArrowRight
 } from 'lucide-react';
 import BarcodeCard from './BarcodeCard';
 
@@ -103,22 +106,33 @@ export default function OrderPanel({
 
   // Determine step to display in Spotlight card and dropdown
   const displayStep = useMemo(() => {
-    if (!currentOrder) return null;
+    if (!currentOrder || !currentOrder.steps || currentOrder.steps.length === 0) return null;
     if (selectedStepNum !== null) {
       const found = currentOrder.steps.find((s) => Number(s.Langkah) === Number(selectedStepNum));
       if (found) return found;
     }
-    if (currentOrder.isComplete) {
-      return null;
+    // If there is an active (incomplete) step, show it
+    if (currentOrder.activeStep) {
+      return currentOrder.activeStep;
     }
-    return currentOrder.activeStep || currentOrder.steps[0] || null;
+    // If all steps completed, show the last step so its barcode can still be scanned!
+    return currentOrder.steps[currentOrder.steps.length - 1] || currentOrder.steps[0] || null;
   }, [currentOrder, selectedStepNum]);
+
+  // Determine next step in sequence relative to current displayStep
+  const nextStep = useMemo(() => {
+    if (!currentOrder || !displayStep) return null;
+    return currentOrder.steps.find((s) => Number(s.Langkah) === Number(displayStep.Langkah) + 1) || null;
+  }, [currentOrder, displayStep]);
 
   // Handle status change from Status Barcode dropdown (PROG vs FIN)
   const handleBarcodeStatusChange = (newStatus, customStep) => {
     if (!currentOrder) return;
     const targetStep = customStep || displayStep || currentOrder.steps[0];
     if (!targetStep) return;
+
+    // Pin display to this step so its barcode appears immediately and stays visible for scanning
+    setSelectedStepNum(Number(targetStep.Langkah));
 
     if (onUpdateStepStatus) {
       onUpdateStepStatus(currentOrder.NoProduksi, targetStep.Langkah, newStatus, targetStep.id || targetStep.ID);
@@ -202,53 +216,55 @@ export default function OrderPanel({
               <span className="group-tag">{currentOrder.ProductGroup || 'PKW'}</span>
             </div>
 
-            <div className="ribbon-right">
-              {!isAdmin ? (
-                <div className="operator-step-select-wrapper flex items-center gap-2">
-                  <span className="text-xs font-mono text-muted font-semibold whitespace-nowrap">
-                    {currentOrder.completedSteps} of {currentOrder.totalSteps} Completed:
-                  </span>
-                  <select
-                    className="order-quick-dropdown font-mono"
-                    value={displayStep?.Langkah || ''}
-                    onChange={(e) => setSelectedStepNum(Number(e.target.value))}
-                    title="Select Operation Step"
-                    style={{ minWidth: '220px', height: '36px', fontSize: '0.8rem', padding: '0 8px' }}
-                  >
-                    {currentOrder.steps.map((st) => {
-                      const isStepComplete = String(st.Status).toLowerCase() === 'selesai' || String(st.Status).toLowerCase() === 'completed';
-                      const isActive =
-                        currentOrder.activeStep &&
-                        Number(currentOrder.activeStep.Langkah) === Number(st.Langkah);
-                      const statusTag = isStepComplete
-                        ? 'Completed'
-                        : isActive
-                        ? 'Active Step'
-                        : 'Pending';
+            <div className="ribbon-right flex items-center gap-3 flex-wrap">
+              <div className="operator-step-select-wrapper flex items-center gap-2">
+                <span className="text-xs font-mono text-muted font-semibold whitespace-nowrap">
+                  Step:
+                </span>
+                <select
+                  className="order-quick-dropdown font-mono"
+                  value={displayStep?.Langkah || ''}
+                  onChange={(e) => setSelectedStepNum(Number(e.target.value))}
+                  title="Select Operation Step"
+                  style={{ minWidth: '220px', height: '36px', fontSize: '0.8rem', padding: '0 8px' }}
+                >
+                  {currentOrder.steps.map((st) => {
+                    const isFin =
+                      st.barcodeStatus === 'FIN' ||
+                      String(st.Status).toLowerCase() === 'selesai' ||
+                      String(st.Status).toLowerCase() === 'completed' ||
+                      st.status === 1;
+                    const isActive =
+                      currentOrder.activeStep &&
+                      Number(currentOrder.activeStep.Langkah) === Number(st.Langkah);
+                    const statusTag = isFin
+                      ? 'FIN — Barcode Ready'
+                      : isActive
+                      ? 'PROG — Active'
+                      : 'PROG — Pending';
 
-                      return (
-                        <option key={st.Langkah} value={st.Langkah}>
-                          Step {st.Langkah}: {st.NamaLangkah} ({statusTag})
-                        </option>
-                      );
-                    })}
-                  </select>
+                    return (
+                      <option key={st.Langkah} value={st.Langkah}>
+                        Step {st.Langkah}: {st.NamaLangkah} ({statusTag})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="progress-stat-block">
+                <span className="progress-text font-mono">
+                  {currentOrder.completedSteps} of {currentOrder.totalSteps} Completed
+                </span>
+                <div className="progress-bar-track" style={{ minWidth: '80px' }}>
+                  <div
+                    className="progress-bar-fill"
+                    style={{
+                      width: `${(currentOrder.completedSteps / Math.max(1, currentOrder.totalSteps)) * 100}%`
+                    }}
+                  ></div>
                 </div>
-              ) : (
-                <div className="progress-stat-block">
-                  <span className="progress-text font-mono">
-                    {currentOrder.completedSteps} of {currentOrder.totalSteps} Steps Completed
-                  </span>
-                  <div className="progress-bar-track">
-                    <div
-                      className="progress-bar-fill"
-                      style={{
-                        width: `${(currentOrder.completedSteps / Math.max(1, currentOrder.totalSteps)) * 100}%`
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              )}
+              </div>
 
               {currentOrder.isComplete && (
                 <div className="completed-badge-pill">
@@ -259,8 +275,23 @@ export default function OrderPanel({
             </div>
           </div>
 
+          {/* Banner notification if all steps in order are completed */}
+          {currentOrder.isComplete && (
+            <div className="order-all-completed-banner mb-4">
+              <div className="flex items-center gap-3">
+                <CheckCheck size={32} color="#10B981" />
+                <div>
+                  <div className="all-completed-title text-base">Semua Step Pada Order Ini Telah Selesai!</div>
+                  <div className="all-completed-subtitle text-xs">
+                    Semua {currentOrder.totalSteps} langkah telah selesai dikonfirmasi di workshop ISC. Anda dapat memilih langkah di atas untuk memindai ulang barcode konfirmasi.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ACTIVE / SELECTED STEP SPOTLIGHT (The Core Requirement for the Workshop Screen) */}
-          {displayStep ? (
+          {displayStep && (
             <div className="active-step-spotlight-card">
               <div className="spotlight-top-badge">
                 <div className="flex items-center gap-2">
@@ -313,40 +344,68 @@ export default function OrderPanel({
                   </div>
                 </div>
 
-                {/* Always Prominently Displayed Barcode for Scanning into SAP (Admin & Operator) */}
+                {/* Barcode section: ONLY displayed when status is Finish (FIN) */}
                 <div className="spotlight-barcode-wrapper">
-                  <BarcodeCard
-                    value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
-                    label="CONFIRMATION NO. BARCODE"
-                    subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
-                    badgeText="2. Scan Confirmation No. to SAP"
-                    highlightColor="#00A3E0"
-                    height={80}
-                    width={2.2}
-                    fontSize={17}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="order-all-completed-banner">
-              <CheckCheck size={40} color="#10B981" />
-              <div className="all-completed-title">All Steps in this Order are Completed!</div>
-              <div className="all-completed-subtitle">
-                All {currentOrder.totalSteps} steps have been completed in the ISC workshop.
-              </div>
-              <div className="completed-status-dropdown-row">
-                <span className="text-xs text-muted font-semibold">Order Barcode Status:</span>
-                <div className="status-barcode-select-wrapper">
-                  <select
-                    className="status-barcode-select font-mono status-fin"
-                    value="FIN"
-                    onChange={(e) => handleBarcodeStatusChange(e.target.value, currentOrder.steps[currentOrder.steps.length - 1])}
-                    title="Change Order Barcode Status"
-                  >
-                    <option value="PROG">PROG — In Progress</option>
-                    <option value="FIN">FIN — Finished</option>
-                  </select>
+                  {isDisplayStepFinished ? (
+                    <div className="w-full flex flex-col items-center">
+                      <BarcodeCard
+                        value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
+                        label="CONFIRMATION NO. BARCODE"
+                        subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
+                        badgeText="2. Scan Confirmation No. to SAP"
+                        highlightColor="#10B981"
+                        format="CODE128"
+                        height={80}
+                        width={2.2}
+                        fontSize={17}
+                      />
+
+                      {/* Flow to Next Step without disruption */}
+                      {nextStep && (
+                        <div className="next-step-prompt-banner">
+                          <div className="next-step-prompt-text">
+                            <span className="step-done-check">
+                              <CheckCircle2 size={15} />
+                              Step {displayStep.Langkah} Finish
+                            </span>
+                            <span className="next-step-info">
+                              Langkah berikutnya: <strong>Step {nextStep.Langkah} — {nextStep.NamaLangkah}</strong>
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-primary flex items-center gap-1.5 font-mono"
+                            onClick={() => setSelectedStepNum(Number(nextStep.Langkah))}
+                            title={`Lanjut ke Step ${nextStep.Langkah}`}
+                          >
+                            <span>Lanjut ke Step {nextStep.Langkah}</span>
+                            <ArrowRight size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="barcode-pending-placeholder">
+                      <div className="barcode-pending-icon-wrap">
+                        <Clock size={28} className="text-cyan animate-pulse" />
+                      </div>
+                      <div className="barcode-pending-body">
+                        <h5 className="barcode-pending-title">Barcode Disembunyikan (Step Sedang Berjalan)</h5>
+                        <p className="barcode-pending-desc">
+                          Barcode SAP Confirmation No. <strong>{displayStep.NoKonfirmasi || currentOrder.NoProduksi}</strong> (Format: Code 128) akan otomatis muncul setelah status step diubah menjadi <strong>FIN (Finished)</strong>.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-success flex items-center gap-2 font-mono"
+                        onClick={() => handleBarcodeStatusChange('FIN')}
+                        title="Ubah status step ini ke FIN dan tampilkan barcode"
+                      >
+                        <CheckCircle2 size={15} />
+                        <span>Selesaikan Step & Tampilkan Barcode</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

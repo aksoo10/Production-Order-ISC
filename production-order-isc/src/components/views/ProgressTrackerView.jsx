@@ -11,6 +11,7 @@ import {
   ArrowRight,
   X
 } from 'lucide-react';
+import BarcodeCard from '../BarcodeCard';
 
 export default function ProgressTrackerView({
   orders = [],
@@ -28,6 +29,7 @@ export default function ProgressTrackerView({
   const [groupFilter, setGroupFilter] = useState(selectedGroup || 'ALL');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PROG' | 'FIN'
   const [selectedOrderFilter, setSelectedOrderFilter] = useState('ALL');
+  const [activeBarcodeModal, setActiveBarcodeModal] = useState(null);
 
   // Keep groupFilter in sync if parent selectedGroup changes
   React.useEffect(() => {
@@ -468,7 +470,29 @@ export default function ProgressTrackerView({
 
                               {/* 3. NO. KONFIRMASI */}
                               <td className="step-konf-cell font-mono">
-                                <span className="konf-number">{st.NoKonfirmasi}</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="konf-number">{st.NoKonfirmasi}</span>
+                                  {barcodeStatus === 'FIN' && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-xs btn-outline-cyan font-mono flex items-center gap-1"
+                                      onClick={() => {
+                                        const nextSt = ord.steps.find((s) => Number(s.Langkah) === Number(st.Langkah) + 1);
+                                        setActiveBarcodeModal({
+                                          orderNo: ord.NoProduksi,
+                                          stepNo: st.Langkah,
+                                          stepName: st.NamaLangkah,
+                                          noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
+                                          nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
+                                        });
+                                      }}
+                                      title="Scan SAP Confirmation Barcode (Code 128)"
+                                    >
+                                      <Scan size={11} />
+                                      <span>Barcode</span>
+                                    </button>
+                                  )}
+                                </div>
                               </td>
 
                               {/* 4. STATUS + BARCODE PROG/FIN */}
@@ -513,6 +537,16 @@ export default function ProgressTrackerView({
                                             nextBStatus,
                                             st.id || st.ID
                                           );
+                                          if (nextBStatus === 'FIN') {
+                                            const nextSt = ord.steps.find((s) => Number(s.Langkah) === Number(st.Langkah) + 1);
+                                            setActiveBarcodeModal({
+                                              orderNo: ord.NoProduksi,
+                                              stepNo: st.Langkah,
+                                              stepName: st.NamaLangkah,
+                                              noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
+                                              nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
+                                            });
+                                          }
                                         }}
                                         title="Change Barcode Status for this Step (PROG vs FIN)"
                                       >
@@ -563,17 +597,40 @@ export default function ProgressTrackerView({
                                           st.id || st.ID
                                         );
                                       }
+                                      const nextSt = ord.steps.find((s) => Number(s.Langkah) === Number(st.Langkah) + 1);
+                                      setActiveBarcodeModal({
+                                        orderNo: ord.NoProduksi,
+                                        stepNo: st.Langkah,
+                                        stepName: st.NamaLangkah,
+                                        noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
+                                        nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
+                                      });
                                     }}
-                                    title={`Mark Step ${st.Langkah} Completed`}
+                                    title={`Mark Step ${st.Langkah} Completed & Show Barcode`}
                                   >
                                     <CheckCircle2 size={12} />
                                     <span>Complete</span>
                                   </button>
                                 ) : (
                                   <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                    <span className="text-xs text-muted font-mono">
-                                      Verified
-                                    </span>
+                                    <button
+                                      type="button"
+                                      className="btn btn-xs btn-outline-cyan font-mono flex items-center gap-1"
+                                      onClick={() => {
+                                        const nextSt = ord.steps.find((s) => Number(s.Langkah) === Number(st.Langkah) + 1);
+                                        setActiveBarcodeModal({
+                                          orderNo: ord.NoProduksi,
+                                          stepNo: st.Langkah,
+                                          stepName: st.NamaLangkah,
+                                          noKonfirmasi: st.NoKonfirmasi || ord.NoProduksi,
+                                          nextStep: nextSt ? { stepNo: nextSt.Langkah, stepName: nextSt.NamaLangkah } : null
+                                        });
+                                      }}
+                                      title="Scan Confirmation Barcode (Code 128)"
+                                    >
+                                      <Scan size={11} />
+                                      <span>Barcode</span>
+                                    </button>
 
                                     {/* Revert button: strictly for Admin */}
                                     {isAdmin && onRevertStep && (
@@ -616,6 +673,106 @@ export default function ProgressTrackerView({
           })
         )}
       </div>
+
+      {/* 4. SAP Confirmation Barcode Modal when Step is FIN (Finished) */}
+      {activeBarcodeModal && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px'
+          }}
+          onClick={() => setActiveBarcodeModal(null)}
+        >
+          <div
+            className="modal-content"
+            style={{
+              backgroundColor: 'var(--bg-card, #FFFFFF)',
+              border: '1px solid var(--border-color, #E2E8F0)',
+              borderRadius: '12px',
+              maxWidth: '560px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <span className="badge-pill pill-fin font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
+                  FIN — FINISHED
+                </span>
+                <h3 className="font-heading font-bold text-base text-main">
+                  SAP Confirmation Barcode
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="btn-icon text-muted hover:text-main"
+                onClick={() => setActiveBarcodeModal(null)}
+                title="Close modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <div className="text-xs text-muted font-semibold uppercase tracking-wider mb-1">
+                Order #{activeBarcodeModal.orderNo} • Step {activeBarcodeModal.stepNo}
+              </div>
+              <h4 className="font-heading text-lg font-bold text-main">
+                {activeBarcodeModal.stepName}
+              </h4>
+            </div>
+
+            <div className="spotlight-barcode-wrapper mb-4">
+              <BarcodeCard
+                value={activeBarcodeModal.noKonfirmasi}
+                label="CONFIRMATION NO. BARCODE"
+                subtitle={`Step ${activeBarcodeModal.stepNo}: ${activeBarcodeModal.stepName}`}
+                badgeText="2. Scan Confirmation No. to SAP"
+                highlightColor="#10B981"
+                format="CODE128"
+                height={85}
+                width={2.4}
+                fontSize={18}
+              />
+            </div>
+
+            {activeBarcodeModal.nextStep && (
+              <div className="next-step-prompt-banner mb-4">
+                <div className="next-step-prompt-text">
+                  <span className="step-done-check">
+                    <CheckCircle2 size={15} />
+                    Step {activeBarcodeModal.stepNo} Selesai
+                  </span>
+                  <span className="next-step-info">
+                    Langkah berikutnya: <strong>Step {activeBarcodeModal.nextStep.stepNo} — {activeBarcodeModal.nextStep.stepName}</strong>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-primary font-mono px-4"
+                onClick={() => setActiveBarcodeModal(null)}
+              >
+                Selesai Pindai & Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
