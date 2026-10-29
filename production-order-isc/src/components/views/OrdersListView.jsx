@@ -161,7 +161,7 @@ export default function OrdersListView({
         </div>
 
         {/* Action Controls & Search */}
-        <div className="view-header-actions flex items-center gap-2 flex-wrap min-w-0">
+        <div className="view-header-actions flex items-center gap-2 min-w-0">
           {/* Quick Search */}
           <div className="panel-search-box header-search-box">
             <Search size={16} className="search-icon" />

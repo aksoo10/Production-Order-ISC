@@ -1283,17 +1283,22 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Dedicated styling for header toolbar search boxes (Orders List, Tracker, Personnel) */
 .header-search-box {
-  min-width: 280px;
-  max-width: 420px;
-  flex: 1 1 300px;
+  min-width: 210px;
+  max-width: 320px;
+  flex: 1 1 240px;
 }
 
 .view-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
   min-width: 0;
+}
+
+.view-header-actions .btn {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .search-icon {
@@ -1647,14 +1652,9 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-main);
 }
 
-@media (max-width: 768px) {
-  .header-search-box {
-    width: 100%;
-    min-width: 100%;
-    max-width: 100%;
-    order: -1;
-  }
+@media (max-width: 640px) {
   .view-header-actions {
+    flex-wrap: wrap;
     width: 100%;
   }
   .order-selector-bar {
