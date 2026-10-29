@@ -11,6 +11,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Role');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.sharepoint.com https://*.office.com https://*.office365.com https://*.microsoft.com https://teams.microsoft.com http://localhost:* https://localhost:*;");
+  if (typeof res.removeHeader === 'function') {
+    res.removeHeader('X-Frame-Options');
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();

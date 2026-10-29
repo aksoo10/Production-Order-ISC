@@ -20,6 +20,7 @@ function directPowerAutomatePlugin() {
 
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.sharepoint.com https://*.office.com https://*.office365.com https://*.microsoft.com https://teams.microsoft.com http://localhost:* https://localhost:*;");
 
         try {
           if (action === 'get' || action === 'list') {
@@ -183,6 +184,10 @@ export default defineConfig({
   base: './',
   server: {
     port: 5173,
-    host: true
+    host: true,
+    headers: {
+      'Content-Security-Policy': "frame-ancestors 'self' https://*.sharepoint.com https://*.office.com https://*.office365.com https://*.microsoft.com https://teams.microsoft.com http://localhost:* https://localhost:*;",
+      'Access-Control-Allow-Origin': '*'
+    }
   }
 })

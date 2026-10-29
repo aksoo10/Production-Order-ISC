@@ -14,6 +14,12 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-User-Role');
 
+// Allow embedding inside SharePoint, Microsoft 365 & Teams
+if (function_exists('header_remove')) {
+    header_remove('X-Frame-Options');
+}
+header("Content-Security-Policy: frame-ancestors 'self' https://*.sharepoint.com https://*.office.com https://*.office365.com https://*.microsoft.com https://teams.microsoft.com http://localhost:* https://localhost:*;");
+
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

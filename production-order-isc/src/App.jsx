@@ -24,10 +24,30 @@ import {
   isStorageItemExpired,
   purgeExpiredStorage
 } from './utils/storageHelper';
-import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import {
+  getEmbedConfig,
+  notifyParentFrameHeight,
+  openInStandaloneTab
+} from './utils/embedHelper';
+import { CheckCircle2, AlertCircle, Info, ExternalLink } from 'lucide-react';
 import './index.css';
 
 export default function App() {
+  // SharePoint & Embed configuration
+  const embedConfig = useMemo(() => getEmbedConfig(), []);
+  const isEmbedded = embedConfig.isEmbedded;
+
+  // Add .is-embedded class to document body for global embed styling
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (isEmbedded) {
+        document.body.classList.add('is-embedded');
+      } else {
+        document.body.classList.remove('is-embedded');
+      }
+    }
+  }, [isEmbedded]);
+
   // Authentication & Session state:
   // Session is stored in sessionStorage so fresh visits require logging in first
   const [currentUserSession, setCurrentUserSession] = useState(() => {
@@ -53,12 +73,22 @@ export default function App() {
     }
   });
 
-  // Clean URL parameters if any were passed (e.g. ?role=operator) without auto-bypassing login
+  // Clean sensitive parameters (role, mode) while strictly preserving embed, tab, group parameters for SharePoint
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('role') || urlParams.has('operator') || urlParams.has('mode') || window.location.hash === '#operator') {
-        window.history.replaceState({}, '', window.location.pathname);
+      let modified = false;
+      ['role', 'mode'].forEach((p) => {
+        if (urlParams.has(p)) {
+          urlParams.delete(p);
+          modified = true;
+        }
+      });
+      if (window.location.hash === '#operator') {
+        window.history.replaceState({}, '', window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : ''));
+      } else if (modified) {
+        const newSearch = urlParams.toString() ? `?${urlParams.toString()}` : '';
+        window.history.replaceState({}, '', window.location.pathname + newSearch);
       }
     }
   }, []);
@@ -66,6 +96,10 @@ export default function App() {
   // Navigation tab: 'dashboard' | 'scanner' | 'orders' | 'tracker'
   const [activeTab, setActiveTab] = useState(() => {
     try {
+      // 1. Honor tab specified in SharePoint embed URL (?tab=tracker etc.)
+      if (embedConfig.tab && ['dashboard', 'scanner', 'orders', 'tracker'].includes(embedConfig.tab.toLowerCase())) {
+        return embedConfig.tab.toLowerCase();
+      }
       if (typeof window !== 'undefined' && window.sessionStorage) {
         const savedTab = window.sessionStorage.getItem('isc_production_active_tab');
         if (savedTab && ['dashboard', 'scanner', 'orders', 'tracker'].includes(savedTab)) {
@@ -98,9 +132,22 @@ export default function App() {
       // Ignore storage errors
     }
   }, [activeTab]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
+    if (embedConfig.sidebar === 'collapsed' || embedConfig.compact) {
       return true;
+    }
+    if (embedConfig.sidebar === 'expanded') {
+      return false;
+    }
+    if (typeof window !== 'undefined') {
+      // In SharePoint embed mode, collapse by default on screens <= 1280px to save width
+      if (embedConfig.isEmbedded && window.innerWidth <= 1280) {
+        return true;
+      }
+      if (window.innerWidth <= 1024) {
+        return true;
+      }
     }
     const val = getStorageItem('isc_production_sidebar');
     return val === true || val === 'true';
@@ -112,10 +159,24 @@ export default function App() {
       if (window.innerWidth <= 1024) {
         setSidebarCollapsed(true);
       }
+      if (isEmbedded) {
+        notifyParentFrameHeight();
+      }
     };
     window.addEventListener('resize', handleWindowResize);
     return () => window.removeEventListener('resize', handleWindowResize);
-  }, []);
+  }, [isEmbedded]);
+
+  // Notify parent frame (SharePoint) on height/view/session changes
+  useEffect(() => {
+    if (isEmbedded) {
+      notifyParentFrameHeight();
+      const timer = setTimeout(() => {
+        notifyParentFrameHeight();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, currentUserSession, sidebarCollapsed, isEmbedded]);
 
   // Helper to detect dummy orders in storage
   const isDummyOrders = (arr) => {
@@ -252,9 +313,17 @@ export default function App() {
   });
 
   const [selectedOrderNo, setSelectedOrderNo] = useState(() => {
+    if (embedConfig.order) {
+      return embedConfig.order.trim();
+    }
     return orders[0]?.NoProduksi || INITIAL_ORDERS[0]?.NoProduksi || '';
   });
-  const [selectedGroup, setSelectedGroup] = useState('ALL');
+  const [selectedGroup, setSelectedGroup] = useState(() => {
+    if (embedConfig.group) {
+      return embedConfig.group.toUpperCase();
+    }
+    return 'ALL';
+  });
 
   // Theme state ('light' by default for authentic ANDRITZ engineering standard)
   const [theme, setTheme] = useState(() => {
@@ -1215,7 +1284,21 @@ export default function App() {
   // IF NOT AUTHENTICATED: SHOW FULLPAGE LOGIN PORTAL
   if (!currentUserSession) {
     return (
-      <>
+      <div className={`login-root-container ${isEmbedded ? 'embedded-mode' : ''}`}>
+        {isEmbedded && (
+          <div className="sharepoint-embed-topbar">
+            <span className="text-xs font-mono text-cyan-400">Mode SharePoint Terhubung</span>
+            <button
+              type="button"
+              className="btn btn-xs btn-outline-cyan flex items-center gap-1"
+              onClick={openInStandaloneTab}
+              title="Buka portal di tab browser baru untuk layar penuh"
+            >
+              <ExternalLink size={12} />
+              <span>Buka Tab Penuh</span>
+            </button>
+          </div>
+        )}
         <LoginView
           personnel={personnel}
           adminPassword={adminPassword}
@@ -1231,7 +1314,7 @@ export default function App() {
             <span className="font-heading text-sm text-white">{toast.message}</span>
           </div>
         )}
-      </>
+      </div>
     );
   }
 
@@ -1332,7 +1415,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-root-layout">
+    <div className={`app-root-layout ${isEmbedded ? 'embedded-mode' : ''} ${embedConfig.compact ? 'compact-mode' : ''}`}>
       {/* Top Navbar */}
       <Navbar
         isAdmin={isAdmin}
@@ -1352,6 +1435,8 @@ export default function App() {
         setZoomLevel={setZoomLevel}
         theme={theme}
         setTheme={setTheme}
+        isEmbedded={isEmbedded}
+        onOpenStandalone={openInStandaloneTab}
       />
 
       {/* Main Body Layout: Sidebar + Active Content View */}

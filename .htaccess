@@ -1,0 +1,37 @@
+# ==============================================================================
+# ANDRITZ ISC - Production Order Barcode Tracking System
+# Apache / Laragon Configuration for SharePoint Modern Page Iframe Embedding & SPA
+# ==============================================================================
+
+<IfModule mod_headers.c>
+    # 1. Unset X-Frame-Options to allow embedding within SharePoint and Microsoft 365
+    Header unset X-Frame-Options
+    Header always unset X-Frame-Options
+
+    # 2. Configure Content-Security-Policy with frame-ancestors
+    Header set Content-Security-Policy "frame-ancestors 'self' https://*.sharepoint.com https://*.office.com https://*.office365.com https://*.microsoft.com https://teams.microsoft.com http://localhost:* https://localhost:*;"
+    Header always set Content-Security-Policy "frame-ancestors 'self' https://*.sharepoint.com https://*.office.com https://*.office365.com https://*.microsoft.com https://teams.microsoft.com http://localhost:* https://localhost:*;"
+
+    # 3. CORS Configuration
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-User-Role"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Pass API requests directly to PHP or existing files
+    RewriteCond %{REQUEST_URI} ^/api [NC]
+    RewriteRule ^ - [L]
+
+    # Serve existing files and directories directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Fallback to index.html for Single Page Application
+    RewriteRule ^ index.html [L]
+</IfModule>
+

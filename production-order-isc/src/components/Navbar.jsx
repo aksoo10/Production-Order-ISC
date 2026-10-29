@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import {
   LogOut,
   Layers,
-  UserCheck
+  UserCheck,
+  ExternalLink
 } from 'lucide-react';
 import andritzLogo from '../assets/andritz-logo.png';
 import { INITIAL_PERSONNEL } from '../utils/initialData';
@@ -14,7 +15,9 @@ export default function Navbar({
   availableGroups = [],
   personnel = [],
   selectedOperator = null,
-  onSelectOperator = () => {}
+  onSelectOperator = () => {},
+  isEmbedded = false,
+  onOpenStandalone = null
 }) {
   // Ensure all personnel are loaded without exception
   const allPersonnel = useMemo(() => {
@@ -105,6 +108,19 @@ export default function Navbar({
             ))}
           </select>
         </div>
+
+        {/* SharePoint / Iframe Standalone Pop-out Button */}
+        {isEmbedded && onOpenStandalone && (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-cyan sharepoint-popout-btn"
+            onClick={onOpenStandalone}
+            title="Buka aplikasi di tab browser baru (Layar Penuh / Keluar dari frame SharePoint)"
+          >
+            <ExternalLink size={14} />
+            <span className="hidden sm:inline">Layar Penuh</span>
+          </button>
+        )}
 
         {/* Logout Button */}
         <button
