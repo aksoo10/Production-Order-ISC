@@ -5,11 +5,10 @@ import {
   AlertCircle,
   CheckCircle2,
   AlertTriangle,
-  Download,
   Loader2,
   ShieldCheck
 } from 'lucide-react';
-import { parseExcelFile, downloadTemplateExcel } from '../utils/excelHelper';
+import { parseExcelFile } from '../utils/excelHelper';
 
 export default function ExcelImportModal({
   isOpen,
@@ -420,50 +419,37 @@ export default function ExcelImportModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="modal-footer justify-between">
+        <div className="modal-footer">
           <button
             type="button"
-            className="btn btn-sm btn-outline"
+            className="btn btn-outline"
             disabled={isSubmitting}
-            onClick={downloadTemplateExcel}
-            title="Download sample Excel template format"
+            onClick={handleModalClose}
           >
-            <Download size={14} />
-            <span>Download Template Format</span>
+            Cancel
           </button>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn btn-outline"
-              disabled={isSubmitting}
-              onClick={handleModalClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary-gradient"
-              disabled={!previewData || parsing || isSubmitting}
-              onClick={handleConfirmImport}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Importing to Cloud...</span>
-                </>
-              ) : (
-                <>
-                  <Upload size={16} />
-                  <span>
-                    {duplicateMode === 'skip' && previewData?.duplicateOrderCount > 0
-                      ? `Import ${previewData.newOrderCount} New Orders`
-                      : 'Apply & Save to Cloud'}
-                  </span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn btn-primary-gradient"
+            disabled={!previewData || parsing || isSubmitting}
+            onClick={handleConfirmImport}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Importing to Cloud...</span>
+              </>
+            ) : (
+              <>
+                <Upload size={16} />
+                <span>
+                  {duplicateMode === 'skip' && previewData?.duplicateOrderCount > 0
+                    ? `Import ${previewData.newOrderCount} New Orders`
+                    : 'Apply & Save to Cloud'}
+                </span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
