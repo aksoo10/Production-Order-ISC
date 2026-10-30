@@ -3,8 +3,6 @@
  * Centralized CRUD service interfacing with the backend proxy
  */
 
-import { INITIAL_ORDERS } from '../utils/initialData';
-
 const API_BASE = import.meta.env.VITE_API_BASE_URL || './api';
 
 // Helper to determine URL path whether ending with .php or directory
@@ -44,38 +42,30 @@ function getAuthHeaders() {
   };
 }
 
-// Resilient fetch helper that handles both /orders and /orders.php environments
-async function requestWithFallback(primaryUrl, options = {}) {
-  let response;
-  try {
-    response = await fetch(primaryUrl, options);
-  } catch (err) {
-    console.warn(`[orderApiService] Primary fetch failed for ${primaryUrl}:`, err);
+async function requestWithoutCache(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    cache: 'no-store',
+    headers: options.headers || {}
+  });
+}
+
+async function ensureSuccessfulResponse(response, operation) {
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(`${operation} failed (HTTP ${response.status}): ${responseText}`);
   }
-
-  // If failed or returned 404, try the alternative endpoint
-  if (!response || !response.ok) {
-    const isPhp = primaryUrl.includes('.php');
-    const altUrl = isPhp
-      ? primaryUrl.replace('orders.php', 'orders')
-      : primaryUrl.replace('/orders?', '/orders.php?');
-
-    if (altUrl !== primaryUrl) {
-      try {
-        const altResponse = await fetch(altUrl, options);
-        if (altResponse.ok) {
-          return altResponse;
-        }
-        if (altResponse && (!response || response.status === 404)) {
-          response = altResponse;
-        }
-      } catch (altErr) {
-        console.warn(`[orderApiService] Fallback fetch also failed for ${altUrl}:`, altErr);
+  if (responseText) {
+    try {
+      const result = JSON.parse(responseText);
+      if (result?.success === false) {
+        throw new Error(result.error || `${operation} was rejected by the server.`);
       }
+    } catch (err) {
+      if (err instanceof SyntaxError) return;
+      throw err;
     }
   }
-
-  return response;
 }
 
 export const orderApiService = {
@@ -86,28 +76,23 @@ export const orderApiService = {
   async getAllOrders() {
     try {
       const primaryUrl = getEndpointUrl('get');
-      const response = await requestWithFallback(primaryUrl, {
+      const response = await requestWithoutCache(primaryUrl, {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
 
-      if (!response || !response.ok) {
-        const errorText = response ? await response.text() : 'No response from server';
-        throw new Error(`Failed to fetch cloud data (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch cloud data (HTTP ${response.status}): ${errorText}`);
       }
 
       const json = await response.json();
+      if (json?.success !== true || !Array.isArray(json.data)) {
+        throw new Error('SharePoint API returned an invalid orders response.');
+      }
       return json;
     } catch (err) {
-      console.warn('[orderApiService] Error fetching orders, using baseline data:', err);
-      if (Array.isArray(INITIAL_ORDERS) && INITIAL_ORDERS.length > 0) {
-        return {
-          success: true,
-          total: INITIAL_ORDERS.length,
-          data: INITIAL_ORDERS,
-          fallback: true
-        };
-      }
+      console.error('[orderApiService] Failed to fetch SharePoint orders:', err);
       throw err;
     }
   },
@@ -126,6 +111,8 @@ export const orderApiService = {
     return {
       id: parseInt(it.id || it.ID, 10) || 0,
       orderNo: orderNum,
+      stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
+      stepName: String(it.stepName || it.NamaLangkah || titleVal).trim(),
       title: titleVal,
       customers: custVal,
       soDocument: String(it.soDocument || '-'),
@@ -155,23 +142,20 @@ export const orderApiService = {
         .map(it => this._normalizeItem(it))
         .filter(it => it.orderNo);
 
-      if (validItems.length === 0) {
-        return { success: true, count: 0 };
+      if (validItems.length !== rawList.length) {
+        throw new Error('Some orders are missing a production order number and were not sent.');
       }
 
       const BATCH_SIZE = 15;
       for (let i = 0; i < validItems.length; i += BATCH_SIZE) {
         const batch = validItems.slice(i, i + BATCH_SIZE);
-        const response = await requestWithFallback(getEndpointUrl('create'), {
+        const response = await requestWithoutCache(getEndpointUrl('create'), {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ items: batch })
         });
 
-        if (!response || !response.ok) {
-          const errorText = response ? await response.text() : 'No response from server';
-          throw new Error(`Failed to create order in cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
-        }
+        await ensureSuccessfulResponse(response, 'Create SharePoint order');
       }
 
       return { success: true, count: validItems.length };
@@ -193,23 +177,20 @@ export const orderApiService = {
         .map(it => this._normalizeItem(it))
         .filter(it => it.id > 0 && it.orderNo);
 
-      if (validItems.length === 0) {
-        return { success: true, count: 0 };
+      if (validItems.length !== rawList.length) {
+        throw new Error('Some orders are missing a valid SharePoint ID or production order number.');
       }
 
       const BATCH_SIZE = 15;
       for (let i = 0; i < validItems.length; i += BATCH_SIZE) {
         const batch = validItems.slice(i, i + BATCH_SIZE);
-        const response = await requestWithFallback(getEndpointUrl('update'), {
+        const response = await requestWithoutCache(getEndpointUrl('update'), {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ items: batch })
         });
 
-        if (!response || !response.ok) {
-          const errorText = response ? await response.text() : 'No response from server';
-          throw new Error(`Failed to update order in cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
-        }
+        await ensureSuccessfulResponse(response, 'Update SharePoint order');
       }
 
       return { success: true, count: validItems.length };
@@ -228,32 +209,18 @@ export const orderApiService = {
     try {
       const numId = parseInt(id, 10);
       if (isNaN(numId) || numId <= 0) {
-        return { success: true, message: 'Invalid ID skipped' };
+        throw new Error('A valid SharePoint ID is required for deletion.');
       }
 
-      const response = await requestWithFallback(getEndpointUrl('delete'), {
+      const response = await requestWithoutCache(getEndpointUrl('delete'), {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ ID: numId })
       });
 
-      if (!response || !response.ok) {
-        const errorText = response ? await response.text() : 'No response from server';
-        // When item is already absent in SharePoint upstream, Power Automate yields 502 NoResponse or 404
-        if (response && (response.status === 502 || response.status === 404 || errorText.includes('NoResponse'))) {
-          console.warn('[orderApiService] Item not found in SharePoint upstream, completing local deletion:', numId);
-          return { success: true, notFoundInCloud: true };
-        }
-        throw new Error(`Failed to delete order in cloud (HTTP ${response ? response.status : 'ERR'}): ${errorText}`);
-      }
-
-      const json = await response.json();
-      return json;
+      await ensureSuccessfulResponse(response, 'Delete SharePoint order');
+      return { success: true, id: numId };
     } catch (err) {
-      if (err.message && (err.message.includes('502') || err.message.includes('NoResponse'))) {
-        console.warn('[orderApiService] Caught 502 NoResponse, treating item as already deleted:', err.message);
-        return { success: true, notFoundInCloud: true };
-      }
       console.error('[orderApiService] Error deleting order:', err);
       throw err;
     }
@@ -264,7 +231,7 @@ export const orderApiService = {
    */
   async checkHealth() {
     try {
-      const res = await fetch(getEndpointUrl('health'));
+      const res = await requestWithoutCache(getEndpointUrl('health'));
       return await res.json();
     } catch (err) {
       return { success: false, error: err.message };
@@ -279,7 +246,7 @@ export const orderApiService = {
       const headers = getAuthHeaders();
       const role = headers['X-User-Role'] || 'admin';
       const primaryUrl = `${getEndpointUrl('dashboard_analytics')}&role=${encodeURIComponent(role)}`;
-      const response = await requestWithFallback(primaryUrl, {
+      const response = await requestWithoutCache(primaryUrl, {
         method: 'GET',
         headers
       });

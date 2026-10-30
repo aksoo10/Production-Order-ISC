@@ -173,3 +173,14 @@ Pastikan atribut `sandbox` pada tag `<iframe>` selalu menyertakan izin berikut:
 #### Q4: Apakah sesi login tersimpan saat halaman SharePoint di-refresh?
 - **Penyebab**: Sesi login menggunakan `sessionStorage` per-tab. Selama tab browser SharePoint tidak ditutup, sesi akan tetap aktif saat berpindah navigasi di dalam aplikasi. Jika pengguna menutup tab atau mengklik "Logout", sesi akan berakhir secara aman.
 
+## 6. Sumber Data Bersama dan Status Langkah
+
+Data order dan setiap langkah harus menjadi baris SharePoint yang berbeda. Agar status hasil scan benar-benar sama di semua perangkat:
+
+1. Tambahkan kolom SharePoint `StepNo` (Number) dan `StepName` (Single line of text) pada list order.
+2. Perbarui schema trigger HTTP serta aksi **Create item** dan **Update item** pada flow Power Automate agar menerima dan menyimpan `stepNo`, `stepName`, dan `status`.
+3. Perbarui flow GET agar mengembalikan tiap baris berikut `ID`, `StepNo`, `StepName`, dan `field_12` (status: `1` selesai, `0` berjalan). API juga membaca alias `stepNo`/`stepName`.
+4. Migrasikan data lama: buat satu baris SharePoint untuk tiap langkah dengan StepNo, StepName, dan status yang benar. Langkah yang sebelumnya dibuat oleh konfigurasi lokal tidak otomatis ada di SharePoint.
+5. Publikasikan flow sebelum deploy frontend. Create, edit, scan/status barcode, reset, delete, dan import sekarang menunggu respons server; jika Flow menolak/timeout, aplikasi menampilkan error dan tidak menganggap perubahan berhasil.
+
+Aplikasi memuat data dari SharePoint saat dibuka, polling setiap 30 detik, dan menyediakan Refresh manual serta waktu sinkronisasi terakhir. LocalStorage hanya menyimpan snapshot server untuk fallback saat offline; snapshot versi lama dan registry status lokal dibuang. Vercel mengirim header no-store, dan aplikasi menghapus service worker/cache lama pada origin saat startup.

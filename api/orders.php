@@ -13,6 +13,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-User-Role');
+header('Cache-Control: no-store, max-age=0, must-revalidate');
 
 // Allow embedding inside SharePoint, Microsoft 365 & Teams
 if (function_exists('header_remove')) {
@@ -139,39 +140,6 @@ try {
 
             $rawItems = $res['json']['data'] ?? [];
             $mappedOrders = [];
-            $deletedOrders = ['S-10-P84786-643', '102910210'];
-            $multiStepConfig = [
-                '4800115516' => [
-                    ['Langkah' => 1, 'NamaLangkah' => 'SPARE PART - BEDKNIFE', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 2, 'NamaLangkah' => 'SPARE PART - BEDKNIFE - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
-                ],
-                '53072677' => [
-                    ['Langkah' => 1, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 2, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
-                ],
-                '53028923' => [
-                    ['Langkah' => 1, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 2, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
-                ],
-                'S-10-P82990-643' => [
-                    ['Langkah' => 1, 'NamaLangkah' => 'WEAR PLATE', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 2, 'NamaLangkah' => 'WEAR PLATE - Langkah 2', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 3, 'NamaLangkah' => 'WEAR PLATE - Langkah 3', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 4, 'NamaLangkah' => 'WEAR PLATE - Langkah 4', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 5, 'NamaLangkah' => 'WEAR PLATE - Langkah 5', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 6, 'NamaLangkah' => 'WEAR PLATE - Langkah 6', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 7, 'NamaLangkah' => 'WEAR PLATE - Langkah 7', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 8, 'NamaLangkah' => 'WEAR PLATE - Langkah 8', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 9, 'NamaLangkah' => 'WEAR PLATE - Langkah 9', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 10, 'NamaLangkah' => 'WEAR PLATE - Langkah 10', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 11, 'NamaLangkah' => 'WEAR PLATE - Langkah 11', 'Status' => 'Berjalan', 'status' => 0]
-                ],
-                'S-10-P94014-643' => [
-                    ['Langkah' => 1, 'NamaLangkah' => 'BED KNIFE EWR', 'Status' => 'Berjalan', 'status' => 0],
-                    ['Langkah' => 2, 'NamaLangkah' => 'ANVIL BRUCKS CS2000', 'Status' => 'Berjalan', 'status' => 0]
-                ]
-            ];
-            $seenMulti = [];
 
             foreach ($rawItems as $sp) {
                 $rawProdOrder = trim((string)($sp['field_4'] ?? ''));
@@ -179,13 +147,11 @@ try {
                 $orderNo = !empty($rawProdOrder) && $rawProdOrder !== '-' ? $rawProdOrder : (!empty($rawTitle) && $rawTitle !== '-' ? $rawTitle : ('ORD-' . ($sp['ID'] ?? '0')));
                 $idVal = (int)($sp['ID'] ?? 0);
 
-                if (in_array($orderNo, $deletedOrders, true) || in_array($rawProdOrder, $deletedOrders, true) || in_array($rawTitle, $deletedOrders, true) || $idVal === 99 || $rawTitle === 'jkjsasa') {
-                    continue;
-                }
-
-                $isOrder53072678 = ($orderNo === '53072678');
-                $statusNum = ($isOrder53072678 || (isset($sp['field_12']) && (int)$sp['field_12'] === 1)) ? 1 : 0;
+                $rawStatus = $sp['field_12'] ?? $sp['status'] ?? $sp['Status'] ?? 0;
+                $statusNum = ((int)$rawStatus === 1 || strtolower((string)$rawStatus) === 'selesai') ? 1 : 0;
                 $statusText = ($statusNum === 1) ? 'Selesai' : 'Berjalan';
+                $stepNo = (int)($sp['stepNo'] ?? $sp['StepNo'] ?? $sp['Langkah'] ?? $sp['field_13'] ?? 1);
+                $stepName = (string)($sp['stepName'] ?? $sp['StepName'] ?? $sp['NamaLangkah'] ?? $sp['field_14'] ?? $sp['field_6'] ?? $sp['Title'] ?? 'Proses Produksi');
 
                 $baseItem = [
                     'id'                  => $idVal,
@@ -203,35 +169,22 @@ try {
                     'shortDescSO'         => (string)($sp['field_6'] ?? '-'),
                     'materialNo'          => (string)($sp['field_7'] ?? '-'),
                     'materialDescription' => (string)($sp['field_8'] ?? ($sp['Title'] ?? '-')),
+                    'stepNo'              => $stepNo > 0 ? $stepNo : 1,
+                    'stepName'            => $stepName,
                     'qtyOrder'            => isset($sp['field_9']) ? (float)$sp['field_9'] : 1.0,
                     'planStart'           => !empty($sp['field_10']) ? explode('T', (string)$sp['field_10'])[0] : '2026-10-26',
                     'planFinish'          => !empty($sp['field_11']) ? explode('T', (string)$sp['field_11'])[0] : '2026-11-15',
                     'status'              => $statusNum,
                     'Status'              => $statusText,
-                    'Langkah'             => 1,
+                    'Langkah'             => $stepNo > 0 ? $stepNo : 1,
+                    'NamaLangkah'         => $stepName,
                     'NoKonfirmasi'        => !empty($rawProdOrder) ? ('1000' . substr($rawProdOrder, -4)) : ('1000' . ($sp['ID'] ?? '1')),
                     'Created'             => (string)($sp['Created'] ?? ''),
                     'Modified'            => (string)($sp['Modified'] ?? ''),
                     'Author'              => $sp['Author']['DisplayName'] ?? ''
                 ];
 
-                if (isset($multiStepConfig[$orderNo])) {
-                    if (isset($seenMulti[$orderNo])) continue;
-                    $seenMulti[$orderNo] = true;
-                    $steps = $multiStepConfig[$orderNo];
-                    foreach ($steps as $idx => $st) {
-                        $stepItem = $baseItem;
-                        $stepItem['id'] = ($idx === 0) ? $baseItem['id'] : ($baseItem['id'] * 1000 + $idx);
-                        $stepItem['ID'] = ($idx === 0) ? $baseItem['ID'] : ($baseItem['ID'] * 1000 + $idx);
-                        $stepItem['Langkah'] = $st['Langkah'] ?? ($idx + 1);
-                        $stepItem['NamaLangkah'] = $st['NamaLangkah'] ?? ($baseItem['title'] . ' - Langkah ' . ($idx + 1));
-                        $stepItem['Status'] = $st['Status'] ?? 'Berjalan';
-                        $stepItem['status'] = isset($st['status']) ? $st['status'] : ($st['Status'] === 'Selesai' ? 1 : 0);
-                        $mappedOrders[] = $stepItem;
-                    }
-                } else {
-                    $mappedOrders[] = $baseItem;
-                }
+                $mappedOrders[] = $baseItem;
             }
 
             echo json_encode([
@@ -300,6 +253,8 @@ try {
 
                 $formattedItems[] = [
                     'orderNo'             => $orderNum,
+                    'stepNo'              => (int)($it['stepNo'] ?? $it['Langkah'] ?? 1),
+                    'stepName'            => (string)($it['stepName'] ?? $it['NamaLangkah'] ?? $it['title'] ?? ('Order ' . $orderNum)),
                     'title'               => (string)($it['title'] ?? $it['NamaLangkah'] ?? ('Order ' . $orderNum)),
                     'customers'           => (string)($it['customers'] ?? $it['Customer'] ?? 'ANDRITZ ISC Internal'),
                     'soDocument'          => (string)($it['soDocument'] ?? ''),
@@ -359,6 +314,8 @@ try {
                 $formattedItems[] = [
                     'id'                  => $id,
                     'orderNo'             => $orderNum,
+                    'stepNo'              => (int)($it['stepNo'] ?? $it['Langkah'] ?? 1),
+                    'stepName'            => (string)($it['stepName'] ?? $it['NamaLangkah'] ?? $it['title'] ?? ('Order ' . $orderNum)),
                     'title'               => (string)($it['title'] ?? $it['NamaLangkah'] ?? ('Order ' . $orderNum)),
                     'customers'           => (string)($it['customers'] ?? $it['Customer'] ?? ''),
                     'soDocument'          => (string)($it['soDocument'] ?? ''),
@@ -407,17 +364,6 @@ try {
 
             $payload = ['ID' => $targetId];
             $res = sendHttpRequest($DELETE_URL, 'POST', $payload);
-
-            // Handle Power Automate 502 NoResponse or 404 when item is not in SharePoint
-            if ($res['status'] === 502 || $res['status'] === 404 || strpos($res['body'], 'NoResponse') !== false) {
-                http_response_code(200);
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Item tidak ditemukan di SharePoint atau sudah terhapus.',
-                    'id'      => $targetId
-                ]);
-                exit;
-            }
 
             http_response_code($res['status']);
             echo $res['body'];

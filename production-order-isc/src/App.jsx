@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import LoginView from './components/LoginView';
@@ -11,26 +11,25 @@ import ExcelImportModal from './components/ExcelImportModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import {
   INITIAL_PERSONNEL,
-  INITIAL_ORDERS,
-  isDummyPersonnel,
-  DEFAULT_DELETED_ORDERS,
-  DEFAULT_ORDER_STEPS
+  isDummyPersonnel
 } from './utils/initialData';
 import { exportToExcel, downloadTemplateExcel } from './utils/excelHelper';
 import { orderApiService } from './services/orderApiService';
 import {
   setStorageItem,
   getStorageItem,
-  isStorageItemExpired,
-  purgeExpiredStorage
+  removeStorageItem
 } from './utils/storageHelper';
 import {
   getEmbedConfig,
   notifyParentFrameHeight,
   openInStandaloneTab
 } from './utils/embedHelper';
-import { CheckCircle2, AlertCircle, Info, ExternalLink } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ExternalLink, RefreshCw } from 'lucide-react';
 import './index.css';
+
+const ORDER_CACHE_KEY = 'isc_production_orders_v2';
+const ORDER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export default function App() {
   // SharePoint & Embed configuration
@@ -178,13 +177,6 @@ export default function App() {
     }
   }, [activeTab, currentUserSession, sidebarCollapsed, isEmbedded]);
 
-  // Helper to detect dummy orders in storage
-  const isDummyOrders = (arr) => {
-    if (!Array.isArray(arr) || arr.length === 0) return false;
-    const dummyNos = ['10048291', '10048292', '10049380', '10049455'];
-    return arr.some((o) => dummyNos.includes(String(o.NoProduksi || o.orderNo || '').trim()));
-  };
-
   // Personnel state with 1-minute localStorage persistence
   const [personnel, setPersonnel] = useState(() => {
     try {
@@ -201,91 +193,12 @@ export default function App() {
     }
   });
 
-  // Orders state with localStorage persistence and custom steps hydration
-  const [orders, setOrders] = useState(() => {
-    try {
-      const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
-      const deletedSet = new Set([
-        ...DEFAULT_DELETED_ORDERS,
-        ...(deletedList || []).map((s) => String(s).trim())
-      ]);
-      setStorageItem('isc_production_deleted_orders', Array.from(deletedSet));
-
-      const savedRegistry = getStorageItem('isc_production_order_steps', {}) || {};
-      const registry = { ...DEFAULT_ORDER_STEPS, ...savedRegistry };
-      DEFAULT_DELETED_ORDERS.forEach((delNo) => {
-        if (registry[delNo]) {
-          delete registry[delNo];
-        }
-      });
-      setStorageItem('isc_production_order_steps', registry);
-
-      const saved = getStorageItem('isc_production_orders');
-      const rawBase = (saved && Array.isArray(saved) && saved.length > 0 && !isDummyOrders(saved))
-        ? saved
-        : INITIAL_ORDERS;
-
-      // Filter out deleted orders from the base list
-      const baseOrders = rawBase.filter((item) => {
-        const num = String(item.NoProduksi || item.orderNo || '').trim();
-        return num && !deletedSet.has(num);
-      });
-
-      let finalOrders = baseOrders;
-      const topOrders = [];
-      const normalOrders = [];
-      const processed = new Set();
-
-      const stepsCountByOrder = new Map();
-      const hasFinishedByOrder = new Map();
-      baseOrders.forEach((item) => {
-        const num = String(item.NoProduksi || item.orderNo || '').trim();
-        stepsCountByOrder.set(num, (stepsCountByOrder.get(num) || 0) + 1);
-        if (String(item.Status).toLowerCase() === 'selesai' || item.status === 1) {
-          hasFinishedByOrder.set(num, true);
-        }
-      });
-
-      baseOrders.forEach((item) => {
-        const num = String(item.NoProduksi || item.orderNo || '').trim();
-        if (processed.has(num)) return;
-        processed.add(num);
-
-        const customSteps = registry ? registry[num] : null;
-        if (customSteps && Array.isArray(customSteps) && customSteps.length > 0) {
-          customSteps.forEach((st, idx) => {
-            const defStep = DEFAULT_ORDER_STEPS[num]?.[idx];
-            const isDone =
-              String(st.Status).toLowerCase() === 'selesai' ||
-              st.status === 1 ||
-              (defStep && (String(defStep.Status).toLowerCase() === 'selesai' || defStep.status === 1));
-
-            topOrders.push({
-              ...item,
-              Langkah: idx + 1,
-              NamaLangkah: st.NamaLangkah || `${item.title || 'Langkah'} ${idx + 1}`,
-              NoKonfirmasi: st.NoKonfirmasi || item.NoKonfirmasi || item.NoProduksi,
-              Status: isDone ? 'Selesai' : 'Berjalan',
-              status: isDone ? 1 : 0
-            });
-          });
-        } else if ((stepsCountByOrder.get(num) || 0) > 1 || hasFinishedByOrder.get(num)) {
-          baseOrders.filter((b) => String(b.NoProduksi || b.orderNo || '').trim() === num).forEach((b) => {
-            topOrders.push(b);
-          });
-        } else {
-          normalOrders.push(item);
-        }
-      });
-      finalOrders = [...topOrders, ...normalOrders];
-
-      // Persist the clean list so localStorage immediately reflects the deletion
-      setStorageItem('isc_production_orders', finalOrders);
-      return finalOrders;
-    } catch {
-      return INITIAL_ORDERS.filter((o) => !DEFAULT_DELETED_ORDERS.includes(String(o.NoProduksi || o.orderNo || '').trim()));
-    }
-  });
+  // Orders always come from SharePoint; this cache is read only when the server is offline.
+  const [orders, setOrders] = useState([]);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [syncError, setSyncError] = useState('');
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const syncInProgressRef = useRef(false);
 
   // Admin password with localStorage persistence (Default: 'admin123')
   const [adminPassword, setAdminPassword] = useState(() => {
@@ -316,7 +229,7 @@ export default function App() {
     if (embedConfig.order) {
       return embedConfig.order.trim();
     }
-    return orders[0]?.NoProduksi || INITIAL_ORDERS[0]?.NoProduksi || '';
+    return orders[0]?.NoProduksi || orders[0]?.orderNo || '';
   });
   const [selectedGroup, setSelectedGroup] = useState(() => {
     if (embedConfig.group) {
@@ -399,10 +312,6 @@ export default function App() {
   useEffect(() => {
     setStorageItem('isc_production_personnel', personnel);
   }, [personnel]);
-
-  useEffect(() => {
-    setStorageItem('isc_production_orders', orders);
-  }, [orders]);
 
   useEffect(() => {
     setStorageItem('isc_production_admin_password', adminPassword);
@@ -498,401 +407,142 @@ export default function App() {
     showToast('You have logged out of the system.', 'info');
   };
 
-  // Helper to read and save persistent custom order steps registry
-  const getCustomStepsRegistry = () => {
-    const saved = getStorageItem('isc_production_order_steps', {}) || {};
-    const merged = { ...DEFAULT_ORDER_STEPS, ...saved };
-    // Ensure default finished steps are preserved even if an older cached registry had 'Berjalan'
-    Object.entries(DEFAULT_ORDER_STEPS).forEach(([no, defSteps]) => {
-      if (merged[no] && Array.isArray(merged[no])) {
-        merged[no] = merged[no].map((st, idx) => {
-          const def = defSteps[idx];
-          if (def && (String(def.Status).toLowerCase() === 'selesai' || def.status === 1)) {
-            return { ...st, Status: 'Selesai', status: 1 };
-          }
-          return st;
-        });
-      }
-    });
-    return merged;
+  const persistOrderSnapshot = (snapshot) => {
+    setStorageItem(ORDER_CACHE_KEY, snapshot, ORDER_CACHE_TTL_MS);
   };
 
-  const saveCustomStepsRegistry = (registry) => {
-    setStorageItem('isc_production_order_steps', registry);
-  };
-
-  // Mark active step as finished
-  const handleMarkStepFinished = (orderNo, stepNumber) => {
-    const sOrderNo = String(orderNo).trim();
-
-    // 1. Update persistent custom steps registry
-    try {
-      const registry = getCustomStepsRegistry();
-      if (registry[sOrderNo]) {
-        registry[sOrderNo] = registry[sOrderNo].map((st) => {
-          if (Number(st.Langkah) === Number(stepNumber)) {
-            return { ...st, Status: 'Selesai' };
-          }
-          return st;
-        });
-        saveCustomStepsRegistry(registry);
-      }
-    } catch (e) {
-      console.warn('[handleMarkStepFinished] Gagal update registry langkah:', e);
+  const updateStepInCloud = async (orderNo, stepNumber, stepId, patch) => {
+    const target = orders.find((step) =>
+      String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim() &&
+      (stepId
+        ? String(step.id || step.ID) === String(stepId)
+        : Number(step.Langkah || step.stepNo) === Number(stepNumber))
+    );
+    if (!target || !(Number(target.id || target.ID) > 0)) {
+      throw new Error('Langkah tidak memiliki ID SharePoint yang valid. Muat ulang data sebelum mengubahnya.');
     }
 
-    setOrders((prevOrders) => {
-      const updated = prevOrders.map((step) => {
-        if (
-          String(step.NoProduksi).trim() === sOrderNo &&
-          Number(step.Langkah) === Number(stepNumber)
-        ) {
-          return { ...step, Status: 'Selesai', status: 1 };
-        }
-        return step;
-      });
-
-      const orderSteps = updated
-        .filter((s) => String(s.NoProduksi).trim() === sOrderNo)
-        .sort((a, b) => Number(a.Langkah) - Number(b.Langkah));
-
-      const nextActive = orderSteps.find(
-        (s) => String(s.Status).toLowerCase() !== 'selesai'
-      );
-
-      if (nextActive) {
-        showToast(
-          `Step ${stepNumber} Completed! Step ${nextActive.Langkah} (${nextActive.NamaLangkah}) is now active.`,
-          'success'
-        );
-      } else {
-        showToast(`All steps for Order ${orderNo} are completed!`, 'success');
-      }
-
-      // Auto-sync status to SharePoint if order has cloud ID
-      const targetOrder = prevOrders.find((o) => String(o.NoProduksi).trim() === sOrderNo);
-      if (targetOrder && targetOrder.id && targetOrder.id > 0) {
-        orderApiService.updateOrder({
-          id: targetOrder.id,
-          orderNo: targetOrder.NoProduksi,
-          title: targetOrder.title || targetOrder.NamaLangkah || '',
-          status: nextActive ? 0 : 1
-        }).catch((err) => console.warn('[AutoSync] Cloud update failed:', err));
-      }
-
-      // Move the active working order to the top of the list
-      const matchingOrderSteps = updated.filter((s) => String(s.NoProduksi).trim() === sOrderNo);
-      const otherOrderSteps = updated.filter((s) => String(s.NoProduksi).trim() !== sOrderNo);
-      const reordered = [...matchingOrderSteps, ...otherOrderSteps];
-
-      setStorageItem('isc_production_orders', reordered);
-      return reordered;
-    });
-  };
-
-  // Revert finished step back to in-progress / unfinished (Admin feature)
-  const handleRevertStep = (orderNo, stepNumber, stepId) => {
-    const sOrderNo = String(orderNo).trim();
-
-    // 1. Update persistent custom steps registry
-    try {
-      const registry = getCustomStepsRegistry();
-      if (registry[sOrderNo]) {
-        registry[sOrderNo] = registry[sOrderNo].map((st) => {
-          const isMatch = stepId && (st.id === stepId || st.ID === stepId)
-            ? true
-            : Number(st.Langkah) === Number(stepNumber);
-          if (isMatch) {
-            return { ...st, Status: 'Berjalan' };
-          }
-          return st;
-        });
-        saveCustomStepsRegistry(registry);
-      }
-    } catch (e) {
-      console.warn('[handleRevertStep] Gagal update registry langkah:', e);
-    }
-
-    setOrders((prevOrders) => {
-      let matched = false;
-      const updated = prevOrders.map((step) => {
-        if (String(step.NoProduksi).trim() === sOrderNo) {
-          const isMatch = stepId && (step.id === stepId || step.ID === stepId)
-            ? true
-            : (!matched && Number(step.Langkah) === Number(stepNumber));
-          if (isMatch) {
-            matched = true;
-            return { ...step, Status: 'Berjalan', status: 0 };
-          }
-        }
-        return step;
-      });
-
-      // Auto-sync status to SharePoint if order has cloud ID
-      const targetOrder = prevOrders.find((o) => String(o.NoProduksi).trim() === sOrderNo);
-      if (targetOrder && targetOrder.id && targetOrder.id > 0) {
-        orderApiService.updateOrder({
-          id: targetOrder.id,
-          orderNo: targetOrder.NoProduksi,
-          title: targetOrder.title || targetOrder.NamaLangkah || '',
-          status: 0
-        }).catch((err) => console.warn('[AutoSync] Cloud update failed:', err));
-      }
-
-      setStorageItem('isc_production_orders', updated);
-      return updated;
-    });
-
-    showToast(`Step ${stepNumber} of Order #${sOrderNo} reverted to In Progress.`, 'info');
-  };
-
-  // Update step status via Status Barcode dropdown (PROG vs FIN) with backend synchronization
-  const handleUpdateStepStatus = (orderNo, stepNumber, newStatus, stepId) => {
-    const sOrderNo = String(orderNo).trim();
-    const isFinished = newStatus === 'FIN';
-    const statusText = isFinished ? 'Selesai' : 'Berjalan';
-    const statusNum = isFinished ? 1 : 0;
-
-    // 1. Update persistent custom steps registry
-    try {
-      const registry = getCustomStepsRegistry();
-      if (registry[sOrderNo]) {
-        registry[sOrderNo] = registry[sOrderNo].map((st) => {
-          const isMatch = stepId && (st.id === stepId || st.ID === stepId)
-            ? true
-            : Number(st.Langkah) === Number(stepNumber);
-          if (isMatch) {
-            return {
-              ...st,
-              Status: statusText,
-              status: statusNum,
-              barcodeStatus: newStatus
-            };
-          }
-          return st;
-        });
-        saveCustomStepsRegistry(registry);
-      }
-    } catch (e) {
-      console.warn('[handleUpdateStepStatus] Gagal update registry langkah:', e);
-    }
-
-    setOrders((prevOrders) => {
-      let matched = false;
-      const updated = prevOrders.map((step) => {
-        if (String(step.NoProduksi).trim() === sOrderNo) {
-          const isMatch = stepId && (step.id === stepId || step.ID === stepId)
-            ? true
-            : (!matched && Number(step.Langkah) === Number(stepNumber));
-          if (isMatch) {
-            matched = true;
-            return {
-              ...step,
-              Status: statusText,
-              status: statusNum,
-              barcodeStatus: newStatus
-            };
-          }
-        }
-        return step;
-      });
-
-      // Recalculate order status
-      const matchingOrderSteps = updated.filter((s) => String(s.NoProduksi).trim() === sOrderNo);
-      const allStepsDone = matchingOrderSteps.length > 0 && matchingOrderSteps.every(
-        (s) => String(s.Status).toLowerCase() === 'selesai' || s.status === 1 || s.barcodeStatus === 'FIN'
-      );
-
-      // Auto-sync status to backend (SharePoint / Power Automate)
-      const targetOrder = prevOrders.find((o) => String(o.NoProduksi).trim() === sOrderNo);
-      if (targetOrder && targetOrder.id && targetOrder.id > 0) {
-        orderApiService.updateOrder({
-          id: targetOrder.id,
-          orderNo: targetOrder.NoProduksi,
-          title: targetOrder.title || targetOrder.NamaLangkah || '',
-          status: allStepsDone ? 1 : 0
-        }).catch((err) => console.warn('[AutoSync] Cloud update failed:', err));
-      }
-
-      setStorageItem('isc_production_orders', updated);
-      return updated;
-    });
-
-    if (isFinished) {
-      showToast(`Barcode status for Step ${stepNumber} changed to FIN (Finished) and saved to database.`, 'success');
-    } else {
-      showToast(`Barcode status for Step ${stepNumber} changed to PROG (In Progress) and saved to database.`, 'info');
-    }
-  };
-
-  // --- CLOUD CRUD HANDLERS (Power Automate & SharePoint) ---
-
-  // 1. READ: Sync orders from Cloud SharePoint while preserving all custom added steps
-  const handleSyncCloud = async (silent = false) => {
+    const updatedStep = {
+      ...target,
+      ...patch,
+      id: Number(target.id || target.ID),
+      orderNo: target.NoProduksi || target.orderNo,
+      stepNo: Number(target.Langkah || target.stepNo) || Number(stepNumber),
+      stepName: target.NamaLangkah || target.stepName || target.title
+    };
     setIsLoadingCloud(true);
     try {
-      const res = await orderApiService.getAllOrders();
-      if (res && res.success && Array.isArray(res.data)) {
-        const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
-        const deletedSet = new Set([
-          ...DEFAULT_DELETED_ORDERS,
-          ...(deletedList || []).map((s) => String(s).trim())
-        ]);
-
-        const validOrders = res.data.filter(
-          (o) => o && o.NoProduksi && o.NoProduksi !== '-' && (o.customers || o.title || o.materialDescription) && !deletedSet.has(String(o.NoProduksi || o.orderNo || '').trim())
-        );
-
-        if (validOrders.length > 0) {
-          const registry = getCustomStepsRegistry();
-
-          setOrders((prevOrders) => {
-            // Group existing local steps by order number to ensure no added step is lost
-            const localStepsByOrder = new Map();
-            (prevOrders || []).forEach((item) => {
-              const num = String(item.NoProduksi || item.orderNo || '').trim();
-              if (!num || deletedSet.has(num)) return;
-              if (!localStepsByOrder.has(num)) {
-                localStepsByOrder.set(num, []);
-              }
-              localStepsByOrder.get(num).push(item);
-            });
-
-            // Group cloud valid orders by unique orderNo so each order is processed ONCE
-            const cloudOrdersByNum = new Map();
-            validOrders.forEach((cloudOrder) => {
-              const num = String(cloudOrder.NoProduksi || cloudOrder.orderNo || '').trim();
-              if (!num || deletedSet.has(num)) return;
-              if (!cloudOrdersByNum.has(num)) {
-                cloudOrdersByNum.set(num, []);
-              }
-              cloudOrdersByNum.get(num).push(cloudOrder);
-            });
-
-            const customStepOrders = [];
-            const regularOrders = [];
-            const cloudOrderNos = new Set();
-
-            cloudOrdersByNum.forEach((cloudItems, orderNo) => {
-              cloudOrderNos.add(orderNo);
-              const primaryCloud = cloudItems[0];
-              const registeredSteps = registry[orderNo];
-              const prevStepItems = localStepsByOrder.get(orderNo);
-
-              if (registeredSteps && Array.isArray(registeredSteps) && registeredSteps.length > 0) {
-                registeredSteps.forEach((st, idx) => {
-                  const cStep = cloudItems[idx];
-                  const defStep = DEFAULT_ORDER_STEPS[orderNo]?.[idx];
-                  const isDone =
-                    String(st.Status).toLowerCase() === 'selesai' ||
-                    st.status === 1 ||
-                    (cStep && (String(cStep.Status).toLowerCase() === 'selesai' || cStep.status === 1)) ||
-                    (defStep && (String(defStep.Status).toLowerCase() === 'selesai' || defStep.status === 1));
-
-                  customStepOrders.push({
-                    ...primaryCloud,
-                    id: st.id || (idx === 0 ? primaryCloud.id : (primaryCloud.id ? primaryCloud.id * 1000 + idx : Date.now() + idx)),
-                    ID: st.id || (idx === 0 ? primaryCloud.ID : (primaryCloud.ID ? primaryCloud.ID * 1000 + idx : Date.now() + idx)),
-                    Langkah: idx + 1,
-                    NamaLangkah: st.NamaLangkah || `${primaryCloud.title || 'Langkah'} ${idx + 1}`,
-                    NoKonfirmasi: st.NoKonfirmasi || primaryCloud.NoKonfirmasi || primaryCloud.NoProduksi,
-                    Status: isDone ? 'Selesai' : 'Berjalan',
-                    status: isDone ? 1 : 0
-                  });
-                });
-              } else if (cloudItems.length > 1) {
-                // Cloud already has multiple steps for this order (e.g. from SharePoint/SAP rows)
-                // Use each row as a step and preserve local completion status without duplicating
-                cloudItems.forEach((cItem, idx) => {
-                  const matchingPrev = prevStepItems?.find(
-                    (p) => Number(p.Langkah) === (cItem.Langkah ? Number(cItem.Langkah) : idx + 1) || (p.id && p.id === cItem.id)
-                  );
-                  customStepOrders.push({
-                    ...cItem,
-                    Langkah: cItem.Langkah || idx + 1,
-                    Status: matchingPrev?.Status || cItem.Status || 'Berjalan',
-                    status: matchingPrev ? matchingPrev.status : (cItem.status !== undefined ? cItem.status : (String(cItem.Status).toLowerCase() === 'selesai' ? 1 : 0))
-                  });
-                });
-              } else if (prevStepItems && prevStepItems.length > 1) {
-                // Keep previously added local steps for this order
-                prevStepItems.forEach((st, idx) => {
-                  customStepOrders.push({
-                    ...primaryCloud,
-                    ...st,
-                    id: st.id || (idx === 0 ? primaryCloud.id : (primaryCloud.id ? primaryCloud.id * 1000 + idx : Date.now() + idx)),
-                    ID: st.ID || (idx === 0 ? primaryCloud.ID : (primaryCloud.ID ? primaryCloud.ID * 1000 + idx : Date.now() + idx)),
-                    Langkah: idx + 1
-                  });
-                });
-              } else {
-                // Single baseline order from cloud
-                const isFinished = String(primaryCloud.Status).toLowerCase() === 'selesai' || primaryCloud.status === 1;
-                if (isFinished) {
-                  customStepOrders.push(primaryCloud);
-                } else {
-                  regularOrders.push(primaryCloud);
-                }
-              }
-            });
-
-            // Keep any locally created/imported orders that have not yet synced to cloud, excluding deleted
-            const pendingLocal = (prevOrders || []).filter(
-              (lo) => lo && lo.NoProduksi && !cloudOrderNos.has(String(lo.NoProduksi).trim()) && !deletedSet.has(String(lo.NoProduksi).trim())
-            );
-
-            // Place custom-step orders and newly created local orders at the top
-            const merged = [...customStepOrders, ...pendingLocal, ...regularOrders];
-            setStorageItem('isc_production_orders', merged);
-            return merged;
-          });
-
-          setSelectedOrderNo((prev) =>
-            prev && validOrders.some((o) => o.NoProduksi === prev) ? prev : (validOrders[0]?.NoProduksi || '')
-          );
-        }
-        if (!silent) {
-          showToast(
-            `Successfully synchronized ${validOrders.length || res.total} orders from SharePoint Cloud!`,
-            'success'
-          );
-        }
-      } else {
-        if (!silent) {
-          showToast('Cloud data is empty or invalid format.', 'info');
-        }
-      }
-    } catch (err) {
-      console.warn('[SyncCloud] Warning:', err);
-      if (!silent) {
-        showToast(`Failed to sync cloud: ${err.message}`, 'error');
-      }
+      await orderApiService.updateOrder(updatedStep);
+      const updatedOrders = orders.map((step) =>
+        Number(step.id || step.ID) === updatedStep.id ? { ...step, ...patch } : step
+      );
+      setOrders(updatedOrders);
+      persistOrderSnapshot(updatedOrders);
+      setLastSyncedAt(new Date());
+      setSyncError('');
+      return updatedOrders;
     } finally {
       setIsLoadingCloud(false);
     }
   };
 
-  // Auto-sync real cloud orders on initial application load
-  useEffect(() => {
-    handleSyncCloud(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Mark active step as finished
+  const handleMarkStepFinished = async (orderNo, stepNumber) => {
+    try {
+      const updated = await updateStepInCloud(orderNo, stepNumber, null, { Status: 'Selesai', status: 1 });
+      const orderSteps = updated
+        .filter((step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim())
+        .sort((a, b) => Number(a.Langkah) - Number(b.Langkah));
+      const nextActive = orderSteps.find((step) => String(step.Status).toLowerCase() !== 'selesai');
+      showToast(nextActive
+        ? `Langkah ${stepNumber} selesai. Langkah ${nextActive.Langkah} berikutnya aktif.`
+        : `Semua langkah order ${orderNo} selesai.`, 'success');
+    } catch (err) {
+      setSyncError(err.message || 'Penyimpanan langkah ke SharePoint gagal.');
+      showToast(`Gagal menyimpan status langkah ke SharePoint: ${err.message}`, 'error');
+    }
+  };
 
-  // 1-Minute LocalStorage Cache Watcher:
-  // Automatically purges expired cache and triggers background cloud re-sync without logging out the user
-  useEffect(() => {
-    const checkInterval = setInterval(() => {
-      // 1. Orders cache expiration check: automatically sync latest data from cloud
-      if (isStorageItemExpired('isc_production_orders')) {
-        console.log('[StorageTTL] Cache order di localStorage telah melewati 1 menit. Mengambil data terbaru dari SharePoint...');
-        handleSyncCloud(true);
+  // Revert finished step back to in-progress / unfinished (Admin feature)
+  const handleRevertStep = async (orderNo, stepNumber, stepId) => {
+    try {
+      await updateStepInCloud(orderNo, stepNumber, stepId, { Status: 'Berjalan', status: 0 });
+      showToast(`Status langkah ${stepNumber} order #${orderNo} dikembalikan ke Berjalan.`, 'success');
+    } catch (err) {
+      setSyncError(err.message || 'Penyimpanan langkah ke SharePoint gagal.');
+      showToast(`Gagal mengubah status di SharePoint: ${err.message}`, 'error');
+    }
+  };
+
+  // Update step status via Status Barcode dropdown (PROG vs FIN) with backend synchronization
+  const handleUpdateStepStatus = async (orderNo, stepNumber, newStatus, stepId) => {
+    const isFinished = newStatus === 'FIN';
+    try {
+      await updateStepInCloud(orderNo, stepNumber, stepId, {
+        Status: isFinished ? 'Selesai' : 'Berjalan',
+        status: isFinished ? 1 : 0,
+        barcodeStatus: newStatus
+      });
+      showToast(`Status langkah disimpan ke SharePoint (${newStatus}).`, 'success');
+    } catch (err) {
+      setSyncError(err.message || 'Penyimpanan langkah ke SharePoint gagal.');
+      showToast(`Gagal menyimpan status langkah ke SharePoint: ${err.message}`, 'error');
+    }
+  };
+
+  // --- CLOUD CRUD HANDLERS (Power Automate & SharePoint) ---
+
+  const handleSyncCloud = async (silent = false, allowOfflineCache = false) => {
+    if (syncInProgressRef.current) return false;
+    syncInProgressRef.current = true;
+    setIsLoadingCloud(true);
+
+    try {
+      const res = await orderApiService.getAllOrders();
+      const serverOrders = res.data;
+      setOrders(serverOrders);
+      persistOrderSnapshot(serverOrders);
+      setLastSyncedAt(new Date());
+      setSyncError('');
+      setIsInitialLoading(false);
+      setSelectedOrderNo((current) =>
+        current && serverOrders.some((order) => String(order.NoProduksi || order.orderNo) === current)
+          ? current
+          : (serverOrders[0]?.NoProduksi || serverOrders[0]?.orderNo || '')
+      );
+      if (!silent) {
+        showToast(`Berhasil memuat ${serverOrders.length} langkah dari SharePoint.`, 'success');
       }
+      return true;
+    } catch (err) {
+      console.error('[SyncCloud] SharePoint sync failed:', err);
+      setSyncError(err.message || 'Tidak dapat terhubung ke SharePoint.');
+      setIsInitialLoading(false);
+      if (allowOfflineCache && orders.length === 0) {
+        const cachedOrders = getStorageItem(ORDER_CACHE_KEY);
+        if (Array.isArray(cachedOrders)) {
+          setOrders(cachedOrders);
+          setSyncError('Server tidak tersedia. Menampilkan cache offline; perubahan memerlukan koneksi.');
+        }
+      }
+      if (!silent || allowOfflineCache) {
+        showToast(`Gagal memuat data SharePoint: ${err.message}`, 'error');
+      }
+      return false;
+    } finally {
+      syncInProgressRef.current = false;
+      setIsLoadingCloud(false);
+    }
+  };
 
-      // 2. Purge any other expired temporary cache keys (session and settings are protected)
-      purgeExpiredStorage();
-    }, 15000);
+  useEffect(() => {
+    removeStorageItem('isc_production_orders');
+    removeStorageItem('isc_production_order_steps');
+    removeStorageItem('isc_production_deleted_orders');
+    handleSyncCloud(true, true);
 
-    return () => clearInterval(checkInterval);
+    const pollTimer = setInterval(() => handleSyncCloud(true), 30000);
+    return () => clearInterval(pollTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -901,52 +551,30 @@ export default function App() {
     setIsLoadingCloud(true);
     try {
       const targetNo = String(orderData.orderNo || '').trim();
-      const divGroup = orderData.orderDivision ? orderData.orderDivision.split(/[\s&/]+/)[0].toUpperCase() : 'PKW';
-      const prodGroup = orderData.ProductGroup || divGroup || 'PKW';
-
-      // Un-delete if this orderNo was previously in the deleted registry
-      const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
-      if (deletedList.includes(targetNo)) {
-        const nextDeleted = deletedList.filter((n) => n !== targetNo);
-        setStorageItem('isc_production_deleted_orders', nextDeleted);
-      }
-
-      // Persist custom steps
-      if (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0) {
-        const registry = getCustomStepsRegistry();
-        registry[targetNo] = orderData.steps.map((st, idx) => ({
-          Langkah: idx + 1,
-          NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
-          NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
-          Status: st.Status || 'Berjalan'
-        }));
-        saveCustomStepsRegistry(registry);
-      }
-
-      const itemsToCreate = (orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0)
-        ? orderData.steps.map((st, idx) => ({
-            ...orderData,
-            ProductGroup: prodGroup,
-            orderDivision: orderData.orderDivision || 'PKW Wood Process.Ser',
-            Langkah: idx + 1,
-            NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
-            NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
-            Status: st.Status || 'Berjalan',
-            status: st.Status === 'Selesai' ? 1 : 0
-          }))
-        : [{ ...orderData, ProductGroup: prodGroup }];
-
+      const steps = Array.isArray(orderData.steps) && orderData.steps.length > 0
+        ? orderData.steps
+        : [{ Langkah: 1, NamaLangkah: orderData.title, Status: 'Berjalan' }];
+      const itemsToCreate = steps.map((step, index) => ({
+        ...orderData,
+        ProductGroup: orderData.ProductGroup || orderData.orderDivision || 'PKW',
+        Langkah: index + 1,
+        stepNo: index + 1,
+        NamaLangkah: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
+        stepName: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
+        NoKonfirmasi: step.NoKonfirmasi || targetNo,
+        Status: step.Status || 'Berjalan',
+        status: String(step.Status).toLowerCase() === 'selesai' ? 1 : 0
+      }));
       await orderApiService.createOrders(itemsToCreate);
-      showToast(`Order #${orderData.orderNo} (${itemsToCreate.length} steps) successfully saved to SharePoint Cloud!`, 'success');
-      setOrders((prev) => {
-        const filtered = prev.filter((o) => String(o.NoProduksi || o.orderNo || '').trim() !== targetNo);
-        const next = [...itemsToCreate, ...filtered];
-        setStorageItem('isc_production_orders', next);
-        return next;
-      });
-      await handleSyncCloud(true);
+      if (await handleSyncCloud(true)) {
+        showToast(`Order #${targetNo} (${itemsToCreate.length} langkah) tersimpan di SharePoint.`, 'success');
+      } else {
+        showToast(`Order #${targetNo} terkirim ke SharePoint, tetapi pembacaan ulang gagal. Tekan Refresh.`, 'warning');
+      }
     } catch (err) {
-      showToast(`Failed to create order: ${err.message}`, 'error');
+      setSyncError(err.message || 'Pembuatan order SharePoint gagal.');
+      showToast(`Gagal membuat order di SharePoint: ${err.message}`, 'error');
+    } finally {
       setIsLoadingCloud(false);
     }
   };
@@ -956,89 +584,46 @@ export default function App() {
     setIsLoadingCloud(true);
     try {
       const targetNo = String(orderData.orderNo || '').trim();
-      const divGroup = orderData.orderDivision ? orderData.orderDivision.split(/[\s&/]+/)[0].toUpperCase() : 'PKW';
-      const prodGroup = orderData.ProductGroup || divGroup || 'PKW';
-
-      const hasSteps = orderData.steps && Array.isArray(orderData.steps) && orderData.steps.length > 0;
-      const allStepsDone = hasSteps
-        ? orderData.steps.every((st) => String(st.Status).toLowerCase() === 'selesai')
-        : (orderData.status === 1 || String(orderData.Status).toLowerCase() === 'selesai');
-      const finalStatus = allStepsDone ? 1 : 0;
-
-      // Persist custom steps to registry immediately
-      if (hasSteps) {
-        const registry = getCustomStepsRegistry();
-        registry[targetNo] = orderData.steps.map((st, idx) => ({
-          id: st.id,
-          Langkah: idx + 1,
-          NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
-          NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
-          Status: st.Status || 'Berjalan'
-        }));
-        saveCustomStepsRegistry(registry);
-      }
-
-      await orderApiService.updateOrder({
+      const representative = orders.find((step) => Number(step.id || step.ID) === Number(orderData.id));
+      const originalNo = String(representative?.NoProduksi || representative?.orderNo || targetNo).trim();
+      const existingSteps = orders.filter(
+        (step) => String(step.NoProduksi || step.orderNo).trim() === originalNo
+      );
+      const submittedSteps = Array.isArray(orderData.steps) && orderData.steps.length > 0
+        ? orderData.steps
+        : [{ id: orderData.id, Langkah: 1, NamaLangkah: orderData.title, Status: orderData.Status || 'Berjalan' }];
+      const items = submittedSteps.map((step, index) => ({
         ...orderData,
-        status: finalStatus,
-        ProductGroup: prodGroup
-      });
-      showToast(`Order #${orderData.orderNo} changes successfully updated to SharePoint!`, 'success');
+        id: step.id || step.ID,
+        orderNo: targetNo,
+        NoProduksi: targetNo,
+        ProductGroup: orderData.ProductGroup || orderData.orderDivision || 'PKW',
+        Langkah: index + 1,
+        stepNo: index + 1,
+        NamaLangkah: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
+        stepName: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
+        NoKonfirmasi: step.NoKonfirmasi || targetNo,
+        Status: step.Status || 'Berjalan',
+        status: String(step.Status).toLowerCase() === 'selesai' ? 1 : 0
+      }));
+      const idsToKeep = new Set(items.map((item) => Number(item.id)).filter((id) => id > 0));
+      const itemsToUpdate = items.filter((item) => Number(item.id) > 0);
+      const itemsToCreate = items.filter((item) => !(Number(item.id) > 0));
+      const itemsToDelete = existingSteps.filter((step) => !idsToKeep.has(Number(step.id || step.ID)));
 
-      setOrders((prev) => {
-        if (hasSteps) {
-          const otherOrders = prev.filter((o) => {
-            const oNo = String(o.NoProduksi || o.orderNo || '').trim();
-            const oId = o.id || o.ID;
-            return oNo !== targetNo && (!orderData.id || oId !== orderData.id);
-          });
-
-          const updatedSteps = orderData.steps.map((st, idx) => {
-            const isStepDone = String(st.Status).toLowerCase() === 'selesai';
-            return {
-              id: st.id || (idx === 0 ? orderData.id : Date.now() + idx),
-              ID: st.id || (idx === 0 ? orderData.id : Date.now() + idx),
-              ...orderData,
-              ProductGroup: prodGroup,
-              orderDivision: orderData.orderDivision || 'PKW Wood Process.Ser',
-              NoProduksi: targetNo,
-              orderNo: targetNo,
-              title: orderData.title,
-              materialDescription: orderData.materialDescription || orderData.title,
-              Langkah: idx + 1,
-              NamaLangkah: st.NamaLangkah || `${orderData.title} - Langkah ${idx + 1}`,
-              NoKonfirmasi: st.NoKonfirmasi || orderData.orderNo || '1000000',
-              Status: st.Status || (finalStatus === 1 ? 'Selesai' : 'Berjalan'),
-              status: isStepDone ? 1 : 0
-            };
-          });
-
-          const nextList = [...updatedSteps, ...otherOrders];
-          setStorageItem('isc_production_orders', nextList);
-          return nextList;
-        }
-
-        const matchingOrders = [];
-        const otherOrders = [];
-        prev.forEach((o) => {
-          if ((orderData.id && o.id === orderData.id) || o.NoProduksi === orderData.orderNo) {
-            matchingOrders.push({
-              ...o,
-              ...orderData,
-              status: finalStatus,
-              ProductGroup: prodGroup,
-              Status: finalStatus === 1 ? 'Selesai' : 'Berjalan'
-            });
-          } else {
-            otherOrders.push(o);
-          }
-        });
-        const nextList = [...matchingOrders, ...otherOrders];
-        setStorageItem('isc_production_orders', nextList);
-        return nextList;
-      });
+      if (itemsToUpdate.length) await orderApiService.updateOrder(itemsToUpdate);
+      if (itemsToCreate.length) await orderApiService.createOrders(itemsToCreate);
+      for (const step of itemsToDelete) {
+        await orderApiService.deleteOrder(step.id || step.ID);
+      }
+      if (await handleSyncCloud(true)) {
+        showToast(`Perubahan order #${targetNo} tersimpan di SharePoint.`, 'success');
+      } else {
+        showToast(`Order #${targetNo} tersimpan, tetapi pembacaan ulang gagal. Tekan Refresh.`, 'warning');
+      }
     } catch (err) {
-      showToast(`Failed to update order: ${err.message}`, 'error');
+      setSyncError(err.message || 'Pembaruan order SharePoint gagal.');
+      showToast(`Gagal memperbarui order di SharePoint: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
     }
@@ -1049,94 +634,61 @@ export default function App() {
     setIsLoadingCloud(true);
     try {
       const targetNo = String(orderObj.NoProduksi || orderObj.orderNo || '').trim();
-      const registry = getCustomStepsRegistry();
-      if (registry[targetNo]) {
-        delete registry[targetNo];
-        saveCustomStepsRegistry(registry);
+      const stepRecords = orders.filter(
+        (step) => String(step.NoProduksi || step.orderNo).trim() === targetNo
+      );
+      const idsToDelete = [...new Set(
+        [...stepRecords, ...(orderObj.steps || []), orderObj]
+          .map((step) => Number(step.id || step.ID))
+          .filter((id) => id > 0)
+      )];
+      if (idsToDelete.length === 0) {
+        throw new Error('Order tidak memiliki ID SharePoint yang valid.');
       }
 
-      // Add to persistent deleted orders registry so it never comes back
-      const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
-      if (!deletedList.includes(targetNo)) {
-        deletedList.push(targetNo);
-        setStorageItem('isc_production_deleted_orders', deletedList);
-      }
-
-      // Collect all IDs for this order to delete in SharePoint
-      const idsToDelete = new Set();
-      if (orderObj.id && orderObj.id > 0) idsToDelete.add(orderObj.id);
-      if (orderObj.ID && orderObj.ID > 0) idsToDelete.add(orderObj.ID);
-      if (orderObj.steps && Array.isArray(orderObj.steps)) {
-        orderObj.steps.forEach((st) => {
-          if (st.id && st.id > 0) idsToDelete.add(st.id);
-          if (st.ID && st.ID > 0) idsToDelete.add(st.ID);
-        });
-      }
-      // Also check current orders state for any step with this targetNo
-      orders.forEach((o) => {
-        if (String(o.NoProduksi || o.orderNo || '').trim() === targetNo) {
-          if (o.id && o.id > 0) idsToDelete.add(o.id);
-          if (o.ID && o.ID > 0) idsToDelete.add(o.ID);
-        }
-      });
-
-      // Call delete in cloud for each ID
       for (const id of idsToDelete) {
-        try {
-          await orderApiService.deleteOrder(id);
-        } catch (cloudErr) {
-          console.warn('[handleDeleteOrder] Cloud delete note for ID', id, cloudErr);
-        }
+        await orderApiService.deleteOrder(id);
       }
-
-      // Always remove order and all its steps from local state and storage
-      setOrders((prev) => {
-        const nextList = prev.filter((o) => {
-          const num = String(o.NoProduksi || o.orderNo || '').trim();
-          const matchesNo = num === targetNo;
-          const matchesId = (orderObj.id && o.id === orderObj.id) || idsToDelete.has(o.id) || idsToDelete.has(o.ID);
-          return !matchesNo && !matchesId;
-        });
-        setStorageItem('isc_production_orders', nextList);
-        return nextList;
-      });
-
-      if (selectedOrderNo === targetNo) {
-        setSelectedOrderNo('');
+      if (!(await handleSyncCloud(true))) {
+        throw new Error('Penghapusan dikirim, tetapi data SharePoint gagal dimuat ulang.');
       }
-      showToast(`Order #${targetNo} successfully deleted from system & cloud.`, 'success');
+      if (selectedOrderNo === targetNo) setSelectedOrderNo('');
+      showToast(`Order #${targetNo} berhasil dihapus dari SharePoint.`, 'success');
     } catch (err) {
-      showToast(`Failed to delete order: ${err.message}`, 'error');
+      setSyncError(err.message || 'Penghapusan order SharePoint gagal.');
+      showToast(`Gagal menghapus order dari SharePoint: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
     }
   };
 
-  // Reset steps for testing mode
-  const handleResetOrderSteps = (orderNo) => {
-    const sOrderNo = String(orderNo).trim();
-    const registry = getCustomStepsRegistry();
-    if (registry[sOrderNo]) {
-      registry[sOrderNo] = registry[sOrderNo].map((st) => ({ ...st, Status: 'Berjalan' }));
-      saveCustomStepsRegistry(registry);
+  const handleResetOrderSteps = async (orderNo) => {
+    try {
+      const records = orders
+        .filter((step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim())
+        .map((step) => ({
+          ...step,
+          id: step.id || step.ID,
+          orderNo: step.NoProduksi || step.orderNo,
+          stepNo: step.Langkah || step.stepNo,
+          stepName: step.NamaLangkah || step.stepName,
+          Status: 'Berjalan',
+          status: 0
+        }));
+      if (records.length === 0) throw new Error('Order tidak ditemukan di SharePoint.');
+      await orderApiService.updateOrder(records);
+      if (!(await handleSyncCloud(true))) {
+        throw new Error('Status tersimpan, tetapi pembacaan ulang SharePoint gagal.');
+      }
+      showToast(`Semua langkah order ${orderNo} kembali ke Berjalan.`, 'success');
+    } catch (err) {
+      setSyncError(err.message || 'Reset status SharePoint gagal.');
+      showToast(`Gagal mereset status di SharePoint: ${err.message}`, 'error');
     }
-
-    setOrders((prevOrders) => {
-      const nextList = prevOrders.map((step) => {
-        if (String(step.NoProduksi).trim() === sOrderNo) {
-          return { ...step, Status: 'Berjalan', status: 0 };
-        }
-        return step;
-      });
-      setStorageItem('isc_production_orders', nextList);
-      return nextList;
-    });
-    showToast(`All steps status for Order ${orderNo} reverted to In Progress.`, 'info');
   };
 
   // Excel Import Success Handler: Restricted strictly to Admin, persists to Cloud Database (SharePoint via Power Automate)
   const handleImportSuccess = async (newOrders, newPersonnel) => {
-    // 1. Strict Security Gate
     if (!isAdmin) {
       showToast('Access denied: Only Admin role is authorized to import Excel data.', 'error');
       throw new Error('Access denied: Only Admin role is authorized to import data.');
@@ -1148,68 +700,35 @@ export default function App() {
     }
 
     setIsLoadingCloud(true);
-
-    if (newPersonnel && newPersonnel.length > 0) {
-      setPersonnel(newPersonnel);
-    }
-
-    // 2. Un-delete any imported orders from deleted registry
-    const deletedList = getStorageItem('isc_production_deleted_orders', []) || [];
-    if (deletedList.length > 0) {
-      const importedNos = new Set(newOrders.map((o) => String(o.NoProduksi || o.orderNo || '').trim()));
-      const nextDeleted = deletedList.filter((n) => !importedNos.has(n));
-      setStorageItem('isc_production_deleted_orders', nextDeleted);
-    }
-
-    // 3. Match existing orders to preserve existing SharePoint IDs if any match
-    const existingMap = new Map();
-    orders.forEach((o) => {
-      const num = String(o.NoProduksi || o.orderNo || '').trim();
-      if (num && o.id && o.id > 0) {
-        existingMap.set(num, o.id);
-      }
-    });
-
-    const preparedOrders = newOrders.map((no) => {
-      const num = String(no.NoProduksi || no.orderNo || '').trim();
-      const existingId = existingMap.get(num);
-      if (existingId) {
-        return { ...no, id: existingId, ID: existingId };
-      }
-      return no;
-    });
-
-    // 4. Merge imported orders with current orders (updating duplicates, keeping existing non-imported orders)
-    const importedNos = new Set(preparedOrders.map((o) => String(o.NoProduksi || o.orderNo || '').trim()));
-    const nonOverwrittenOrders = orders.filter(
-      (o) => !importedNos.has(String(o.NoProduksi || o.orderNo || '').trim())
-    );
-    const mergedList = [...preparedOrders, ...nonOverwrittenOrders];
-
-    // Immediately update local state and localStorage so table updates instantly
-    setOrders(mergedList);
-    setStorageItem('isc_production_orders', mergedList);
-    if (preparedOrders.length > 0) {
-      setSelectedOrderNo(preparedOrders[0].NoProduksi);
-    }
-
-    // 5. Group into items to create (new) vs update (existing)
-    const toCreate = [];
-    const toUpdate = [];
-    preparedOrders.forEach((o) => {
-      if (o.id && o.id > 0) {
-        toUpdate.push(o);
-      } else {
-        toCreate.push(o);
-      }
-    });
-
-    showToast(
-      `Saving ${preparedOrders.length} orders to SharePoint Cloud database...`,
-      'info'
-    );
-
     try {
+      const stepCounts = new Map();
+      const existingByKey = new Map(orders.map((step) => [
+        `${String(step.NoProduksi || step.orderNo).trim()}:${Number(step.Langkah || step.stepNo) || 1}`,
+        step
+      ]));
+      const preparedOrders = newOrders.map((row) => {
+        const orderNo = String(row.NoProduksi || row.orderNo || '').trim();
+        const inferredStepNo = (stepCounts.get(orderNo) || 0) + 1;
+        const stepNo = Number(row.Langkah || row.stepNo) || inferredStepNo;
+        stepCounts.set(orderNo, Math.max(inferredStepNo, stepNo));
+        const existing = existingByKey.get(`${orderNo}:${stepNo}`);
+        const status = String(row.Status || '').toLowerCase() === 'selesai' || Number(row.status) === 1;
+        return {
+          ...row,
+          id: existing?.id || existing?.ID || row.id || row.ID,
+          orderNo,
+          NoProduksi: orderNo,
+          stepNo,
+          Langkah: stepNo,
+          stepName: row.stepName || row.NamaLangkah || row.title || `Langkah ${stepNo}`,
+          NamaLangkah: row.NamaLangkah || row.stepName || row.title || `Langkah ${stepNo}`,
+          Status: status ? 'Selesai' : 'Berjalan',
+          status: status ? 1 : 0
+        };
+      });
+      const toCreate = preparedOrders.filter((row) => !(Number(row.id || row.ID) > 0));
+      const toUpdate = preparedOrders.filter((row) => Number(row.id || row.ID) > 0);
+
       if (toCreate.length > 0) {
         await orderApiService.createOrders(toCreate);
       }
@@ -1217,28 +736,18 @@ export default function App() {
         await orderApiService.updateOrder(toUpdate);
       }
 
-      showToast(
-        `Success! ${preparedOrders.length} order records imported and synced to SharePoint database.`,
-        'success'
-      );
-
-      // 6. Automatic table refresh: Re-fetch cloud orders after short delay
-      setTimeout(async () => {
-        try {
-          await handleSyncCloud(true);
-        } catch (syncErr) {
-          console.warn('[handleImportSuccess] Background sync error:', syncErr);
-        }
-      }, 1200);
-
+      if (newPersonnel?.length) setPersonnel(newPersonnel);
+      if (preparedOrders.length) setSelectedOrderNo(preparedOrders[0].NoProduksi);
+      const refreshed = await handleSyncCloud(true);
+      showToast(refreshed
+        ? `${preparedOrders.length} langkah berhasil diimpor ke SharePoint.`
+        : 'Import tersimpan, tetapi pembacaan ulang SharePoint gagal. Tekan Refresh.', refreshed ? 'success' : 'warning');
       return { success: true, count: preparedOrders.length };
-    } catch (cloudErr) {
-      console.error('[handleImportSuccess] Error saving to cloud:', cloudErr);
-      showToast(
-        `Orders saved locally, but cloud sync failed: ${cloudErr.message}`,
-        'warning'
-      );
-      throw cloudErr;
+    } catch (err) {
+      console.error('[handleImportSuccess] SharePoint import failed:', err);
+      setSyncError(err.message || 'Import ke SharePoint gagal.');
+      showToast(`Import gagal disimpan ke SharePoint: ${err.message}`, 'error');
+      throw err;
     } finally {
       setIsLoadingCloud(false);
     }
@@ -1470,6 +979,28 @@ export default function App() {
             width: `${100 / (zoomLevel / 100)}%`
           }}
         >
+          <div
+            className="sync-status-bar"
+            role="status"
+            aria-live="polite"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}
+          >
+            <span className={syncError ? 'text-amber-500' : 'text-muted'}>
+              {isInitialLoading
+                ? 'Memuat data dari SharePoint...'
+                : `Terakhir disinkronkan: ${lastSyncedAt ? lastSyncedAt.toLocaleString('id-ID') : 'belum pernah'}${syncError ? ` | ${syncError}` : ''}`}
+            </span>
+            <button
+              type="button"
+              className="btn btn-outline flex items-center gap-1.5 text-xs font-semibold"
+              onClick={() => handleSyncCloud(false)}
+              disabled={isLoadingCloud}
+              aria-label="Refresh data SharePoint"
+            >
+              <RefreshCw size={14} className={isLoadingCloud ? 'animate-spin' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
           <ErrorBoundary onReset={() => setActiveTab('scanner')}>
             {renderActiveView()}
           </ErrorBoundary>
