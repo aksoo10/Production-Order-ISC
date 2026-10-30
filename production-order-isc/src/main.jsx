@@ -2,10 +2,24 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary
+      onReset={() => {
+        try {
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            window.sessionStorage.setItem('isc_production_active_tab', 'scanner');
+          }
+          window.location.reload();
+        } catch {
+          window.location.reload();
+        }
+      }}
+    >
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )
 

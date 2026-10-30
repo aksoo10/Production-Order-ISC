@@ -193,8 +193,15 @@ export default function App() {
     }
   });
 
-  // Orders always come from SharePoint; this cache is read only when the server is offline.
-  const [orders, setOrders] = useState([]);
+  // Orders always come from SharePoint; this cache is read only when the server is offline or on initial refresh
+  const [orders, setOrders] = useState(() => {
+    try {
+      const cached = getStorageItem(ORDER_CACHE_KEY);
+      return Array.isArray(cached) && cached.length > 0 ? cached : [];
+    } catch {
+      return [];
+    }
+  });
   const ordersRef = useRef(orders);
   useEffect(() => {
     ordersRef.current = orders;
@@ -343,17 +350,17 @@ export default function App() {
   const availableGroups = useMemo(() => {
     const set = new Set();
     orders.forEach((o) => {
-      if (o.ProductGroup) set.add(o.ProductGroup.trim());
+      if (o && o.ProductGroup) set.add(String(o.ProductGroup).trim());
     });
     personnel.forEach((p) => {
-      if (p.ProductGroup) set.add(p.ProductGroup.trim());
+      if (p && p.ProductGroup) set.add(String(p.ProductGroup).trim());
     });
     return Array.from(set).sort();
   }, [orders, personnel]);
 
   // Unique orders count
   const uniqueOrdersCount = useMemo(() => {
-    return new Set(orders.map((o) => String(o.NoProduksi).trim())).size;
+    return new Set(orders.map((o) => String(o?.NoProduksi || o?.orderNo || '').trim()).filter(Boolean)).size;
   }, [orders]);
 
   // Login handler
@@ -427,69 +434,26 @@ export default function App() {
       throw new Error('Langkah tidak memiliki ID SharePoint yang valid. Muat ulang data sebelum mengubahnya.');
     }
 
-    const isMarkingComplete = patch.status === 1 || String(patch.Status).toLowerCase() === 'selesai' || patch.barcodeStatus === 'FIN';
+    const updatedTarget = {
+      ...target,
+      ...patch,
+      id: Number(target.id || target.ID),
+      orderNo: target.NoProduksi || target.orderNo,
+      stepNo: Number(target.Langkah || target.stepNo) || Number(stepNumber),
+      stepName: target.NamaLangkah || target.stepName || target.title
+    };
 
-    // Check if completing this step completes the entire order
-    const orderSteps = currentOrders.filter(
-      (step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim()
-    );
-    const willAllBeComplete = isMarkingComplete && orderSteps.length > 0 && orderSteps.every((step) => {
+    // Optimistic local state update
+    const optimisticOrders = currentOrders.map((step) => {
       const isTarget = stepId
         ? String(step.id || step.ID) === String(stepId)
-        : Number(step.Langkah || step.stepNo) === Number(stepNumber);
-      if (isTarget) return true;
-      return String(step.Status).toLowerCase() === 'selesai' || String(step.Status).toLowerCase() === 'completed' || Number(step.status) === 1;
+        : (String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim() &&
+           Number(step.Langkah || step.stepNo) === Number(stepNumber));
+      if (isTarget) {
+        return { ...step, ...patch };
+      }
+      return step;
     });
-
-    let optimisticOrders;
-    let itemsToUpdateInCloud;
-
-    if (willAllBeComplete) {
-      // All steps of this order completed -> Mark entire order Completed optimistically and sync all steps to SharePoint
-      optimisticOrders = currentOrders.map((step) => {
-        if (String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim()) {
-          return {
-            ...step,
-            ...patch,
-            Status: 'Selesai',
-            status: 1,
-            barcodeStatus: 'FIN'
-          };
-        }
-        return step;
-      });
-
-      itemsToUpdateInCloud = optimisticOrders
-        .filter((step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim())
-        .map((step) => ({
-          ...step,
-          id: Number(step.id || step.ID),
-          orderNo: step.NoProduksi || step.orderNo,
-          stepNo: Number(step.Langkah || step.stepNo),
-          stepName: step.NamaLangkah || step.stepName || step.title,
-          Status: 'Selesai',
-          status: 1,
-          barcodeStatus: 'FIN'
-        }));
-    } else {
-      optimisticOrders = currentOrders.map((step) => {
-        const isTarget = stepId
-          ? String(step.id || step.ID) === String(stepId)
-          : (String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim() &&
-             Number(step.Langkah || step.stepNo) === Number(stepNumber));
-        return isTarget ? { ...step, ...patch } : step;
-      });
-
-      const updatedTarget = {
-        ...target,
-        ...patch,
-        id: Number(target.id || target.ID),
-        orderNo: target.NoProduksi || target.orderNo,
-        stepNo: Number(target.Langkah || target.stepNo) || Number(stepNumber),
-        stepName: target.NamaLangkah || target.stepName || target.title
-      };
-      itemsToUpdateInCloud = [updatedTarget];
-    }
 
     // 1. OPTIMISTIC UPDATE: Update UI immediately without waiting for server response
     setOrders(optimisticOrders);
@@ -501,20 +465,18 @@ export default function App() {
     setIsLoadingCloud(true);
 
     try {
-      // 3. PERSIST TO SHAREPOINT
-      await orderApiService.updateOrder(itemsToUpdateInCloud);
+      // 3. PERSIST TO SHAREPOINT (send single modified step to prevent Power Automate 502 timeout)
+      await orderApiService.updateOrder([updatedTarget]);
 
       // 4. LOCK RECENT UPDATES: Protect confirmed status against stale server polling (60s TTL)
-      itemsToUpdateInCloud.forEach((item) => {
-        const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
-        recentConfirmedUpdatesRef.current.set(key, {
-          id: item.id,
-          status: item.status,
-          Status: item.Status,
-          barcodeStatus: item.barcodeStatus,
-          timestamp: Date.now(),
-          expiresAt: Date.now() + 60000
-        });
+      const lockKey = `${String(updatedTarget.orderNo || updatedTarget.NoProduksi).trim()}:${Number(updatedTarget.stepNo || updatedTarget.Langkah)}`;
+      recentConfirmedUpdatesRef.current.set(lockKey, {
+        id: updatedTarget.id,
+        status: updatedTarget.status,
+        Status: updatedTarget.Status,
+        barcodeStatus: updatedTarget.barcodeStatus,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + 60000
       });
 
       return optimisticOrders;
@@ -523,10 +485,8 @@ export default function App() {
       setOrders(currentOrders);
       ordersRef.current = currentOrders;
       persistOrderSnapshot(currentOrders);
-      itemsToUpdateInCloud.forEach((item) => {
-        const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
-        recentConfirmedUpdatesRef.current.delete(key);
-      });
+      const lockKey = `${String(updatedTarget.orderNo || updatedTarget.NoProduksi).trim()}:${Number(updatedTarget.stepNo || updatedTarget.Langkah)}`;
+      recentConfirmedUpdatesRef.current.delete(lockKey);
       throw err;
     } finally {
       activeSavesCountRef.current = Math.max(0, activeSavesCountRef.current - 1);
@@ -1187,7 +1147,16 @@ export default function App() {
             width: `${100 / (zoomLevel / 100)}%`
           }}
         >
-          <ErrorBoundary onReset={() => setActiveTab('scanner')}>
+          <ErrorBoundary onReset={() => {
+            try {
+              if (typeof window !== 'undefined' && window.sessionStorage) {
+                window.sessionStorage.setItem('isc_production_active_tab', 'scanner');
+              }
+            } catch {
+              // ignore
+            }
+            setActiveTab('scanner');
+          }}>
             {renderActiveView()}
           </ErrorBoundary>
         </main>

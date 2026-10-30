@@ -17,6 +17,13 @@ export default class ErrorBoundary extends React.Component {
   }
 
   handleReset = () => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('isc_production_active_tab', 'scanner');
+      }
+    } catch {
+      // ignore
+    }
     this.setState({ hasError: false, error: null, errorInfo: null });
     if (this.props.onReset) {
       this.props.onReset();
@@ -27,11 +34,13 @@ export default class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div
-          className="view-container flex flex-col items-center justify-center p-8 text-center"
+          className="view-container flex flex-col items-center justify-center p-8 text-center notranslate"
+          translate="no"
           style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <div
-            className="card p-8 max-w-lg mx-auto flex flex-col items-center gap-4 text-center"
+            className="card p-8 max-w-lg mx-auto flex flex-col items-center gap-4 text-center notranslate"
+            translate="no"
             style={{
               backgroundColor: 'var(--bg-surface, #1e293b)',
               border: '1px solid var(--border-color, #334155)',
@@ -61,14 +70,14 @@ export default class ErrorBoundary extends React.Component {
               className="font-heading text-lg font-bold"
               style={{ color: 'var(--text-main, #ffffff)', margin: '4px 0', fontSize: '1.25rem' }}
             >
-              Display Error Encountered
+              Terjadi Kesalahan Tampilan
             </h3>
 
             <p
               className="text-sm text-muted"
               style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem', lineHeight: '1.6' }}
             >
-              An error occurred while rendering this view. Click the button below to reload the display and return to the Scanner Terminal.
+              Terjadi kesalahan saat menampilkan tampilan ini. Klik tombol di bawah untuk memuat ulang tampilan dan kembali ke Terminal Pemindai.
             </p>
 
             {this.state.error && (
@@ -99,7 +108,7 @@ export default class ErrorBoundary extends React.Component {
               style={{ padding: '10px 24px', fontSize: '0.95rem' }}
             >
               <RefreshCw size={16} />
-              <span>Reload Menu View</span>
+              <span>Muat Ulang Tampilan Menu</span>
             </button>
           </div>
         </div>

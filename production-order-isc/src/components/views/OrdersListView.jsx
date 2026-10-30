@@ -262,205 +262,215 @@ export default function OrdersListView({
                 <th style={{ width: '220px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
-            <tbody>
-              {filteredOrders.length === 0 ? (
+            {filteredOrders.length === 0 ? (
+              <tbody>
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                     No orders match your search or group filter.
                   </td>
                 </tr>
-              ) : (
-                filteredOrders.map((ord, idx) => {
-                  const percent = Math.round((ord.completedSteps / Math.max(1, ord.totalSteps)) * 100);
-                  const isExpanded = expandedOrder === ord.NoProduksi;
+              </tbody>
+            ) : (
+              filteredOrders.map((ord, idx) => {
+                const percent = Math.round((ord.completedSteps / Math.max(1, ord.totalSteps)) * 100);
+                const isExpanded = expandedOrder === ord.NoProduksi;
+                const orderKey = String(ord.NoProduksi || ord.id || `order-${idx}`);
 
-                  return (
-                    <React.Fragment key={ord.NoProduksi || ord.id || idx}>
-                      <tr className="order-row-main">
-                        <td className="font-mono font-bold text-main" style={{ fontSize: '0.92rem' }}>
-                          <div className="flex flex-col">
-                            <span>{ord.NoProduksi}</span>
-                            {ord.id > 0 && (
-                              <span className="text-xs font-mono text-muted" style={{ fontSize: '0.65rem' }}>
-                                ID: #{ord.id}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <span className="group-tag">{ord.ProductGroup || 'PKW'}</span>
-                        </td>
-                        <td>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-main text-xs" style={{ color: 'var(--text-main)' }}>
-                              {ord.title || ord.activeStep?.NamaLangkah || 'ISC Production Order'}
-                            </span>
-                            {ord.customers && (
-                              <span className="text-xs text-muted" style={{ fontSize: '0.72rem' }}>
-                                Cust: {ord.customers}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex flex-col gap-1" style={{ width: '160px' }}>
-                            <div className="flex justify-between text-xs font-mono text-muted">
-                              <span>{ord.completedSteps}/{ord.totalSteps} Completed</span>
-                              <span>{percent}%</span>
-                            </div>
-                            <div className="progress-bar-track" style={{ width: '100%' }}>
-                              <div className="progress-bar-fill" style={{ width: `${percent}%` }}></div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          {ord.isComplete ? (
-                            <span className="status-badge status-selesai">
-                              <CheckCircle2 size={13} />
-                              Completed
-                            </span>
-                          ) : ord.steps.length > 0 && ord.steps.every((s) => String(s.Status).toLowerCase() === 'not started') ? (
-                            <span className="status-badge status-pending">
-                              <Clock size={13} />
-                              Not Started
-                            </span>
-                          ) : (
-                            <span className="status-badge status-berjalan active">
-                              <Clock size={13} />
-                              In Progress
+                return (
+                  <tbody key={orderKey} className="order-group-tbody">
+                    <tr className="order-row-main">
+                      <td className="font-mono font-bold text-main" style={{ fontSize: '0.92rem' }}>
+                        <div className="flex flex-col">
+                          <span>{ord.NoProduksi}</span>
+                          {ord.id > 0 && (
+                            <span className="text-xs font-mono text-muted" style={{ fontSize: '0.65rem' }}>
+                              {`ID: #${ord.id}`}
                             </span>
                           )}
-                        </td>
-                        <td>
-                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        </div>
+                      </td>
+                      <td>
+                        <span className="group-tag">{ord.ProductGroup || 'PKW'}</span>
+                      </td>
+                      <td>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-main text-xs" style={{ color: 'var(--text-main)' }}>
+                            {ord.title || ord.activeStep?.NamaLangkah || 'ISC Production Order'}
+                          </span>
+                          {ord.customers && (
+                            <span className="text-xs text-muted" style={{ fontSize: '0.72rem' }}>
+                              {`Cust: ${ord.customers}`}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-col gap-1" style={{ width: '160px' }}>
+                          <div className="flex justify-between text-xs font-mono text-muted">
+                            <span>{ord.completedSteps}/{ord.totalSteps} Completed</span>
+                            <span>{percent}%</span>
+                          </div>
+                          <div className="progress-bar-track" style={{ width: '100%' }}>
+                            <div className="progress-bar-fill" style={{ width: `${percent}%` }}></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {ord.isComplete ? (
+                          <span className="status-badge status-selesai">
+                            <CheckCircle2 size={13} />
+                            <span>Completed</span>
+                          </span>
+                        ) : ord.steps.length > 0 && ord.steps.every((s) => String(s.Status).toLowerCase() === 'not started') ? (
+                          <span className="status-badge status-pending">
+                            <Clock size={13} />
+                            <span>Not Started</span>
+                          </span>
+                        ) : (
+                          <span className="status-badge status-berjalan active">
+                            <Clock size={13} />
+                            <span>In Progress</span>
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-primary"
+                            onClick={() => onSelectOrderAndOpenScanner(ord.NoProduksi)}
+                            title="Open in scanner terminal for barcode scanning"
+                          >
+                            <Scan size={12} />
+                            <span>Scan</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline"
+                            onClick={() => setExpandedOrder(isExpanded ? null : ord.NoProduksi)}
+                            title="View step details"
+                          >
+                            <span>{isExpanded ? 'Close' : 'Steps'}</span>
+                          </button>
+
+                          {/* Edit Button (UPDATE) */}
+                          {isAdmin && (
                             <button
                               type="button"
-                              className="btn btn-xs btn-primary"
-                              onClick={() => onSelectOrderAndOpenScanner(ord.NoProduksi)}
-                              title="Open in scanner terminal for barcode scanning"
+                              className="btn btn-xs btn-secondary"
+                              onClick={() => setOrderToEdit(ord)}
+                              title="Edit order in SharePoint"
                             >
-                              <Scan size={12} />
-                              <span>Scan</span>
+                              <Edit3 size={12} />
                             </button>
+                          )}
 
+                          {/* Delete Button (DELETE) */}
+                          {isAdmin && (
                             <button
                               type="button"
-                              className="btn btn-xs btn-outline"
-                              onClick={() => setExpandedOrder(isExpanded ? null : ord.NoProduksi)}
-                              title="View step details"
+                              className="btn btn-xs btn-danger"
+                              onClick={() => setOrderToDelete(ord)}
+                              title="Delete order from SharePoint"
                             >
-                              <span>{isExpanded ? 'Close' : 'Steps'}</span>
+                              <Trash2 size={12} />
                             </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
 
-                            {/* Edit Button (UPDATE) */}
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                className="btn btn-xs btn-secondary"
-                                onClick={() => setOrderToEdit(ord)}
-                                title="Edit order in SharePoint"
-                              >
-                                <Edit3 size={12} />
-                              </button>
-                            )}
+                    {/* Expandable Steps Details */}
+                    {isExpanded && (
+                      <tr className="expanded-row-details">
+                        <td colSpan={6} style={{ padding: '16px 24px', backgroundColor: 'var(--bg-surface-elevated)' }}>
+                          <div className="font-bold text-xs uppercase text-muted mb-2 tracking-wider">
+                            Operation Steps for Order {ord.NoProduksi}:
+                          </div>
+                          <div className="steps-table-container">
+                            <table className="steps-table">
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '70px' }}>Step</th>
+                                  <th>Step Name</th>
+                                  <th style={{ width: '160px' }}>Confirmation No.</th>
+                                  <th style={{ width: '140px' }}>Status</th>
+                                  {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Action</th>}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {ord.steps.map((st, stepIdx) => {
+                                  const isDone = String(st.Status).toLowerCase() === 'selesai' || String(st.Status).toLowerCase() === 'completed' || Number(st.status) === 1;
+                                  const isNotStarted = String(st.Status).toLowerCase() === 'not started';
+                                  const isActive =
+                                    ord.activeStep && Number(ord.activeStep.Langkah) === Number(st.Langkah);
+                                  const stepKey = st.id || st.ID || `${ord.NoProduksi}-step-${st.Langkah || stepIdx}`;
 
-                            {/* Delete Button (DELETE) */}
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                className="btn btn-xs btn-danger"
-                                onClick={() => setOrderToDelete(ord)}
-                                title="Delete order from SharePoint"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
+                                  return (
+                                    <tr key={stepKey} className={isActive ? 'row-active' : ''}>
+                                      <td className="font-mono font-bold">{st.Langkah}</td>
+                                      <td>{st.NamaLangkah}</td>
+                                      <td className="font-mono text-cyan font-bold">{st.NoKonfirmasi}</td>
+                                      <td>
+                                        {isDone ? (
+                                          <span className="status-badge status-selesai">
+                                            <span>Completed</span>
+                                          </span>
+                                        ) : isNotStarted ? (
+                                          <span className="status-badge status-pending">
+                                            <span>Not Started</span>
+                                          </span>
+                                        ) : isActive ? (
+                                          <span className="status-badge status-berjalan active">
+                                            <span>Active Step</span>
+                                          </span>
+                                        ) : (
+                                          <span className="status-badge status-pending">
+                                            <span>Pending</span>
+                                          </span>
+                                        )}
+                                      </td>
+                                      {isAdmin && (
+                                        <td style={{ textAlign: 'center' }}>
+                                          {!isDone ? (
+                                            <button
+                                              type="button"
+                                              className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'}`}
+                                              onClick={() => onMarkStepFinished(ord.NoProduksi, st.Langkah)}
+                                              title={`Mark Step ${st.Langkah} Completed`}
+                                            >
+                                              <span>Complete</span>
+                                            </button>
+                                          ) : (
+                                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                              <span className="text-xs text-muted font-mono">Verified</span>
+                                              <button
+                                                type="button"
+                                                className="btn btn-xs btn-outline-warning flex items-center gap-1"
+                                                onClick={() => onRevertStep && onRevertStep(ord.NoProduksi, st.Langkah, st.id || st.ID)}
+                                                title={`Admin: Revert Step ${st.Langkah} to Incomplete`}
+                                              >
+                                                <RotateCcw size={11} />
+                                                <span>Revert</span>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </td>
+                                      )}
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         </td>
                       </tr>
-
-                      {/* Expandable Steps Details */}
-                      {isExpanded && (
-                        <tr className="expanded-row-details">
-                          <td colSpan={6} style={{ padding: '16px 24px', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                            <div className="font-bold text-xs uppercase text-muted mb-2 tracking-wider">
-                              Operation Steps for Order {ord.NoProduksi}:
-                            </div>
-                            <div className="steps-table-container">
-                              <table className="steps-table">
-                                <thead>
-                                  <tr>
-                                    <th style={{ width: '70px' }}>Step</th>
-                                    <th>Step Name</th>
-                                    <th style={{ width: '160px' }}>Confirmation No.</th>
-                                    <th style={{ width: '140px' }}>Status</th>
-                                    {isAdmin && <th style={{ minWidth: '150px', textAlign: 'center' }}>Action</th>}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {ord.steps.map((st) => {
-                                    const isDone = String(st.Status).toLowerCase() === 'selesai' || String(st.Status).toLowerCase() === 'completed' || Number(st.status) === 1;
-                                    const isNotStarted = String(st.Status).toLowerCase() === 'not started';
-                                    const isActive =
-                                      ord.activeStep && Number(ord.activeStep.Langkah) === Number(st.Langkah);
-
-                                    return (
-                                      <tr key={st.Langkah} className={isActive ? 'row-active' : ''}>
-                                        <td className="font-mono font-bold">{st.Langkah}</td>
-                                        <td>{st.NamaLangkah}</td>
-                                        <td className="font-mono text-cyan font-bold">{st.NoKonfirmasi}</td>
-                                        <td>
-                                          {isDone ? (
-                                            <span className="status-badge status-selesai">Completed</span>
-                                          ) : isNotStarted ? (
-                                            <span className="status-badge status-pending">Not Started</span>
-                                          ) : isActive ? (
-                                            <span className="status-badge status-berjalan active">Active Step</span>
-                                          ) : (
-                                            <span className="status-badge status-pending">Pending</span>
-                                          )}
-                                        </td>
-                                        {isAdmin && (
-                                          <td style={{ textAlign: 'center' }}>
-                                            {!isDone ? (
-                                              <button
-                                                type="button"
-                                                className={`btn btn-xs ${isActive ? 'btn-success' : 'btn-outline-cyan'}`}
-                                                onClick={() => onMarkStepFinished(ord.NoProduksi, st.Langkah)}
-                                                title={`Mark Step ${st.Langkah} Completed`}
-                                              >
-                                                Complete
-                                              </button>
-                                            ) : (
-                                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                                <span className="text-xs text-muted font-mono">Verified</span>
-                                                <button
-                                                  type="button"
-                                                  className="btn btn-xs btn-outline-warning flex items-center gap-1"
-                                                  onClick={() => onRevertStep && onRevertStep(ord.NoProduksi, st.Langkah, st.id || st.ID)}
-                                                  title={`Admin: Revert Step ${st.Langkah} to Incomplete`}
-                                                >
-                                                  <RotateCcw size={11} />
-                                                  <span>Revert</span>
-                                                </button>
-                                              </div>
-                                            )}
-                                          </td>
-                                        )}
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
+                    )}
+                  </tbody>
+                );
+              })
+            )}
           </table>
         </div>
       </div>
