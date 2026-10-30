@@ -25,9 +25,7 @@ export default function ProgressTrackerView({
   onMarkStepFinished,
   onRevertStep,
   onUpdateStepStatus,
-  onSelectOrderAndOpenScanner,
-  onSyncCloud,
-  isLoadingCloud = false
+  onSelectOrderAndOpenScanner
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [groupFilter, setGroupFilter] = useState(selectedGroup || 'ALL');
@@ -350,19 +348,6 @@ export default function ProgressTrackerView({
             </select>
           </div>
 
-          {/* Refresh Button */}
-          {onSyncCloud && (
-            <button
-              type="button"
-              className="btn btn-sm btn-outline flex items-center gap-1.5"
-              onClick={() => onSyncCloud(true)}
-              disabled={isLoadingCloud}
-              title="Refresh latest data from cloud database"
-            >
-              <RotateCcw size={14} className={isLoadingCloud ? 'animate-spin text-cyan' : ''} />
-              <span>{isLoadingCloud ? 'Syncing...' : 'Refresh'}</span>
-            </button>
-          )}
         </div>
       </div>
 

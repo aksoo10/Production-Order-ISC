@@ -3,7 +3,6 @@ import {
   BarChart3,
   PieChart,
   ShieldAlert,
-  RotateCcw,
   Layers,
   CheckCircle2,
   Clock,
@@ -16,9 +15,7 @@ import { orderApiService } from '../../services/orderApiService';
 export default function DashboardChartView({
   orders = [],
   selectedGroup = 'ALL',
-  isAdmin = false,
-  onSyncCloud,
-  isLoadingCloud = false
+  isAdmin = false
 }) {
   const [_isBackendAuthorized, setIsBackendAuthorized] = useState(true);
   const [localGroupFilter, setLocalGroupFilter] = useState(selectedGroup || 'ALL');
@@ -338,18 +335,6 @@ export default function DashboardChartView({
             </select>
           </div>
 
-          {onSyncCloud && (
-            <button
-              type="button"
-              className="btn btn-sm btn-outline flex items-center gap-1.5"
-              onClick={() => onSyncCloud(true)}
-              disabled={isLoadingCloud}
-              title="Reload latest data from SharePoint cloud"
-            >
-              <RotateCcw size={14} className={isLoadingCloud ? 'animate-spin text-cyan' : ''} />
-              <span>{isLoadingCloud ? 'Syncing...' : 'Refresh'}</span>
-            </button>
-          )}
         </div>
       </div>
 

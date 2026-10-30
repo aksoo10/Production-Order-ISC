@@ -25,7 +25,7 @@ import {
   notifyParentFrameHeight,
   openInStandaloneTab
 } from './utils/embedHelper';
-import { CheckCircle2, AlertCircle, Info, ExternalLink, RefreshCw } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ExternalLink } from 'lucide-react';
 import './index.css';
 
 const ORDER_CACHE_KEY = 'isc_production_orders_v2';
@@ -195,9 +195,6 @@ export default function App() {
 
   // Orders always come from SharePoint; this cache is read only when the server is offline.
   const [orders, setOrders] = useState([]);
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
-  const [syncError, setSyncError] = useState('');
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const syncInProgressRef = useRef(false);
 
   // Admin password with localStorage persistence (Default: 'admin123')
@@ -438,8 +435,6 @@ export default function App() {
       );
       setOrders(updatedOrders);
       persistOrderSnapshot(updatedOrders);
-      setLastSyncedAt(new Date());
-      setSyncError('');
       return updatedOrders;
     } finally {
       setIsLoadingCloud(false);
@@ -458,7 +453,6 @@ export default function App() {
         ? `Langkah ${stepNumber} selesai. Langkah ${nextActive.Langkah} berikutnya aktif.`
         : `Semua langkah order ${orderNo} selesai.`, 'success');
     } catch (err) {
-      setSyncError(err.message || 'Penyimpanan langkah ke SharePoint gagal.');
       showToast(`Gagal menyimpan status langkah ke SharePoint: ${err.message}`, 'error');
     }
   };
@@ -469,7 +463,6 @@ export default function App() {
       await updateStepInCloud(orderNo, stepNumber, stepId, { Status: 'Berjalan', status: 0 });
       showToast(`Status langkah ${stepNumber} order #${orderNo} dikembalikan ke Berjalan.`, 'success');
     } catch (err) {
-      setSyncError(err.message || 'Penyimpanan langkah ke SharePoint gagal.');
       showToast(`Gagal mengubah status di SharePoint: ${err.message}`, 'error');
     }
   };
@@ -485,7 +478,6 @@ export default function App() {
       });
       showToast(`Status langkah disimpan ke SharePoint (${newStatus}).`, 'success');
     } catch (err) {
-      setSyncError(err.message || 'Penyimpanan langkah ke SharePoint gagal.');
       showToast(`Gagal menyimpan status langkah ke SharePoint: ${err.message}`, 'error');
     }
   };
@@ -502,9 +494,6 @@ export default function App() {
       const serverOrders = res.data;
       setOrders(serverOrders);
       persistOrderSnapshot(serverOrders);
-      setLastSyncedAt(new Date());
-      setSyncError('');
-      setIsInitialLoading(false);
       setSelectedOrderNo((current) =>
         current && serverOrders.some((order) => String(order.NoProduksi || order.orderNo) === current)
           ? current
@@ -516,13 +505,10 @@ export default function App() {
       return true;
     } catch (err) {
       console.error('[SyncCloud] SharePoint sync failed:', err);
-      setSyncError(err.message || 'Tidak dapat terhubung ke SharePoint.');
-      setIsInitialLoading(false);
       if (allowOfflineCache && orders.length === 0) {
         const cachedOrders = getStorageItem(ORDER_CACHE_KEY);
         if (Array.isArray(cachedOrders)) {
           setOrders(cachedOrders);
-          setSyncError('Server tidak tersedia. Menampilkan cache offline; perubahan memerlukan koneksi.');
         }
       }
       if (!silent || allowOfflineCache) {
@@ -569,10 +555,9 @@ export default function App() {
       if (await handleSyncCloud(true)) {
         showToast(`Order #${targetNo} (${itemsToCreate.length} langkah) tersimpan di SharePoint.`, 'success');
       } else {
-        showToast(`Order #${targetNo} terkirim ke SharePoint, tetapi pembacaan ulang gagal. Tekan Refresh.`, 'warning');
+        showToast(`Order #${targetNo} terkirim ke SharePoint, tetapi pembacaan ulang gagal. Sinkronisasi otomatis akan mencoba lagi.`, 'warning');
       }
     } catch (err) {
-      setSyncError(err.message || 'Pembuatan order SharePoint gagal.');
       showToast(`Gagal membuat order di SharePoint: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
@@ -619,10 +604,9 @@ export default function App() {
       if (await handleSyncCloud(true)) {
         showToast(`Perubahan order #${targetNo} tersimpan di SharePoint.`, 'success');
       } else {
-        showToast(`Order #${targetNo} tersimpan, tetapi pembacaan ulang gagal. Tekan Refresh.`, 'warning');
+        showToast(`Order #${targetNo} tersimpan, tetapi pembacaan ulang gagal. Sinkronisasi otomatis akan mencoba lagi.`, 'warning');
       }
     } catch (err) {
-      setSyncError(err.message || 'Pembaruan order SharePoint gagal.');
       showToast(`Gagal memperbarui order di SharePoint: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
@@ -655,7 +639,6 @@ export default function App() {
       if (selectedOrderNo === targetNo) setSelectedOrderNo('');
       showToast(`Order #${targetNo} berhasil dihapus dari SharePoint.`, 'success');
     } catch (err) {
-      setSyncError(err.message || 'Penghapusan order SharePoint gagal.');
       showToast(`Gagal menghapus order dari SharePoint: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
@@ -682,7 +665,6 @@ export default function App() {
       }
       showToast(`Semua langkah order ${orderNo} kembali ke Berjalan.`, 'success');
     } catch (err) {
-      setSyncError(err.message || 'Reset status SharePoint gagal.');
       showToast(`Gagal mereset status di SharePoint: ${err.message}`, 'error');
     }
   };
@@ -741,11 +723,10 @@ export default function App() {
       const refreshed = await handleSyncCloud(true);
       showToast(refreshed
         ? `${preparedOrders.length} langkah berhasil diimpor ke SharePoint.`
-        : 'Import tersimpan, tetapi pembacaan ulang SharePoint gagal. Tekan Refresh.', refreshed ? 'success' : 'warning');
+        : 'Import tersimpan, tetapi pembacaan ulang SharePoint gagal. Sinkronisasi otomatis akan mencoba lagi.', refreshed ? 'success' : 'warning');
       return { success: true, count: preparedOrders.length };
     } catch (err) {
       console.error('[handleImportSuccess] SharePoint import failed:', err);
-      setSyncError(err.message || 'Import ke SharePoint gagal.');
       showToast(`Import gagal disimpan ke SharePoint: ${err.message}`, 'error');
       throw err;
     } finally {
@@ -880,8 +861,6 @@ export default function App() {
             onRevertStep={handleRevertStep}
             onUpdateStepStatus={handleUpdateStepStatus}
             onSelectOrderAndOpenScanner={handleSelectOrderAndOpenScanner}
-            onSyncCloud={handleSyncCloud}
-            isLoadingCloud={isLoadingCloud}
           />
         );
       case 'dashboard':
@@ -899,8 +878,6 @@ export default function App() {
             orders={orders}
             selectedGroup={selectedGroup}
             isAdmin={isAdmin}
-            onSyncCloud={handleSyncCloud}
-            isLoadingCloud={isLoadingCloud}
           />
         );
       default:
@@ -979,28 +956,6 @@ export default function App() {
             width: `${100 / (zoomLevel / 100)}%`
           }}
         >
-          <div
-            className="sync-status-bar"
-            role="status"
-            aria-live="polite"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}
-          >
-            <span className={syncError ? 'text-amber-500' : 'text-muted'}>
-              {isInitialLoading
-                ? 'Memuat data dari SharePoint...'
-                : `Terakhir disinkronkan: ${lastSyncedAt ? lastSyncedAt.toLocaleString('id-ID') : 'belum pernah'}${syncError ? ` | ${syncError}` : ''}`}
-            </span>
-            <button
-              type="button"
-              className="btn btn-outline flex items-center gap-1.5 text-xs font-semibold"
-              onClick={() => handleSyncCloud(false)}
-              disabled={isLoadingCloud}
-              aria-label="Refresh data SharePoint"
-            >
-              <RefreshCw size={14} className={isLoadingCloud ? 'animate-spin' : ''} />
-              <span>Refresh</span>
-            </button>
-          </div>
           <ErrorBoundary onReset={() => setActiveTab('scanner')}>
             {renderActiveView()}
           </ErrorBoundary>
