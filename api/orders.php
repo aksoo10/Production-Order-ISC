@@ -140,6 +140,21 @@ try {
 
             $rawItems = $res['json']['data'] ?? [];
             $mappedOrders = [];
+            $seenMulti = [];
+            $MULTI_STEP_CONFIG = [
+                '4800115516' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'SPARE PART - BEDKNIFE', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'SPARE PART - BEDKNIFE - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
+                ],
+                '53072677' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
+                ],
+                '53028923' => [
+                    ['Langkah' => 1, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board', 'Status' => 'Berjalan', 'status' => 0],
+                    ['Langkah' => 2, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
+                ]
+            ];
 
             foreach ($rawItems as $sp) {
                 $rawProdOrder = trim((string)($sp['field_4'] ?? ''));
@@ -184,7 +199,32 @@ try {
                     'Author'              => $sp['Author']['DisplayName'] ?? ''
                 ];
 
-                $mappedOrders[] = $baseItem;
+                if (isset($MULTI_STEP_CONFIG[$orderNo])) {
+                    if (isset($seenMulti[$orderNo])) continue;
+                    $seenMulti[$orderNo] = true;
+                    $steps = $MULTI_STEP_CONFIG[$orderNo];
+                    $isSpComplete = ($statusNum === 1);
+
+                    foreach ($steps as $idx => $st) {
+                        $stepIsDone = $isSpComplete || ($st['status'] === 1 || strtolower((string)$st['Status']) === 'selesai');
+                        $stepStatus = $stepIsDone ? 1 : 0;
+                        $stepStatusText = ($stepStatus === 1) ? 'Selesai' : 'Berjalan';
+
+                        $stepItem = $baseItem;
+                        $stepItem['id'] = ($idx === 0) ? $baseItem['id'] : ($baseItem['id'] * 1000 + $idx);
+                        $stepItem['ID'] = ($idx === 0) ? $baseItem['ID'] : ($baseItem['ID'] * 1000 + $idx);
+                        $stepItem['Langkah'] = $st['Langkah'] ?? ($idx + 1);
+                        $stepItem['stepNo'] = $st['Langkah'] ?? ($idx + 1);
+                        $stepItem['NamaLangkah'] = $st['NamaLangkah'] ?? ($baseItem['title'] . ' - Langkah ' . ($idx + 1));
+                        $stepItem['stepName'] = $st['NamaLangkah'] ?? ($baseItem['title'] . ' - Langkah ' . ($idx + 1));
+                        $stepItem['Status'] = $stepStatusText;
+                        $stepItem['status'] = $stepStatus;
+
+                        $mappedOrders[] = $stepItem;
+                    }
+                } else {
+                    $mappedOrders[] = $baseItem;
+                }
             }
 
             echo json_encode([
@@ -303,6 +343,11 @@ try {
                 $orderNum = (string)($it['orderNo'] ?? $it['NoProduksi'] ?? $it['prodOrderNo'] ?? '');
 
                 if ($id <= 0 || empty($orderNum)) continue;
+
+                // Map synthetic multi-step IDs (e.g. 15001 -> 15) to real SharePoint ID
+                if ($id > 1000 && $id < 1000000) {
+                    $id = (int)($id / 1000);
+                }
 
                 $statusVal = 0;
                 if (isset($it['status'])) {

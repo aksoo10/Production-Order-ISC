@@ -164,15 +164,23 @@ export default async function handler(req, res) {
             if (seenMulti.has(orderNo)) continue;
             seenMulti.add(orderNo);
             const steps = MULTI_STEP_CONFIG[orderNo];
+            const isSpComplete = statusNum === 1;
+
             steps.forEach((st, idx) => {
+              const stepIsDone = isSpComplete || (st.status === 1 || String(st.Status).toLowerCase() === 'selesai');
+              const stepStatus = stepIsDone ? 1 : 0;
+              const stepStatusText = stepStatus === 1 ? 'Selesai' : 'Berjalan';
+
               mappedOrders.push({
                 ...baseItem,
                 id: idx === 0 ? baseItem.id : (baseItem.id * 1000 + idx),
                 ID: idx === 0 ? baseItem.ID : (baseItem.ID * 1000 + idx),
                 Langkah: st.Langkah || (idx + 1),
+                stepNo: st.Langkah || (idx + 1),
                 NamaLangkah: st.NamaLangkah || `${baseItem.title} - Langkah ${idx + 1}`,
-                Status: st.Status || 'Berjalan',
-                status: st.status !== undefined ? st.status : (st.Status === 'Selesai' ? 1 : 0)
+                stepName: st.NamaLangkah || `${baseItem.title} - Langkah ${idx + 1}`,
+                Status: stepStatusText,
+                status: stepStatus
               });
             });
           } else {
@@ -232,13 +240,20 @@ export default async function handler(req, res) {
         const formattedItems = [];
 
         for (const it of rawItems) {
-          const id = parseInt(it.id || it.ID, 10);
+          let id = parseInt(it.id || it.ID, 10);
           const orderNum = String(it.orderNo || it.NoProduksi || it.prodOrderNo || '').trim();
           if (!id || id <= 0 || !orderNum) continue;
+
+          // Map synthetic multi-step IDs (e.g. 15001 -> 15) to real SharePoint ID
+          if (id > 1000 && id < 1000000) {
+            id = Math.floor(id / 1000);
+          }
 
           formattedItems.push({
             id,
             orderNo: orderNum,
+            stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
+            stepName: String(it.stepName || it.NamaLangkah || it.title || `Order ${orderNum}`),
             title: String(it.title || it.NamaLangkah || `Order ${orderNum}`),
             customers: String(it.customers || it.Customer || ''),
             soDocument: String(it.soDocument || ''),

@@ -42,6 +42,39 @@ export default async function handler(req, res) {
         const data = await response.json();
         const rawItems = data.data || [];
         const mappedOrders = [];
+        const DELETED_ORDERS = new Set(['S-10-P84786-643', '102910210']);
+        const MULTI_STEP_CONFIG = {
+          '4800115516': [
+            { Langkah: 1, NamaLangkah: 'SPARE PART - BEDKNIFE', Status: 'Berjalan', status: 0 },
+            { Langkah: 2, NamaLangkah: 'SPARE PART - BEDKNIFE - Langkah 2', Status: 'Selesai', status: 1 }
+          ],
+          '53072677': [
+            { Langkah: 1, NamaLangkah: 'BED KNIFE - ANDRITZ - EWR - CHO', Status: 'Berjalan', status: 0 },
+            { Langkah: 2, NamaLangkah: 'BED KNIFE - ANDRITZ - EWR - CHO - Langkah 2', Status: 'Selesai', status: 1 }
+          ],
+          '53028923': [
+            { Langkah: 1, NamaLangkah: 'Rear Screw Indonesia Fiber Board', Status: 'Berjalan', status: 0 },
+            { Langkah: 2, NamaLangkah: 'Rear Screw Indonesia Fiber Board - Langkah 2', Status: 'Selesai', status: 1 }
+          ],
+          'S-10-P82990-643': [
+            { Langkah: 1, NamaLangkah: 'WEAR PLATE', Status: 'Berjalan', status: 0 },
+            { Langkah: 2, NamaLangkah: 'WEAR PLATE - Langkah 2', Status: 'Berjalan', status: 0 },
+            { Langkah: 3, NamaLangkah: 'WEAR PLATE - Langkah 3', Status: 'Berjalan', status: 0 },
+            { Langkah: 4, NamaLangkah: 'WEAR PLATE - Langkah 4', Status: 'Berjalan', status: 0 },
+            { Langkah: 5, NamaLangkah: 'WEAR PLATE - Langkah 5', Status: 'Berjalan', status: 0 },
+            { Langkah: 6, NamaLangkah: 'WEAR PLATE - Langkah 6', Status: 'Berjalan', status: 0 },
+            { Langkah: 7, NamaLangkah: 'WEAR PLATE - Langkah 7', Status: 'Berjalan', status: 0 },
+            { Langkah: 8, NamaLangkah: 'WEAR PLATE - Langkah 8', Status: 'Berjalan', status: 0 },
+            { Langkah: 9, NamaLangkah: 'WEAR PLATE - Langkah 9', Status: 'Berjalan', status: 0 },
+            { Langkah: 10, NamaLangkah: 'WEAR PLATE - Langkah 10', Status: 'Berjalan', status: 0 },
+            { Langkah: 11, NamaLangkah: 'WEAR PLATE - Langkah 11', Status: 'Berjalan', status: 0 }
+          ],
+          'S-10-P94014-643': [
+            { Langkah: 1, NamaLangkah: 'BED KNIFE EWR', Status: 'Berjalan', status: 0 },
+            { Langkah: 2, NamaLangkah: 'ANVIL BRUCKS CS2000', Status: 'Berjalan', status: 0 }
+          ]
+        };
+        const seenMulti = new Set();
 
         for (const sp of rawItems) {
           const rawProdOrder = String(sp.field_4 || '').trim();
@@ -127,7 +160,32 @@ export default async function handler(req, res) {
             Author: sp.Author ? sp.Author.DisplayName || '' : ''
           };
 
-          mappedOrders.push(baseItem);
+          if (MULTI_STEP_CONFIG[orderNo]) {
+            if (seenMulti.has(orderNo)) continue;
+            seenMulti.add(orderNo);
+            const steps = MULTI_STEP_CONFIG[orderNo];
+            const isSpComplete = statusNum === 1;
+
+            steps.forEach((st, idx) => {
+              const stepIsDone = isSpComplete || (st.status === 1 || String(st.Status).toLowerCase() === 'selesai');
+              const stepStatus = stepIsDone ? 1 : 0;
+              const stepStatusText = stepStatus === 1 ? 'Selesai' : 'Berjalan';
+
+              mappedOrders.push({
+                ...baseItem,
+                id: idx === 0 ? baseItem.id : (baseItem.id * 1000 + idx),
+                ID: idx === 0 ? baseItem.ID : (baseItem.ID * 1000 + idx),
+                Langkah: st.Langkah || (idx + 1),
+                stepNo: st.Langkah || (idx + 1),
+                NamaLangkah: st.NamaLangkah || `${baseItem.title} - Langkah ${idx + 1}`,
+                stepName: st.NamaLangkah || `${baseItem.title} - Langkah ${idx + 1}`,
+                Status: stepStatusText,
+                status: stepStatus
+              });
+            });
+          } else {
+            mappedOrders.push(baseItem);
+          }
         }
 
         return res.status(200).json({
@@ -210,9 +268,14 @@ export default async function handler(req, res) {
         const formattedItems = [];
 
         for (const it of rawItems) {
-          const id = parseInt(it.id || it.ID, 10);
+          let id = parseInt(it.id || it.ID, 10);
           const orderNum = String(it.orderNo || it.NoProduksi || it.prodOrderNo || '').trim();
           if (!id || id <= 0 || !orderNum) continue;
+
+          // Map synthetic multi-step IDs (e.g. 15001 -> 15) to real SharePoint ID
+          if (id > 1000 && id < 1000000) {
+            id = Math.floor(id / 1000);
+          }
 
           formattedItems.push({
             id,

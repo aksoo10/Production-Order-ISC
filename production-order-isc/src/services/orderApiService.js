@@ -108,8 +108,13 @@ export const orderApiService = {
     const descVal = String(it.materialDescription || it.shortDescSO || titleVal).trim();
     const statusVal = it.status !== undefined ? parseInt(it.status, 10) : (String(it.Status).toLowerCase() === 'selesai' ? 1 : 0);
 
+    let idVal = parseInt(it.id || it.ID, 10) || 0;
+    if (idVal > 1000 && idVal < 1000000) {
+      idVal = Math.floor(idVal / 1000);
+    }
+
     return {
-      id: parseInt(it.id || it.ID, 10) || 0,
+      id: idVal,
       orderNo: orderNum,
       stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
       stepName: String(it.stepName || it.NamaLangkah || titleVal).trim(),
