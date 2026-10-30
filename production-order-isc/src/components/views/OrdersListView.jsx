@@ -76,11 +76,11 @@ export default function OrdersListView({
       const sortedSteps = [...order.steps].sort((a, b) => Number(a.Langkah) - Number(b.Langkah));
       const totalSteps = sortedSteps.length;
       const completedSteps = sortedSteps.filter(
-        (s) => String(s.Status).toLowerCase() === 'selesai'
+        (s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed' || Number(s.status) === 1
       ).length;
       const isComplete = completedSteps === totalSteps && totalSteps > 0;
       const activeStep = sortedSteps.find(
-        (s) => String(s.Status).toLowerCase() !== 'selesai'
+        (s) => String(s.Status).toLowerCase() !== 'selesai' && String(s.Status).toLowerCase() !== 'completed' && Number(s.status) !== 1
       ) || null;
 
       return {
@@ -121,7 +121,7 @@ export default function OrdersListView({
     const completedOrders = ordersGrouped.filter((o) => o.isComplete).length;
     const activeOrders = totalOrders - completedOrders;
     const totalSteps = orders.length;
-    const completedSteps = orders.filter((s) => String(s.Status).toLowerCase() === 'selesai').length;
+    const completedSteps = orders.filter((s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed' || Number(s.status) === 1).length;
 
     return { totalOrders, completedOrders, activeOrders, totalSteps, completedSteps };
   }, [ordersGrouped, orders]);
@@ -399,7 +399,7 @@ export default function OrdersListView({
                                 </thead>
                                 <tbody>
                                   {ord.steps.map((st) => {
-                                    const isDone = String(st.Status).toLowerCase() === 'selesai' || String(st.Status).toLowerCase() === 'completed';
+                                    const isDone = String(st.Status).toLowerCase() === 'selesai' || String(st.Status).toLowerCase() === 'completed' || Number(st.status) === 1;
                                     const isNotStarted = String(st.Status).toLowerCase() === 'not started';
                                     const isActive =
                                       ord.activeStep && Number(ord.activeStep.Langkah) === Number(st.Langkah);

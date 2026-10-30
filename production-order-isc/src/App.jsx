@@ -195,7 +195,14 @@ export default function App() {
 
   // Orders always come from SharePoint; this cache is read only when the server is offline.
   const [orders, setOrders] = useState([]);
+  const ordersRef = useRef(orders);
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+
   const syncInProgressRef = useRef(false);
+  const activeSavesCountRef = useRef(0);
+  const recentConfirmedUpdatesRef = useRef(new Map());
 
   // Admin password with localStorage persistence (Default: 'admin123')
   const [adminPassword, setAdminPassword] = useState(() => {
@@ -409,7 +416,8 @@ export default function App() {
   };
 
   const updateStepInCloud = async (orderNo, stepNumber, stepId, patch) => {
-    const target = orders.find((step) =>
+    const currentOrders = ordersRef.current;
+    const target = currentOrders.find((step) =>
       String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim() &&
       (stepId
         ? String(step.id || step.ID) === String(stepId)
@@ -419,24 +427,109 @@ export default function App() {
       throw new Error('Langkah tidak memiliki ID SharePoint yang valid. Muat ulang data sebelum mengubahnya.');
     }
 
-    const updatedStep = {
-      ...target,
-      ...patch,
-      id: Number(target.id || target.ID),
-      orderNo: target.NoProduksi || target.orderNo,
-      stepNo: Number(target.Langkah || target.stepNo) || Number(stepNumber),
-      stepName: target.NamaLangkah || target.stepName || target.title
-    };
+    const isMarkingComplete = patch.status === 1 || String(patch.Status).toLowerCase() === 'selesai' || patch.barcodeStatus === 'FIN';
+
+    // Check if completing this step completes the entire order
+    const orderSteps = currentOrders.filter(
+      (step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim()
+    );
+    const willAllBeComplete = isMarkingComplete && orderSteps.length > 0 && orderSteps.every((step) => {
+      const isTarget = stepId
+        ? String(step.id || step.ID) === String(stepId)
+        : Number(step.Langkah || step.stepNo) === Number(stepNumber);
+      if (isTarget) return true;
+      return String(step.Status).toLowerCase() === 'selesai' || String(step.Status).toLowerCase() === 'completed' || Number(step.status) === 1;
+    });
+
+    let optimisticOrders;
+    let itemsToUpdateInCloud;
+
+    if (willAllBeComplete) {
+      // All steps of this order completed -> Mark entire order Completed optimistically and sync all steps to SharePoint
+      optimisticOrders = currentOrders.map((step) => {
+        if (String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim()) {
+          return {
+            ...step,
+            ...patch,
+            Status: 'Selesai',
+            status: 1,
+            barcodeStatus: 'FIN'
+          };
+        }
+        return step;
+      });
+
+      itemsToUpdateInCloud = optimisticOrders
+        .filter((step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim())
+        .map((step) => ({
+          ...step,
+          id: Number(step.id || step.ID),
+          orderNo: step.NoProduksi || step.orderNo,
+          stepNo: Number(step.Langkah || step.stepNo),
+          stepName: step.NamaLangkah || step.stepName || step.title,
+          Status: 'Selesai',
+          status: 1,
+          barcodeStatus: 'FIN'
+        }));
+    } else {
+      optimisticOrders = currentOrders.map((step) => {
+        const isTarget = stepId
+          ? String(step.id || step.ID) === String(stepId)
+          : (String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim() &&
+             Number(step.Langkah || step.stepNo) === Number(stepNumber));
+        return isTarget ? { ...step, ...patch } : step;
+      });
+
+      const updatedTarget = {
+        ...target,
+        ...patch,
+        id: Number(target.id || target.ID),
+        orderNo: target.NoProduksi || target.orderNo,
+        stepNo: Number(target.Langkah || target.stepNo) || Number(stepNumber),
+        stepName: target.NamaLangkah || target.stepName || target.title
+      };
+      itemsToUpdateInCloud = [updatedTarget];
+    }
+
+    // 1. OPTIMISTIC UPDATE: Update UI immediately without waiting for server response
+    setOrders(optimisticOrders);
+    ordersRef.current = optimisticOrders;
+    persistOrderSnapshot(optimisticOrders);
+
+    // 2. SUSPEND POLLING: Pause background polling while save operation is running
+    activeSavesCountRef.current++;
     setIsLoadingCloud(true);
+
     try {
-      await orderApiService.updateOrder(updatedStep);
-      const updatedOrders = orders.map((step) =>
-        Number(step.id || step.ID) === updatedStep.id ? { ...step, ...patch } : step
-      );
-      setOrders(updatedOrders);
-      persistOrderSnapshot(updatedOrders);
-      return updatedOrders;
+      // 3. PERSIST TO SHAREPOINT
+      await orderApiService.updateOrder(itemsToUpdateInCloud);
+
+      // 4. LOCK RECENT UPDATES: Protect confirmed status against stale server polling (60s TTL)
+      itemsToUpdateInCloud.forEach((item) => {
+        const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
+        recentConfirmedUpdatesRef.current.set(key, {
+          id: item.id,
+          status: item.status,
+          Status: item.Status,
+          barcodeStatus: item.barcodeStatus,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 60000
+        });
+      });
+
+      return optimisticOrders;
+    } catch (err) {
+      // 5. ROLLBACK ON ERROR: Restore previous state if SharePoint save failed
+      setOrders(currentOrders);
+      ordersRef.current = currentOrders;
+      persistOrderSnapshot(currentOrders);
+      itemsToUpdateInCloud.forEach((item) => {
+        const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
+        recentConfirmedUpdatesRef.current.delete(key);
+      });
+      throw err;
     } finally {
+      activeSavesCountRef.current = Math.max(0, activeSavesCountRef.current - 1);
       setIsLoadingCloud(false);
     }
   };
@@ -444,26 +537,34 @@ export default function App() {
   // Mark active step as finished
   const handleMarkStepFinished = async (orderNo, stepNumber) => {
     try {
-      const updated = await updateStepInCloud(orderNo, stepNumber, null, { Status: 'Selesai', status: 1 });
+      const updated = await updateStepInCloud(orderNo, stepNumber, null, {
+        Status: 'Selesai',
+        status: 1,
+        barcodeStatus: 'FIN'
+      });
       const orderSteps = updated
         .filter((step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim())
         .sort((a, b) => Number(a.Langkah) - Number(b.Langkah));
-      const nextActive = orderSteps.find((step) => String(step.Status).toLowerCase() !== 'selesai');
+      const nextActive = orderSteps.find((step) => String(step.Status).toLowerCase() !== 'selesai' && Number(step.status) !== 1);
       showToast(nextActive
         ? `Langkah ${stepNumber} selesai. Langkah ${nextActive.Langkah} berikutnya aktif.`
-        : `Semua langkah order ${orderNo} selesai.`, 'success');
+        : `Semua langkah order ${orderNo} selesai (Completed).`, 'success');
     } catch (err) {
-      showToast(`Gagal menyimpan status langkah ke SharePoint: ${err.message}`, 'error');
+      showToast(`Gagal menyimpan status ke SharePoint: ${err.message}. Status dikembalikan.`, 'error');
     }
   };
 
   // Revert finished step back to in-progress / unfinished (Admin feature)
   const handleRevertStep = async (orderNo, stepNumber, stepId) => {
     try {
-      await updateStepInCloud(orderNo, stepNumber, stepId, { Status: 'Berjalan', status: 0 });
+      await updateStepInCloud(orderNo, stepNumber, stepId, {
+        Status: 'Berjalan',
+        status: 0,
+        barcodeStatus: 'PROG'
+      });
       showToast(`Status langkah ${stepNumber} order #${orderNo} dikembalikan ke Berjalan.`, 'success');
     } catch (err) {
-      showToast(`Gagal mengubah status di SharePoint: ${err.message}`, 'error');
+      showToast(`Gagal mengubah status di SharePoint: ${err.message}. Status dikembalikan.`, 'error');
     }
   };
 
@@ -476,39 +577,88 @@ export default function App() {
         status: isFinished ? 1 : 0,
         barcodeStatus: newStatus
       });
-      showToast(`Status langkah disimpan ke SharePoint (${newStatus}).`, 'success');
+      showToast(isFinished
+        ? `Status langkah order ${orderNo} selesai disimpan ke SharePoint (FIN).`
+        : `Status langkah order ${orderNo} dikembalikan ke Berjalan (PROG).`, 'success');
     } catch (err) {
-      showToast(`Gagal menyimpan status langkah ke SharePoint: ${err.message}`, 'error');
+      showToast(`Gagal menyimpan status langkah ke SharePoint: ${err.message}. Status dikembalikan.`, 'error');
     }
   };
 
   // --- CLOUD CRUD HANDLERS (Power Automate & SharePoint) ---
 
   const handleSyncCloud = async (silent = false, allowOfflineCache = false) => {
+    // 1. Temporarily pause polling if a save is currently executing
+    if (activeSavesCountRef.current > 0) {
+      return false;
+    }
     if (syncInProgressRef.current) return false;
     syncInProgressRef.current = true;
-    setIsLoadingCloud(true);
+    if (!silent) {
+      setIsLoadingCloud(true);
+    }
 
     try {
       const res = await orderApiService.getAllOrders();
       const serverOrders = res.data;
-      setOrders(serverOrders);
-      persistOrderSnapshot(serverOrders);
+      const now = Date.now();
+
+      // 2. Prevent stale SharePoint replication data from overwriting recently confirmed updates
+      const protectedOrders = serverOrders.map((serverStep) => {
+        const key = `${String(serverStep.NoProduksi || serverStep.orderNo).trim()}:${Number(serverStep.Langkah || serverStep.stepNo)}`;
+        const recent = recentConfirmedUpdatesRef.current.get(key);
+
+        if (recent) {
+          if (now < recent.expiresAt) {
+            const serverIsDone = serverStep.status === 1 || String(serverStep.Status).toLowerCase() === 'selesai';
+            const recentIsDone = recent.status === 1 || String(recent.Status).toLowerCase() === 'selesai';
+
+            if (recentIsDone && !serverIsDone) {
+              // Server data is stale! Preserve confirmed completed status
+              return {
+                ...serverStep,
+                status: 1,
+                Status: 'Selesai',
+                barcodeStatus: recent.barcodeStatus || 'FIN'
+              };
+            } else if (!recentIsDone && serverIsDone) {
+              // Server has not replicated revert yet! Preserve reverted status
+              return {
+                ...serverStep,
+                status: 0,
+                Status: 'Berjalan',
+                barcodeStatus: recent.barcodeStatus || 'PROG'
+              };
+            } else {
+              // Server has caught up with latest state
+              recentConfirmedUpdatesRef.current.delete(key);
+            }
+          } else {
+            recentConfirmedUpdatesRef.current.delete(key);
+          }
+        }
+        return serverStep;
+      });
+
+      setOrders(protectedOrders);
+      ordersRef.current = protectedOrders;
+      persistOrderSnapshot(protectedOrders);
       setSelectedOrderNo((current) =>
-        current && serverOrders.some((order) => String(order.NoProduksi || order.orderNo) === current)
+        current && protectedOrders.some((order) => String(order.NoProduksi || order.orderNo) === current)
           ? current
-          : (serverOrders[0]?.NoProduksi || serverOrders[0]?.orderNo || '')
+          : (protectedOrders[0]?.NoProduksi || protectedOrders[0]?.orderNo || '')
       );
       if (!silent) {
-        showToast(`Berhasil memuat ${serverOrders.length} langkah dari SharePoint.`, 'success');
+        showToast(`Berhasil memuat ${protectedOrders.length} langkah dari SharePoint.`, 'success');
       }
       return true;
     } catch (err) {
       console.error('[SyncCloud] SharePoint sync failed:', err);
-      if (allowOfflineCache && orders.length === 0) {
+      if (allowOfflineCache && ordersRef.current.length === 0) {
         const cachedOrders = getStorageItem(ORDER_CACHE_KEY);
         if (Array.isArray(cachedOrders)) {
           setOrders(cachedOrders);
+          ordersRef.current = cachedOrders;
         }
       }
       if (!silent || allowOfflineCache) {
@@ -517,7 +667,9 @@ export default function App() {
       return false;
     } finally {
       syncInProgressRef.current = false;
-      setIsLoadingCloud(false);
+      if (!silent) {
+        setIsLoadingCloud(false);
+      }
     }
   };
 
@@ -566,49 +718,95 @@ export default function App() {
 
   // 3. UPDATE: Update order in Cloud SharePoint
   const handleUpdateOrder = async (orderData) => {
+    const previousOrders = ordersRef.current;
+    activeSavesCountRef.current++;
     setIsLoadingCloud(true);
+
     try {
       const targetNo = String(orderData.orderNo || '').trim();
-      const representative = orders.find((step) => Number(step.id || step.ID) === Number(orderData.id));
+      const representative = previousOrders.find((step) => Number(step.id || step.ID) === Number(orderData.id));
       const originalNo = String(representative?.NoProduksi || representative?.orderNo || targetNo).trim();
-      const existingSteps = orders.filter(
+      const existingSteps = previousOrders.filter(
         (step) => String(step.NoProduksi || step.orderNo).trim() === originalNo
       );
       const submittedSteps = Array.isArray(orderData.steps) && orderData.steps.length > 0
         ? orderData.steps
         : [{ id: orderData.id, Langkah: 1, NamaLangkah: orderData.title, Status: orderData.Status || 'Berjalan' }];
-      const items = submittedSteps.map((step, index) => ({
-        ...orderData,
-        id: step.id || step.ID,
-        orderNo: targetNo,
-        NoProduksi: targetNo,
-        ProductGroup: orderData.ProductGroup || orderData.orderDivision || 'PKW',
-        Langkah: index + 1,
-        stepNo: index + 1,
-        NamaLangkah: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
-        stepName: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
-        NoKonfirmasi: step.NoKonfirmasi || targetNo,
-        Status: step.Status || 'Berjalan',
-        status: String(step.Status).toLowerCase() === 'selesai' ? 1 : 0
-      }));
+
+      const isCompleted = Number(orderData.status) === 1 || submittedSteps.every(
+        (s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed' || Number(s.status) === 1
+      );
+
+      const items = submittedSteps.map((step, index) => {
+        const stepDone = isCompleted || String(step.Status).toLowerCase() === 'selesai' || String(step.Status).toLowerCase() === 'completed' || Number(step.status) === 1;
+        return {
+          ...orderData,
+          id: step.id || step.ID,
+          orderNo: targetNo,
+          NoProduksi: targetNo,
+          ProductGroup: orderData.ProductGroup || orderData.orderDivision || 'PKW',
+          Langkah: index + 1,
+          stepNo: index + 1,
+          NamaLangkah: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
+          stepName: step.NamaLangkah || `${orderData.title} - Langkah ${index + 1}`,
+          NoKonfirmasi: step.NoKonfirmasi || targetNo,
+          Status: stepDone ? 'Selesai' : (step.Status || 'Berjalan'),
+          status: stepDone ? 1 : 0,
+          barcodeStatus: stepDone ? 'FIN' : (step.barcodeStatus || 'PROG')
+        };
+      });
+
       const idsToKeep = new Set(items.map((item) => Number(item.id)).filter((id) => id > 0));
       const itemsToUpdate = items.filter((item) => Number(item.id) > 0);
       const itemsToCreate = items.filter((item) => !(Number(item.id) > 0));
       const itemsToDelete = existingSteps.filter((step) => !idsToKeep.has(Number(step.id || step.ID)));
 
+      // 1. OPTIMISTIC UPDATE: Apply directly to local state
+      const updatedIdsMap = new Map(itemsToUpdate.map((it) => [Number(it.id), it]));
+      const deleteIdsSet = new Set(itemsToDelete.map((it) => Number(it.id || it.ID)));
+      const optimisticOrders = previousOrders
+        .filter((step) => !deleteIdsSet.has(Number(step.id || step.ID)))
+        .map((step) => {
+          const stepId = Number(step.id || step.ID);
+          if (updatedIdsMap.has(stepId)) {
+            return { ...step, ...updatedIdsMap.get(stepId) };
+          }
+          return step;
+        });
+
+      setOrders(optimisticOrders);
+      ordersRef.current = optimisticOrders;
+      persistOrderSnapshot(optimisticOrders);
+
+      // 2. PERSIST TO SHAREPOINT
       if (itemsToUpdate.length) await orderApiService.updateOrder(itemsToUpdate);
       if (itemsToCreate.length) await orderApiService.createOrders(itemsToCreate);
       for (const step of itemsToDelete) {
         await orderApiService.deleteOrder(step.id || step.ID);
       }
-      if (await handleSyncCloud(true)) {
-        showToast(`Perubahan order #${targetNo} tersimpan di SharePoint.`, 'success');
-      } else {
-        showToast(`Order #${targetNo} tersimpan, tetapi pembacaan ulang gagal. Sinkronisasi otomatis akan mencoba lagi.`, 'warning');
-      }
+
+      // 3. LOCK RECENT UPDATES: Protect from background polling overwrite (60s TTL)
+      items.forEach((item) => {
+        const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
+        recentConfirmedUpdatesRef.current.set(key, {
+          id: item.id,
+          status: item.status,
+          Status: item.Status,
+          barcodeStatus: item.barcodeStatus,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 60000
+        });
+      });
+
+      showToast(`Perubahan order #${targetNo} tersimpan di SharePoint.`, 'success');
     } catch (err) {
-      showToast(`Gagal memperbarui order di SharePoint: ${err.message}`, 'error');
+      // 4. ROLLBACK ON ERROR
+      setOrders(previousOrders);
+      ordersRef.current = previousOrders;
+      persistOrderSnapshot(previousOrders);
+      showToast(`Gagal memperbarui order di SharePoint: ${err.message}. Perubahan dikembalikan.`, 'error');
     } finally {
+      activeSavesCountRef.current = Math.max(0, activeSavesCountRef.current - 1);
       setIsLoadingCloud(false);
     }
   };
@@ -646,8 +844,12 @@ export default function App() {
   };
 
   const handleResetOrderSteps = async (orderNo) => {
+    const previousOrders = ordersRef.current;
+    activeSavesCountRef.current++;
+    setIsLoadingCloud(true);
+
     try {
-      const records = orders
+      const records = previousOrders
         .filter((step) => String(step.NoProduksi || step.orderNo).trim() === String(orderNo).trim())
         .map((step) => ({
           ...step,
@@ -656,16 +858,45 @@ export default function App() {
           stepNo: step.Langkah || step.stepNo,
           stepName: step.NamaLangkah || step.stepName,
           Status: 'Berjalan',
-          status: 0
+          status: 0,
+          barcodeStatus: 'PROG'
         }));
       if (records.length === 0) throw new Error('Order tidak ditemukan di SharePoint.');
+
+      // Optimistic update
+      const targetIds = new Set(records.map((r) => Number(r.id)));
+      const optimistic = previousOrders.map((step) =>
+        targetIds.has(Number(step.id || step.ID))
+          ? { ...step, Status: 'Berjalan', status: 0, barcodeStatus: 'PROG' }
+          : step
+      );
+      setOrders(optimistic);
+      ordersRef.current = optimistic;
+      persistOrderSnapshot(optimistic);
+
       await orderApiService.updateOrder(records);
-      if (!(await handleSyncCloud(true))) {
-        throw new Error('Status tersimpan, tetapi pembacaan ulang SharePoint gagal.');
-      }
+
+      records.forEach((item) => {
+        const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
+        recentConfirmedUpdatesRef.current.set(key, {
+          id: item.id,
+          status: 0,
+          Status: 'Berjalan',
+          barcodeStatus: 'PROG',
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 60000
+        });
+      });
+
       showToast(`Semua langkah order ${orderNo} kembali ke Berjalan.`, 'success');
     } catch (err) {
-      showToast(`Gagal mereset status di SharePoint: ${err.message}`, 'error');
+      setOrders(previousOrders);
+      ordersRef.current = previousOrders;
+      persistOrderSnapshot(previousOrders);
+      showToast(`Gagal mereset status di SharePoint: ${err.message}. Status dikembalikan.`, 'error');
+    } finally {
+      activeSavesCountRef.current = Math.max(0, activeSavesCountRef.current - 1);
+      setIsLoadingCloud(false);
     }
   };
 

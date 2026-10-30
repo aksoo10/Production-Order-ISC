@@ -198,11 +198,10 @@ export default function ProgressTrackerView({
   const handleFinishStepInModal = () => {
     if (!operatorModalStep) return;
     const { orderNo, stepNo, stepId } = operatorModalStep;
-    if (onMarkStepFinished) {
-      onMarkStepFinished(orderNo, stepNo);
-    }
     if (onUpdateStepStatus) {
       onUpdateStepStatus(orderNo, stepNo, 'FIN', stepId);
+    } else if (onMarkStepFinished) {
+      onMarkStepFinished(orderNo, stepNo);
     }
     setOperatorModalStep((prev) => ({
       ...prev,
@@ -527,11 +526,10 @@ export default function ProgressTrackerView({
                           };
 
                           const handleCompleteStep = () => {
-                            if (onMarkStepFinished) {
-                              onMarkStepFinished(ord.NoProduksi, st.Langkah);
-                            }
                             if (onUpdateStepStatus) {
                               onUpdateStepStatus(ord.NoProduksi, st.Langkah, 'FIN', st.id || st.ID);
+                            } else if (onMarkStepFinished) {
+                              onMarkStepFinished(ord.NoProduksi, st.Langkah);
                             }
                             setOperatorModalStep({
                               orderNo: ord.NoProduksi,

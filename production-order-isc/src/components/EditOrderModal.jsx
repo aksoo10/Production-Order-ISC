@@ -75,10 +75,23 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
+    const parsedVal = type === 'number' ? (parseFloat(value) || 0) : value;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'number' ? (parseFloat(value) || 0) : value
+      [name]: parsedVal
     }));
+
+    if (name === 'status') {
+      const isCompleted = Number(parsedVal) === 1;
+      if (isCompleted) {
+        setSteps((prevSteps) =>
+          prevSteps.map((st) => ({
+            ...st,
+            Status: 'Selesai'
+          }))
+        );
+      }
+    }
   };
 
   const handleAddStep = () => {
@@ -119,7 +132,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
 
       if (field === 'Status') {
         const allCompleted = nextSteps.every(
-          (s) => String(s.Status).toLowerCase() === 'selesai'
+          (s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed'
         );
         setFormData((prevForm) => ({
           ...prevForm,
@@ -150,14 +163,18 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
       return;
     }
 
-    const allCompleted = steps.every(
+    const isOrderCompleted = Number(formData.status) === 1 || steps.every(
       (s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed'
     );
 
+    const finalSteps = isOrderCompleted
+      ? steps.map((s) => ({ ...s, Status: 'Selesai' }))
+      : steps;
+
     onSubmit({
       ...formData,
-      status: allCompleted ? 1 : 0,
-      steps: steps
+      status: isOrderCompleted ? 1 : 0,
+      steps: finalSteps
     });
   };
 

@@ -47,13 +47,13 @@ export default function OrderPanel({
       // Calculate progress
       const totalSteps = sortedSteps.length;
       const completedSteps = sortedSteps.filter(
-        (s) => String(s.Status).toLowerCase() === 'selesai'
+        (s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed' || Number(s.status) === 1
       ).length;
       const isComplete = completedSteps === totalSteps && totalSteps > 0;
 
       // Find the ONE active step: the first step where Status !== 'Selesai'
       const activeStep = sortedSteps.find(
-        (s) => String(s.Status).toLowerCase() !== 'selesai'
+        (s) => String(s.Status).toLowerCase() !== 'selesai' && String(s.Status).toLowerCase() !== 'completed' && Number(s.status) !== 1
       ) || null;
 
       return {
