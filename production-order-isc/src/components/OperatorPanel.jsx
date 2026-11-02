@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { UserCheck, Users, X } from 'lucide-react';
+import { UserCheck, Users } from 'lucide-react';
 import { INITIAL_PERSONNEL } from '../utils/initialData';
 import BarcodeCard from './BarcodeCard';
 
@@ -97,14 +97,6 @@ export default function OperatorPanel({
                 Personnel No.: <strong>{activeOperator.NoPersonal}</strong>
               </div>
             </div>
-            <button
-              type="button"
-              className="btn-icon-subtle"
-              onClick={() => onSelectOperator(null)}
-              title="Change or clear operator"
-            >
-              <X size={16} />
-            </button>
           </div>
 
           {/* Barcode of NoPersonal */}
