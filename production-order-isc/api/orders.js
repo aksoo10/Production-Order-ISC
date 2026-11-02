@@ -205,6 +205,8 @@ export default async function handler(req, res) {
 
           formattedItems.push({
             orderNo: orderNum,
+            stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
+            stepName: String(it.stepName || it.NamaLangkah || it.title || `Order ${orderNum}`),
             title: String(it.title || it.NamaLangkah || `Order ${orderNum}`),
             customers: String(it.customers || it.Customer || 'ANDRITZ ISC Internal'),
             soDocument: String(it.soDocument || ''),
@@ -217,7 +219,8 @@ export default async function handler(req, res) {
             qtyOrder: parseFloat(it.qtyOrder) || 1.0,
             planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
             planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0)
+            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0),
+            NoKonfirmasi: String(it.NoKonfirmasi || '')
           });
         }
 

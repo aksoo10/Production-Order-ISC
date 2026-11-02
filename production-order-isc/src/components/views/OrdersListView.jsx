@@ -126,11 +126,11 @@ export default function OrdersListView({
     return { totalOrders, completedOrders, activeOrders, totalSteps, completedSteps };
   }, [ordersGrouped, orders]);
 
-  // Handle Create Submit
-  const handleCreateSubmit = async (formData) => {
+  // Handle Create Submit: close modal immediately for fast UI feedback
+  const handleCreateSubmit = (formData) => {
+    setIsCreateModalOpen(false);
     if (onCreateOrder) {
-      await onCreateOrder(formData);
-      setIsCreateModalOpen(false);
+      onCreateOrder(formData);
     }
   };
 
