@@ -168,7 +168,7 @@ export default function OrderPanel({
 
       {/* Order Search & Selector Bar */}
       <div className="order-selector-bar">
-        <div className="panel-search-box flex-1">
+        <div className="panel-search-box">
           <Search size={16} className="search-icon" />
           <input
             type="text"
