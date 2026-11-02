@@ -1246,22 +1246,75 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 1080px) {
+  .app-main-workspace {
+    padding: 8px 10px !important;
+  }
+  .workspace-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
   .panel-container {
-    padding: 14px 12px;
-    gap: 12px;
+    padding: 8px 10px !important;
+    gap: 6px !important;
   }
   .panel-container.operator-panel {
-    padding: 14px 12px;
+    padding: 6px 10px !important;
+  }
+  .panel-container.operator-panel .panel-header {
+    display: none !important;
+  }
+  .operator-select-field-section {
+    margin-bottom: 0 !important;
+  }
+  .selected-operator-showcase {
+    display: none !important;
+  }
+  .order-panel .panel-header {
+    display: none !important;
+  }
+  .order-details-wrapper {
+    gap: 6px !important;
+  }
+  .order-summary-ribbon {
+    padding: 6px 10px !important;
+    gap: 6px !important;
+  }
+  .active-step-spotlight-card {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+  }
+  .spotlight-top-badge {
+    padding-bottom: 2px;
+  }
+  .spotlight-header-meta {
+    padding-bottom: 4px !important;
+    gap: 8px !important;
+  }
+  .three-barcodes-unified-box {
+    padding: 8px !important;
+    gap: 6px !important;
+  }
+  .three-barcodes-header {
+    padding-bottom: 6px !important;
+  }
+  .col-step-header {
+    padding: 4px 8px !important;
+  }
+  .col-barcode-render {
+    padding: 4px 6px !important;
+  }
+  .three-barcodes-grid {
+    gap: 6px !important;
   }
 }
 
 @media (max-width: 720px) {
   .panel-container {
-    padding: 12px 10px;
-    gap: 10px;
+    padding: 8px 6px;
+    gap: 6px;
   }
   .panel-container.operator-panel {
-    padding: 12px 10px;
+    padding: 6px 8px;
   }
 }
 
@@ -2172,16 +2225,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .three-barcodes-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px;
   width: 100%;
-}
-
-@media (max-width: 1100px) {
-  .three-barcodes-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
 }
 
 .single-barcode-col {
@@ -2196,6 +2242,25 @@ h1, h2, h3, h4, h5, h6 {
 
 .single-barcode-col:hover {
   border-color: var(--border-medium);
+}
+
+.col-barcode-render .barcode-card-header {
+  display: none !important;
+}
+
+.col-barcode-render .barcode-card-footer {
+  padding-top: 2px;
+}
+
+.col-barcode-render .barcode-val-badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.04em;
+}
+
+.col-barcode-render .barcode-svg-wrapper {
+  padding: 2px;
 }
 
 .col-step-header {

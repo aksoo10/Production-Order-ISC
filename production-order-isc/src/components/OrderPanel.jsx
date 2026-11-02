@@ -351,28 +351,26 @@ export default function OrderPanel({
                     {/* BARCODE 1: PERSONNEL NO. */}
                     <div className="single-barcode-col">
                       <div className="col-step-header">
-                        <span className="col-step-badge step-1">LANGKAH 1</span>
-                        <span className="col-step-title">PERSONNEL NO.</span>
-                      </div>
-                      <div className="col-step-meta">
-                        <span className="font-semibold text-main text-xs truncate">
-                          {selectedOperator?.Nama || 'Operator Workshop'}
-                        </span>
-                        <span className="font-mono text-muted text-xs">
-                          No: {selectedOperator?.NoPersonal || '-'} ({selectedOperator?.ProductGroup || 'PKW'})
-                        </span>
+                        <span className="col-step-badge step-1">1. PERSONEL</span>
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="font-semibold text-main text-xs truncate">
+                            {selectedOperator?.Nama || 'Operator'}
+                          </span>
+                          <span className="font-mono text-cyan text-xs font-bold flex-shrink-0">
+                            #{selectedOperator?.NoPersonal || '-'}
+                          </span>
+                        </div>
                       </div>
                       <div className="col-barcode-render">
                         <BarcodeCard
                           value={selectedOperator?.NoPersonal || '1001'}
-                          label="1. PERSONNEL NO."
-                          subtitle={`Operator: ${selectedOperator?.Nama || '-'}`}
-                          badgeText="1. Scan Personnel No."
+                          showBadge={false}
+                          label=""
                           highlightColor="#00A3E0"
                           format="CODE128"
-                          height={68}
-                          width={2.0}
-                          fontSize={15}
+                          height={46}
+                          width={1.6}
+                          fontSize={13}
                           compact={true}
                         />
                       </div>
@@ -381,28 +379,26 @@ export default function OrderPanel({
                     {/* BARCODE 2: CONFIRMATION NO. */}
                     <div className="single-barcode-col">
                       <div className="col-step-header">
-                        <span className="col-step-badge step-2">LANGKAH 2</span>
-                        <span className="col-step-title">CONFIRMATION NO.</span>
-                      </div>
-                      <div className="col-step-meta">
-                        <span className="font-semibold text-main text-xs truncate">
-                          Order #{currentOrder.NoProduksi}
-                        </span>
-                        <span className="font-mono text-muted text-xs truncate">
-                          Step {displayStep.Langkah}: {displayStep.NamaLangkah}
-                        </span>
+                        <span className="col-step-badge step-2">2. KONFIRMASI</span>
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="font-semibold text-main text-xs truncate" title={displayStep.NamaLangkah}>
+                            Step {displayStep.Langkah}
+                          </span>
+                          <span className="font-mono text-cyan text-xs font-bold flex-shrink-0">
+                            #{displayStep.NoKonfirmasi || currentOrder.NoProduksi}
+                          </span>
+                        </div>
                       </div>
                       <div className="col-barcode-render">
                         <BarcodeCard
                           value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
-                          label="2. CONFIRMATION NO."
-                          subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
-                          badgeText="2. Scan Confirmation No."
+                          showBadge={false}
+                          label=""
                           highlightColor={isDisplayStepFinished ? "#10B981" : "#00A3E0"}
                           format="CODE128"
-                          height={68}
-                          width={2.0}
-                          fontSize={15}
+                          height={46}
+                          width={1.6}
+                          fontSize={13}
                           compact={true}
                         />
                       </div>
@@ -411,7 +407,7 @@ export default function OrderPanel({
                     {/* BARCODE 3: STATUS BARCODE (PROG / FIN) */}
                     <div className="single-barcode-col">
                       <div className="col-step-header">
-                        <span className="col-step-badge step-3">LANGKAH 3</span>
+                        <span className="col-step-badge step-3">3. STATUS</span>
                         <div className="status-select-wrap">
                           <select
                             className={`status-barcode-select-mini font-mono ${isDisplayStepFinished ? 'status-fin' : 'status-prog'}`}
@@ -419,30 +415,24 @@ export default function OrderPanel({
                             onChange={(e) => handleBarcodeStatusChange(e.target.value)}
                             title="Pilih status konfirmasi (In Progress / Finished)"
                           >
-                            <option value="PROG">PROG — In Progress</option>
-                            <option value="FIN">FIN — Finished</option>
+                            <option value="PROG">PROG</option>
+                            <option value="FIN">FIN</option>
                           </select>
                         </div>
-                      </div>
-                      <div className="col-step-meta">
                         <span className={`status-pill-badge font-mono text-xs ${isDisplayStepFinished ? 'fin' : 'prog'}`}>
-                          {isDisplayStepFinished ? 'STATUS: FIN (SELESAI)' : 'STATUS: PROG (BERJALAN)'}
-                        </span>
-                        <span className="text-muted text-xs font-mono">
-                          {isDisplayStepFinished ? 'Final Confirmation' : 'Partial Confirmation'}
+                          {isDisplayStepFinished ? 'FIN' : 'PROG'}
                         </span>
                       </div>
                       <div className="col-barcode-render">
                         <BarcodeCard
                           value={currentBarcodeStatus}
-                          label={`3. STATUS: ${currentBarcodeStatus}`}
-                          subtitle={isDisplayStepFinished ? "Final Confirmation to SAP" : "Partial Confirmation to SAP"}
-                          badgeText={`3. Scan ${currentBarcodeStatus} to SAP`}
+                          showBadge={false}
+                          label=""
                           highlightColor={isDisplayStepFinished ? "#10B981" : "#00A3E0"}
                           format="CODE128"
-                          height={68}
-                          width={2.0}
-                          fontSize={15}
+                          height={46}
+                          width={1.6}
+                          fontSize={13}
                           compact={true}
                         />
                       </div>

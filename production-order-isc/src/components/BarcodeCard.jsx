@@ -132,9 +132,11 @@ export default function BarcodeCard({
 
         {/* Footer / Helper Text */}
         <div className="barcode-card-footer">
-          <span className="barcode-hint-text">
-            Point scanner at the barcode above (Format: Code 128)
-          </span>
+          {!compact && (
+            <span className="barcode-hint-text">
+              Point scanner at the barcode above (Format: Code 128)
+            </span>
+          )}
           <span className="barcode-val-badge font-mono">{value}</span>
         </div>
       </div>
