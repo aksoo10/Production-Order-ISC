@@ -573,18 +573,23 @@ export default function App() {
 
       // Read persistent custom/created orders
       const customOrders = getStorageItem('isc_production_custom_orders') || [];
-      const serverOrderNos = new Set(serverOrders.map((s) => String(s.NoProduksi || s.orderNo).trim()));
+      const customOrderMap = new Map();
+      if (Array.isArray(customOrders)) {
+        customOrders.forEach((item) => {
+          const no = String(item.NoProduksi || item.orderNo).trim();
+          if (no) {
+            if (!customOrderMap.has(no)) customOrderMap.set(no, []);
+            customOrderMap.get(no).push(item);
+          }
+        });
+      }
 
-      // Keep any custom order steps that have not yet appeared in serverOrders
-      const pendingCustomOrders = Array.isArray(customOrders)
-        ? customOrders.filter((item) => {
-            const orderNo = String(item.NoProduksi || item.orderNo).trim();
-            return !serverOrderNos.has(orderNo);
-          })
-        : [];
-
-      // Combine: custom/new orders at the top, then server orders
-      const allOrdersCombined = [...pendingCustomOrders, ...serverOrders];
+      // Prioritize user's custom orders: if an order exists in customOrderMap, use custom order version and exclude stale server version
+      const mergedServerOrders = serverOrders.filter(
+        (s) => !customOrderMap.has(String(s.NoProduksi || s.orderNo).trim())
+      );
+      const allCustomSteps = Array.from(customOrderMap.values()).flat();
+      const allOrdersCombined = [...allCustomSteps, ...mergedServerOrders];
 
       // 2. Prevent stale SharePoint replication data from overwriting recently confirmed updates
       const protectedOrders = allOrdersCombined.map((serverStep) => {

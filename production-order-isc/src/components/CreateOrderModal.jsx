@@ -12,13 +12,13 @@ import {
 } from 'lucide-react';
 
 export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading }) {
-  const [formData, setFormData] = useState(() => {
+  const getInitialFormData = () => {
     const today = new Date().toISOString().split('T')[0];
     const finish = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
     return {
       orderNo: '',
       title: '',
-      customers: 'PT ANDRITZ Hydro & Separation',
+      customers: 'ANDRITZ ISC Internal',
       soDocument: '',
       wbsProdNo: '',
       orderDivision: 'PKW',
@@ -29,7 +29,9 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
       planFinish: finish,
       status: 0
     };
-  });
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData);
 
   const [steps, setSteps] = useState([
     {
@@ -94,15 +96,13 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
     e.preventDefault();
     setError('');
 
-    if (!formData.orderNo.trim()) {
+    const trimmedOrderNo = String(formData.orderNo || '').trim();
+    if (!trimmedOrderNo) {
       setError('Production Order Number (orderNo) is required.');
       return;
     }
 
-    if (!formData.title.trim()) {
-      setError('Job / Order Title is required.');
-      return;
-    }
+    const finalTitle = String(formData.title || '').trim() || String(formData.materialDescription || '').trim() || `Order ${trimmedOrderNo}`;
 
     if (steps.length === 0) {
       setError('At least 1 process step is required.');
@@ -113,13 +113,27 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
       ...st,
       NamaLangkah: (st.NamaLangkah && st.NamaLangkah.trim())
         ? st.NamaLangkah.trim()
-        : `${formData.title || 'Proses'} - Langkah ${idx + 1}`
+        : `${finalTitle} - Langkah ${idx + 1}`,
+      NoKonfirmasi: String(st.NoKonfirmasi || '').trim() || trimmedOrderNo
     }));
 
     onSubmit({
       ...formData,
+      orderNo: trimmedOrderNo,
+      title: finalTitle,
+      materialDescription: String(formData.materialDescription || '').trim() || finalTitle,
       steps: cleanedSteps
     });
+
+    setFormData(getInitialFormData());
+    setSteps([
+      {
+        Langkah: 1,
+        NamaLangkah: 'Persiapan & Pengerjaan Komponen',
+        NoKonfirmasi: '',
+        Status: 'Berjalan'
+      }
+    ]);
   };
 
   const modalContent = (
@@ -190,7 +204,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
 
             <div className="mb-3">
               <label className="input-label font-bold text-xs text-muted mb-1 block">
-                Job Title / Component Name *
+                Job Title / Component Name
               </label>
               <input
                 type="text"
@@ -199,7 +213,6 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
                 placeholder="Example: Impeller D450 Machining & Dynamic Balancing"
                 value={formData.title}
                 onChange={handleChange}
-                required
               />
             </div>
 

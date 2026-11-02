@@ -15,7 +15,9 @@ export const PERSISTENT_KEYS = [
   'isc_production_user_password',
   'isc_production_theme',
   'isc_production_sidebar',
-  'isc_production_zoom'
+  'isc_production_zoom',
+  'isc_production_custom_orders',
+  'isc_production_orders_v2'
 ];
 
 /**

@@ -129,6 +129,9 @@ export default function OrdersListView({
   // Handle Create Submit
   const handleCreateSubmit = (formData) => {
     setIsCreateModalOpen(false);
+    if (formData?.orderNo) {
+      setExpandedOrder(String(formData.orderNo).trim());
+    }
     if (onCreateOrder) {
       onCreateOrder(formData);
     }
