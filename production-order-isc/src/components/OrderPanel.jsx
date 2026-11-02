@@ -226,7 +226,7 @@ export default function OrderPanel({
                   value={displayStep?.Langkah || ''}
                   onChange={(e) => setSelectedStepNum(Number(e.target.value))}
                   title="Select Operation Step"
-                  style={{ minWidth: '220px', height: '36px', fontSize: '0.8rem', padding: '0 8px' }}
+                  style={{ minWidth: '150px', maxWidth: '100%', height: '36px', fontSize: '0.8rem', padding: '0 8px' }}
                 >
                   {currentOrder.steps.map((st) => {
                     const isFin =
