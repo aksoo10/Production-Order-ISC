@@ -2126,6 +2126,232 @@ h1, h2, h3, h4, h5, h6 {
   gap: 10px;
 }
 
+/* ==========================================================================
+   1 KOTAK UTAMA (UNIFIED 3-BARCODE BOX: PERSONNEL + CONFIRMATION + STATUS)
+   ========================================================================== */
+.three-barcodes-unified-box {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-medium);
+  background: var(--bg-surface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="dark"] .three-barcodes-unified-box {
+  background: var(--bg-surface-elevated);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.three-barcodes-unified-box:hover {
+  border-color: var(--atz-cyan);
+}
+
+.three-barcodes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.three-barcodes-title {
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-main);
+  text-transform: uppercase;
+}
+
+.three-barcodes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .three-barcodes-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.single-barcode-col {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-card);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.single-barcode-col:hover {
+  border-color: var(--border-medium);
+}
+
+.col-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 8px;
+}
+
+[data-theme="dark"] .col-step-header {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.col-step-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.col-step-badge.step-1 {
+  background: rgba(0, 163, 224, 0.16);
+  color: #0087BA;
+  border: 1px solid rgba(0, 163, 224, 0.4);
+}
+[data-theme="dark"] .col-step-badge.step-1 {
+  color: #38BDF8;
+}
+
+.col-step-badge.step-2 {
+  background: rgba(2, 132, 199, 0.16);
+  color: #0284C7;
+  border: 1px solid rgba(2, 132, 199, 0.4);
+}
+[data-theme="dark"] .col-step-badge.step-2 {
+  color: #38BDF8;
+}
+
+.col-step-badge.step-3 {
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+[data-theme="dark"] .col-step-badge.step-3 {
+  color: #34D399;
+}
+
+.col-step-title {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.col-step-meta {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.015);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 2px;
+}
+
+[data-theme="dark"] .col-step-meta {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.col-barcode-render {
+  padding: 8px 10px;
+}
+
+.col-barcode-render .barcode-card-container {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+
+.status-barcode-select-mini {
+  height: 28px;
+  padding: 0 24px 0 8px;
+  border-radius: var(--radius-xs);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  border: 1.5px solid var(--border-medium);
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 10px;
+}
+
+.status-barcode-select-mini.status-prog {
+  background-color: var(--atz-cyan-tint);
+  border-color: var(--atz-cyan-border);
+  color: var(--atz-cyan-dark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%230087BA' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.status-barcode-select-mini.status-fin {
+  background-color: var(--color-success-light);
+  border-color: var(--color-success-border);
+  color: var(--color-success);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] .status-barcode-select-mini.status-prog {
+  background-color: rgba(0, 163, 224, 0.15);
+  border-color: rgba(0, 163, 224, 0.5);
+  color: #38BDF8;
+}
+
+[data-theme="dark"] .status-barcode-select-mini.status-fin {
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #34D399;
+}
+
+.status-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.status-pill-badge.prog {
+  background: rgba(0, 163, 224, 0.15);
+  color: #0087BA;
+  border: 1px solid rgba(0, 163, 224, 0.35);
+}
+[data-theme="dark"] .status-pill-badge.prog {
+  color: #38BDF8;
+}
+
+.status-pill-badge.fin {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+[data-theme="dark"] .status-pill-badge.fin {
+  color: #34D399;
+}
+
 /* Step Confirmation Status Barcode (Unified Card with Dropdown & Dynamic Barcode) */
 .status-barcodes-wrapper {
   width: 100%;

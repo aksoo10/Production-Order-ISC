@@ -37,6 +37,7 @@ export default function ScannerView({
         onUpdateStepStatus={onUpdateStepStatus}
         isAdmin={isAdmin}
         selectedGroup={selectedGroup}
+        selectedOperator={selectedOperator}
       />
     </div>
   );

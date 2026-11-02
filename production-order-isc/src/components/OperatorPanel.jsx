@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { UserCheck, Users } from 'lucide-react';
+import { UserCheck, Users, CheckCircle2 } from 'lucide-react';
 import { INITIAL_PERSONNEL } from '../utils/initialData';
-import BarcodeCard from './BarcodeCard';
 
 export default function OperatorPanel({
   personnel = [],
@@ -99,17 +98,13 @@ export default function OperatorPanel({
             </div>
           </div>
 
-          {/* Barcode of NoPersonal */}
-          <div className="showcase-barcode-section">
-            <BarcodeCard
-              value={activeOperator.NoPersonal}
-              label="PERSONNEL NO. BARCODE"
-              subtitle={`Operator: ${activeOperator.Nama} (${activeOperator.ProductGroup || '-'})`}
-              badgeText="1. Scan Personnel No. to SAP"
-              highlightColor="#00A3E0"
-              height={64}
-              fontSize={16}
-            />
+          {/* Active Operator Status Tag */}
+          <div className="operator-active-indicator flex items-center justify-between p-2 rounded bg-cyan/10 border border-cyan/30">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={13} className="text-cyan" />
+              <span className="text-xs font-semibold text-cyan">Operator Aktif</span>
+            </div>
+            <span className="text-xs text-muted font-mono">Langkah 1 Barcode</span>
           </div>
         </div>
       ) : (
@@ -117,7 +112,7 @@ export default function OperatorPanel({
           <UserCheck size={32} className="text-cyan mb-2" />
           <div className="prompt-title">Select Operator from Dropdown Above</div>
           <div className="prompt-subtitle">
-            Select an operator name from the filter dropdown above to display the Personnel No. barcode to scan into SAP.
+            Select an operator name from the filter dropdown above to activate barcode scanning in SAP.
           </div>
         </div>
       )}

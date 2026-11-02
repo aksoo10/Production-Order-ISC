@@ -6,7 +6,6 @@ import {
   CheckCheck,
   FileText,
   X,
-  Clock,
   CheckCircle2,
   ArrowRight
 } from 'lucide-react';
@@ -20,7 +19,8 @@ export default function OrderPanel({
   onRevertStep,
   onUpdateStepStatus,
   isAdmin,
-  selectedGroup
+  selectedGroup,
+  selectedOperator
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -327,115 +327,151 @@ export default function OrderPanel({
                   </div>
                 </div>
 
-                {/* Barcode section: Always prominently displayed in Code 128 (both PROG & FIN) */}
-                <div className="spotlight-barcode-wrapper">
-                  <div className="w-full flex flex-col items-center">
-                    <BarcodeCard
-                      value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
-                      label="CONFIRMATION NO. BARCODE"
-                      subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
-                      badgeText="2. Scan Confirmation No. to SAP"
-                      highlightColor={isDisplayStepFinished ? "#10B981" : "#00A3E0"}
-                      format="CODE128"
-                      height={80}
-                      width={2.2}
-                      fontSize={17}
-                    />
+                {/* 1 KOTAK UTAMA (UNIFIED 3-BARCODE CONTAINER) */}
+                <div className="three-barcodes-unified-box">
+                  <div className="three-barcodes-header">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="active-pulse-dot"></span>
+                      <span className="three-barcodes-title">
+                        SAP 3-STEP CONFIRMATION BARCODES
+                      </span>
+                      <span className="badge-pill font-mono text-xs">
+                        Urutan Scan: 1. Personel → 2. Konfirmasi → 3. Status
+                      </span>
+                    </div>
 
-                    {/* Unified Step Confirmation Status Barcode with Dropdown */}
-                    <div className="status-barcodes-wrapper">
-                      <div className={`unified-status-card ${isDisplayStepFinished ? 'status-fin-active' : 'status-prog-active'}`}>
-                        {/* Header with Dropdown Selector */}
-                        <div className="unified-status-header">
-                          <div className="flex items-center gap-2.5 flex-wrap">
-                            <span className="unified-status-label">
-                              STATUS BARCODE:
-                            </span>
-                            <div className="status-barcode-select-wrapper">
-                              <select
-                                className={`status-barcode-select font-mono ${isDisplayStepFinished ? 'status-fin' : 'status-prog'}`}
-                                value={currentBarcodeStatus}
-                                onChange={(e) => handleBarcodeStatusChange(e.target.value)}
-                                title="Pilih status konfirmasi (In Progress / Finished) untuk menampilkan barcode"
-                              >
-                                <option value="PROG">PROG — In Progress</option>
-                                <option value="FIN">FIN — Finished</option>
-                              </select>
-                            </div>
-                          </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`status-pill-badge font-mono text-xs ${isDisplayStepFinished ? 'fin' : 'prog'}`}>
+                        {isDisplayStepFinished ? 'Status Langkah: FIN (Finished)' : 'Status Langkah: PROG (In Progress)'}
+                      </span>
+                    </div>
+                  </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className={`status-badge-active ${isDisplayStepFinished ? 'fin' : 'prog'}`}>
-                              {isDisplayStepFinished ? (
-                                <>
-                                  <CheckCircle2 size={13} />
-                                  <span>STATUS AKTIF: FIN (FINISHED)</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Clock size={13} />
-                                  <span>STATUS AKTIF: PROG (IN PROGRESS)</span>
-                                </>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Dynamic Barcode Display for the Selected Status */}
-                        <div className="unified-status-barcode-body">
-                          {isDisplayStepFinished ? (
-                            <BarcodeCard
-                              value="FIN"
-                              label="STATUS BARCODE: FIN — FINISHED"
-                              subtitle="Final Confirmation Status — Scan or enter into SAP"
-                              badgeText="3. Scan FIN to SAP"
-                              highlightColor="#10B981"
-                              format="CODE128"
-                              height={64}
-                              width={2.2}
-                              fontSize={16}
-                            />
-                          ) : (
-                            <BarcodeCard
-                              value="PROG"
-                              label="STATUS BARCODE: PROG — IN PROGRESS"
-                              subtitle="Partial Confirmation Status — Scan or enter into SAP"
-                              badgeText="3. Scan PROG to SAP"
-                              highlightColor="#00A3E0"
-                              format="CODE128"
-                              height={64}
-                              width={2.2}
-                              fontSize={16}
-                            />
-                          )}
-                        </div>
+                  <div className="three-barcodes-grid">
+                    {/* BARCODE 1: PERSONNEL NO. */}
+                    <div className="single-barcode-col">
+                      <div className="col-step-header">
+                        <span className="col-step-badge step-1">LANGKAH 1</span>
+                        <span className="col-step-title">PERSONNEL NO.</span>
+                      </div>
+                      <div className="col-step-meta">
+                        <span className="font-semibold text-main text-xs truncate">
+                          {selectedOperator?.Nama || 'Operator Workshop'}
+                        </span>
+                        <span className="font-mono text-muted text-xs">
+                          No: {selectedOperator?.NoPersonal || '-'} ({selectedOperator?.ProductGroup || 'PKW'})
+                        </span>
+                      </div>
+                      <div className="col-barcode-render">
+                        <BarcodeCard
+                          value={selectedOperator?.NoPersonal || '1001'}
+                          label="1. PERSONNEL NO."
+                          subtitle={`Operator: ${selectedOperator?.Nama || '-'}`}
+                          badgeText="1. Scan Personnel No."
+                          highlightColor="#00A3E0"
+                          format="CODE128"
+                          height={68}
+                          width={2.0}
+                          fontSize={15}
+                          compact={true}
+                        />
                       </div>
                     </div>
 
-                    {/* Flow to Next Step without disruption when step is Finished */}
-                    {isDisplayStepFinished && nextStep && (
-                      <div className="next-step-prompt-banner mt-3">
-                        <div className="next-step-prompt-text">
-                          <span className="step-done-check">
-                            <CheckCircle2 size={15} />
-                            Step {displayStep.Langkah} Finish
-                          </span>
-                          <span className="next-step-info">
-                            Langkah berikutnya: <strong>Step {nextStep.Langkah} — {nextStep.NamaLangkah}</strong>
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          className="btn btn-xs btn-primary flex items-center gap-1.5 font-mono"
-                          onClick={() => setSelectedStepNum(Number(nextStep.Langkah))}
-                          title={`Lanjut ke Step ${nextStep.Langkah}`}
-                        >
-                          <span>Lanjut ke Step {nextStep.Langkah}</span>
-                          <ArrowRight size={13} />
-                        </button>
+                    {/* BARCODE 2: CONFIRMATION NO. */}
+                    <div className="single-barcode-col">
+                      <div className="col-step-header">
+                        <span className="col-step-badge step-2">LANGKAH 2</span>
+                        <span className="col-step-title">CONFIRMATION NO.</span>
                       </div>
-                    )}
+                      <div className="col-step-meta">
+                        <span className="font-semibold text-main text-xs truncate">
+                          Order #{currentOrder.NoProduksi}
+                        </span>
+                        <span className="font-mono text-muted text-xs truncate">
+                          Step {displayStep.Langkah}: {displayStep.NamaLangkah}
+                        </span>
+                      </div>
+                      <div className="col-barcode-render">
+                        <BarcodeCard
+                          value={displayStep.NoKonfirmasi || currentOrder.NoProduksi}
+                          label="2. CONFIRMATION NO."
+                          subtitle={`Step ${displayStep.Langkah}: ${displayStep.NamaLangkah}`}
+                          badgeText="2. Scan Confirmation No."
+                          highlightColor={isDisplayStepFinished ? "#10B981" : "#00A3E0"}
+                          format="CODE128"
+                          height={68}
+                          width={2.0}
+                          fontSize={15}
+                          compact={true}
+                        />
+                      </div>
+                    </div>
+
+                    {/* BARCODE 3: STATUS BARCODE (PROG / FIN) */}
+                    <div className="single-barcode-col">
+                      <div className="col-step-header">
+                        <span className="col-step-badge step-3">LANGKAH 3</span>
+                        <div className="status-select-wrap">
+                          <select
+                            className={`status-barcode-select-mini font-mono ${isDisplayStepFinished ? 'status-fin' : 'status-prog'}`}
+                            value={currentBarcodeStatus}
+                            onChange={(e) => handleBarcodeStatusChange(e.target.value)}
+                            title="Pilih status konfirmasi (In Progress / Finished)"
+                          >
+                            <option value="PROG">PROG — In Progress</option>
+                            <option value="FIN">FIN — Finished</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="col-step-meta">
+                        <span className={`status-pill-badge font-mono text-xs ${isDisplayStepFinished ? 'fin' : 'prog'}`}>
+                          {isDisplayStepFinished ? 'STATUS: FIN (SELESAI)' : 'STATUS: PROG (BERJALAN)'}
+                        </span>
+                        <span className="text-muted text-xs font-mono">
+                          {isDisplayStepFinished ? 'Final Confirmation' : 'Partial Confirmation'}
+                        </span>
+                      </div>
+                      <div className="col-barcode-render">
+                        <BarcodeCard
+                          value={currentBarcodeStatus}
+                          label={`3. STATUS: ${currentBarcodeStatus}`}
+                          subtitle={isDisplayStepFinished ? "Final Confirmation to SAP" : "Partial Confirmation to SAP"}
+                          badgeText={`3. Scan ${currentBarcodeStatus} to SAP`}
+                          highlightColor={isDisplayStepFinished ? "#10B981" : "#00A3E0"}
+                          format="CODE128"
+                          height={68}
+                          width={2.0}
+                          fontSize={15}
+                          compact={true}
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Flow to Next Step without disruption when step is Finished */}
+                  {isDisplayStepFinished && nextStep && (
+                    <div className="next-step-prompt-banner mt-3">
+                      <div className="next-step-prompt-text">
+                        <span className="step-done-check">
+                          <CheckCircle2 size={15} />
+                          Step {displayStep.Langkah} Finish
+                        </span>
+                        <span className="next-step-info">
+                          Langkah berikutnya: <strong>Step {nextStep.Langkah} — {nextStep.NamaLangkah}</strong>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-primary flex items-center gap-1.5 font-mono"
+                        onClick={() => setSelectedStepNum(Number(nextStep.Langkah))}
+                        title={`Lanjut ke Step ${nextStep.Langkah}`}
+                      >
+                        <span>Lanjut ke Step {nextStep.Langkah}</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
