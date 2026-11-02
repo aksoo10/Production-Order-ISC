@@ -29,7 +29,7 @@ export default function Sidebar({
       badgeColor: '#8B5CF6',
       desc: 'Database Chart Visualization'
     }] : []),
-    {
+    ...(!isAdmin ? [{
       id: 'scanner',
       label: 'SAP Scanner Terminal',
       shortLabel: 'Scan',
@@ -37,7 +37,7 @@ export default function Sidebar({
       badge: 'LIVE',
       badgeColor: '#10B981',
       desc: 'Active Operator & Barcode'
-    },
+    }] : []),
     ...(isAdmin ? [
       {
         id: 'orders',

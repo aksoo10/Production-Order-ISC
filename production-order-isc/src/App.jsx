@@ -111,6 +111,10 @@ export default function App() {
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
           if (parsed?.role === 'admin') {
+            const savedTab = window.sessionStorage.getItem('isc_production_active_tab');
+            if (savedTab && ['dashboard', 'orders', 'tracker'].includes(savedTab)) {
+              return savedTab;
+            }
             return 'dashboard';
           }
         }
@@ -402,10 +406,14 @@ export default function App() {
     }
   };
 
-  // Guard: if non-admin is on admin-only views (dashboard, orders, tracker), fallback to scanner
+  // Guard:
+  // - If non-admin is on admin-only views (dashboard, orders, tracker), fallback to scanner
+  // - If admin is on scanner (operator-only), fallback to dashboard
   useEffect(() => {
     if (!isAdmin && ['dashboard', 'orders', 'tracker'].includes(activeTab)) {
       setActiveTab('scanner');
+    } else if (isAdmin && activeTab === 'scanner') {
+      setActiveTab('dashboard');
     }
   }, [isAdmin, activeTab]);
 
@@ -1084,7 +1092,7 @@ export default function App() {
   // Cross-view shortcuts
   const handleSelectOrderAndOpenScanner = (orderNo) => {
     setSelectedOrderNo(orderNo);
-    setActiveTab('scanner');
+    setActiveTab(isAdmin ? 'tracker' : 'scanner');
   };
 
   // IF NOT AUTHENTICATED: SHOW FULLPAGE LOGIN PORTAL
@@ -1128,6 +1136,15 @@ export default function App() {
   const renderActiveView = () => {
     switch (activeTab) {
       case 'scanner':
+        if (isAdmin) {
+          return (
+            <div className="view-container">
+              <div className="alert-box alert-info">
+                <strong>Informasi:</strong> Menu SAP Scanner Terminal dikhususkan untuk role Operator.
+              </div>
+            </div>
+          );
+        }
         return (
           <ScannerView
             personnel={personnel}
@@ -1293,12 +1310,12 @@ export default function App() {
           <ErrorBoundary onReset={() => {
             try {
               if (typeof window !== 'undefined' && window.sessionStorage) {
-                window.sessionStorage.setItem('isc_production_active_tab', 'scanner');
+                window.sessionStorage.setItem('isc_production_active_tab', isAdmin ? 'dashboard' : 'scanner');
               }
             } catch {
               // ignore
             }
-            setActiveTab('scanner');
+            setActiveTab(isAdmin ? 'dashboard' : 'scanner');
           }}>
             {renderActiveView()}
           </ErrorBoundary>
