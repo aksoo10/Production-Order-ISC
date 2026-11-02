@@ -2249,18 +2249,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .col-barcode-render .barcode-card-footer {
-  padding-top: 2px;
-}
-
-.col-barcode-render .barcode-val-badge {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: 0.04em;
+  display: none !important;
 }
 
 .col-barcode-render .barcode-svg-wrapper {
-  padding: 2px;
+  padding: 4px;
 }
 
 .col-step-header {
