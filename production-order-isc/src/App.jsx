@@ -394,9 +394,9 @@ export default function App() {
     }
   };
 
-  // Guard: if non-admin is on dashboard, fallback to scanner
+  // Guard: if non-admin is on admin-only views (dashboard, orders, tracker), fallback to scanner
   useEffect(() => {
-    if (!isAdmin && activeTab === 'dashboard') {
+    if (!isAdmin && ['dashboard', 'orders', 'tracker'].includes(activeTab)) {
       setActiveTab('scanner');
     }
   }, [isAdmin, activeTab]);
@@ -1020,6 +1020,15 @@ export default function App() {
           />
         );
       case 'orders':
+        if (!isAdmin) {
+          return (
+            <div className="view-container">
+              <div className="alert-box alert-danger">
+                <strong>Access Denied:</strong> Production Order List view can only be accessed by Administrators.
+              </div>
+            </div>
+          );
+        }
         return (
           <OrdersListView
             orders={orders}
@@ -1042,6 +1051,15 @@ export default function App() {
           />
         );
       case 'tracker':
+        if (!isAdmin) {
+          return (
+            <div className="view-container">
+              <div className="alert-box alert-danger">
+                <strong>Access Denied:</strong> Progress Tracker view can only be accessed by Administrators.
+              </div>
+            </div>
+          );
+        }
         return (
           <ProgressTrackerView
             orders={orders}

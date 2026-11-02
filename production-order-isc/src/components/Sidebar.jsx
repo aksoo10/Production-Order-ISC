@@ -38,24 +38,26 @@ export default function Sidebar({
       badgeColor: '#10B981',
       desc: 'Active Operator & Barcode'
     },
-    {
-      id: 'orders',
-      label: 'Production Order List',
-      shortLabel: 'Order',
-      icon: Layers,
-      badge: ordersCount,
-      badgeColor: '#00A3E0',
-      desc: 'Step Sequence Monitoring'
-    },
-    {
-      id: 'tracker',
-      label: 'Progress Tracker',
-      shortLabel: 'Tracker',
-      icon: ListChecks,
-      badge: 'PROG / FIN',
-      badgeColor: '#0284C7',
-      desc: 'Step & Barcode Tracking'
-    }
+    ...(isAdmin ? [
+      {
+        id: 'orders',
+        label: 'Production Order List',
+        shortLabel: 'Order',
+        icon: Layers,
+        badge: ordersCount,
+        badgeColor: '#00A3E0',
+        desc: 'Step Sequence Monitoring'
+      },
+      {
+        id: 'tracker',
+        label: 'Progress Tracker',
+        shortLabel: 'Tracker',
+        icon: ListChecks,
+        badge: 'PROG / FIN',
+        badgeColor: '#0284C7',
+        desc: 'Step & Barcode Tracking'
+      }
+    ] : [])
   ];
 
   return (
