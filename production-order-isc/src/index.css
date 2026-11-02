@@ -2043,6 +2043,154 @@ h1, h2, h3, h4, h5, h6 {
   gap: 10px;
 }
 
+/* Step Confirmation Status Barcodes (PROG & FIN below Confirmation No.) */
+.status-barcodes-wrapper {
+  width: 100%;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status-barcodes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-barcodes-title {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.status-badge-prog {
+  background: rgba(0, 163, 224, 0.12);
+  border: 1px solid rgba(0, 163, 224, 0.35);
+  color: #0087BA;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .status-badge-prog {
+  color: #38BDF8;
+}
+
+.status-badge-fin {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #059669;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .status-badge-fin {
+  color: #34D399;
+}
+
+.status-barcodes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+@media (max-width: 680px) {
+  .status-barcodes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.status-barcode-card-container {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-card);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.status-barcode-card-container:hover {
+  border-color: var(--border-medium);
+}
+
+.status-barcode-card-container.is-active-prog {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 1.5px rgba(0, 163, 224, 0.25), 0 4px 14px rgba(0, 163, 224, 0.12);
+}
+
+.status-barcode-card-container.is-active-fin {
+  border-color: #10B981;
+  box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.25), 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.status-card-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+[data-theme="dark"] .status-card-action-bar {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.status-badge-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.status-badge-active.prog {
+  background: rgba(0, 163, 224, 0.15);
+  color: #0087BA;
+  border: 1px solid rgba(0, 163, 224, 0.3);
+}
+
+[data-theme="dark"] .status-badge-active.prog {
+  color: #38BDF8;
+}
+
+.status-badge-active.fin {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .status-badge-active.fin {
+  color: #34D399;
+}
+
+.status-badge-active.inactive {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.status-barcode-card-container .barcode-card-container {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px;
+}
+
 .admin-step-action-box {
   background-color: var(--color-warning-light);
   border: 1px solid var(--color-warning-border);
