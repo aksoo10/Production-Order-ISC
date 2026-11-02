@@ -155,6 +155,7 @@ try {
                     ['Langkah' => 2, 'NamaLangkah' => 'Rear Screw Indonesia Fiber Board - Langkah 2', 'Status' => 'Selesai', 'status' => 1]
                 ]
             ];
+            $orderStepCounter = [];
 
             foreach ($rawItems as $sp) {
                 $rawProdOrder = trim((string)($sp['field_4'] ?? ''));
@@ -162,11 +163,15 @@ try {
                 $orderNo = !empty($rawProdOrder) && $rawProdOrder !== '-' ? $rawProdOrder : (!empty($rawTitle) && $rawTitle !== '-' ? $rawTitle : ('ORD-' . ($sp['ID'] ?? '0')));
                 $idVal = (int)($sp['ID'] ?? 0);
 
+                $orderStepCounter[$orderNo] = ($orderStepCounter[$orderNo] ?? 0) + 1;
+                $currentStepCount = $orderStepCounter[$orderNo];
+
                 $rawStatus = $sp['field_12'] ?? $sp['status'] ?? $sp['Status'] ?? 0;
                 $statusNum = ((int)$rawStatus === 1 || strtolower((string)$rawStatus) === 'selesai') ? 1 : 0;
                 $statusText = ($statusNum === 1) ? 'Selesai' : 'Berjalan';
-                $stepNo = (int)($sp['stepNo'] ?? $sp['StepNo'] ?? $sp['Langkah'] ?? $sp['field_13'] ?? 1);
-                $stepName = (string)($sp['stepName'] ?? $sp['StepName'] ?? $sp['NamaLangkah'] ?? $sp['field_14'] ?? $sp['field_6'] ?? $sp['Title'] ?? 'Proses Produksi');
+                $rawStepNo = (int)($sp['stepNo'] ?? $sp['StepNo'] ?? $sp['Langkah'] ?? $sp['field_13'] ?? 0);
+                $stepNo = ($rawStepNo > 0) ? $rawStepNo : $currentStepCount;
+                $stepName = (string)($sp['stepName'] ?? $sp['StepName'] ?? $sp['NamaLangkah'] ?? $sp['field_14'] ?? ($currentStepCount > 1 ? ($sp['Title'] . ' - Langkah ' . $currentStepCount) : ($sp['field_6'] ?? $sp['Title'] ?? 'Proses Produksi')));
 
                 $baseItem = [
                     'id'                  => $idVal,
@@ -307,7 +312,8 @@ try {
                     'qtyOrder'            => isset($it['qtyOrder']) ? (float)$it['qtyOrder'] : 1.0,
                     'planStart'           => (string)($it['planStart'] ?? date('Y-m-d')),
                     'planFinish'          => (string)($it['planFinish'] ?? date('Y-m-d', strtotime('+14 days'))),
-                    'status'              => isset($it['status']) ? (int)$it['status'] : ((isset($it['Status']) && strtolower($it['Status']) === 'selesai') ? 1 : 0)
+                    'status'              => isset($it['status']) ? (int)$it['status'] : ((isset($it['Status']) && strtolower($it['Status']) === 'selesai') ? 1 : 0),
+                    'NoKonfirmasi'        => (string)($it['NoKonfirmasi'] ?? '')
                 ];
             }
 

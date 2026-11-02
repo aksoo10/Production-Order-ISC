@@ -193,10 +193,18 @@ export default function App() {
     }
   });
 
-  // Orders always come from SharePoint; this cache is read only when the server is offline or on initial refresh
+  // Orders come from SharePoint + local custom/created orders
   const [orders, setOrders] = useState(() => {
     try {
       const cached = getStorageItem(ORDER_CACHE_KEY);
+      const custom = getStorageItem('isc_production_custom_orders');
+      if (Array.isArray(custom) && custom.length > 0) {
+        const customOrderNos = new Set(custom.map((c) => String(c.NoProduksi || c.orderNo).trim()));
+        const filteredCached = Array.isArray(cached)
+          ? cached.filter((c) => !customOrderNos.has(String(c.NoProduksi || c.orderNo).trim()))
+          : [];
+        return [...custom, ...filteredCached];
+      }
       return Array.isArray(cached) && cached.length > 0 ? cached : [];
     } catch {
       return [];
@@ -210,7 +218,6 @@ export default function App() {
   const syncInProgressRef = useRef(false);
   const activeSavesCountRef = useRef(0);
   const recentConfirmedUpdatesRef = useRef(new Map());
-  const recentCreatedOrdersRef = useRef(new Map());
 
   // Admin password with localStorage persistence (Default: 'admin123')
   const [adminPassword, setAdminPassword] = useState(() => {
@@ -561,11 +568,26 @@ export default function App() {
 
     try {
       const res = await orderApiService.getAllOrders();
-      const serverOrders = res.data;
+      const serverOrders = Array.isArray(res?.data) ? res.data : [];
       const now = Date.now();
 
+      // Read persistent custom/created orders
+      const customOrders = getStorageItem('isc_production_custom_orders') || [];
+      const serverOrderNos = new Set(serverOrders.map((s) => String(s.NoProduksi || s.orderNo).trim()));
+
+      // Keep any custom order steps that have not yet appeared in serverOrders
+      const pendingCustomOrders = Array.isArray(customOrders)
+        ? customOrders.filter((item) => {
+            const orderNo = String(item.NoProduksi || item.orderNo).trim();
+            return !serverOrderNos.has(orderNo);
+          })
+        : [];
+
+      // Combine: custom/new orders at the top, then server orders
+      const allOrdersCombined = [...pendingCustomOrders, ...serverOrders];
+
       // 2. Prevent stale SharePoint replication data from overwriting recently confirmed updates
-      const protectedOrders = serverOrders.map((serverStep) => {
+      const protectedOrders = allOrdersCombined.map((serverStep) => {
         const key = `${String(serverStep.NoProduksi || serverStep.orderNo).trim()}:${Number(serverStep.Langkah || serverStep.stepNo)}`;
         const recent = recentConfirmedUpdatesRef.current.get(key);
 
@@ -601,35 +623,16 @@ export default function App() {
         return serverStep;
       });
 
-      // 3. Preserve recently created orders that haven't appeared in server response yet
-      const serverOrderNos = new Set(
-        protectedOrders.map((s) => String(s.NoProduksi || s.orderNo || '').trim())
-      );
-      const pendingCreatedSteps = [];
-      for (const [ordNo, createdEntry] of recentCreatedOrdersRef.current.entries()) {
-        if (now < createdEntry.expiresAt) {
-          if (!serverOrderNos.has(ordNo)) {
-            pendingCreatedSteps.push(...createdEntry.items);
-          } else {
-            recentCreatedOrdersRef.current.delete(ordNo);
-          }
-        } else {
-          recentCreatedOrdersRef.current.delete(ordNo);
-        }
-      }
-
-      const mergedOrders = [...pendingCreatedSteps, ...protectedOrders];
-
-      setOrders(mergedOrders);
-      ordersRef.current = mergedOrders;
-      persistOrderSnapshot(mergedOrders);
+      setOrders(protectedOrders);
+      ordersRef.current = protectedOrders;
+      persistOrderSnapshot(protectedOrders);
       setSelectedOrderNo((current) =>
-        current && mergedOrders.some((order) => String(order.NoProduksi || order.orderNo) === current)
+        current && protectedOrders.some((order) => String(order.NoProduksi || order.orderNo) === current)
           ? current
-          : (mergedOrders[0]?.NoProduksi || mergedOrders[0]?.orderNo || '')
+          : (protectedOrders[0]?.NoProduksi || protectedOrders[0]?.orderNo || '')
       );
       if (!silent) {
-        showToast(`Berhasil memuat ${mergedOrders.length} langkah dari SharePoint.`, 'success');
+        showToast(`Berhasil memuat ${protectedOrders.length} langkah dari SharePoint.`, 'success');
       }
       return true;
     } catch (err) {
@@ -664,75 +667,97 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. CREATE: Insert new order to Cloud SharePoint with Instant Optimistic Local Update
+  // 2. CREATE: Insert new order to Cloud SharePoint with Instant Optimistic UI
   const handleCreateOrder = async (orderData) => {
-    const previousOrders = ordersRef.current;
     const targetNo = String(orderData.orderNo || '').trim();
-    if (!targetNo) {
-      showToast('Production Order Number is required.', 'error');
-      return;
-    }
+    if (!targetNo) return;
+
+    activeSavesCountRef.current++;
+    setIsLoadingCloud(true);
 
     const steps = Array.isArray(orderData.steps) && orderData.steps.length > 0
       ? orderData.steps
       : [{ Langkah: 1, NamaLangkah: orderData.title, Status: 'Berjalan' }];
 
-    const title = String(orderData.title || orderData.materialDescription || `Order ${targetNo}`).trim();
-    const group = String(orderData.ProductGroup || orderData.orderDivision || 'PKW').trim().toUpperCase();
-    const baseSyntheticId = Date.now();
-
-    const itemsToCreate = steps.map((step, index) => {
-      const stepNum = index + 1;
-      const stepName = String(step.NamaLangkah || `${title} - Langkah ${stepNum}`).trim();
-      const isDone = String(step.Status).toLowerCase() === 'selesai' || Number(step.status) === 1;
+    const baseTimestamp = Date.now();
+    const newItems = steps.map((step, index) => {
+      const stepDone = String(step.Status).toLowerCase() === 'selesai' || String(step.Status).toLowerCase() === 'completed' || Number(step.status) === 1;
+      const stepName = String(step.NamaLangkah || '').trim() || `${orderData.title || 'Proses'} - Langkah ${index + 1}`;
       return {
-        ...orderData,
-        id: baseSyntheticId + index,
-        ID: baseSyntheticId + index,
+        id: step.id || (baseTimestamp + index),
+        ID: step.id || (baseTimestamp + index),
         orderNo: targetNo,
         NoProduksi: targetNo,
-        title: title,
-        ProductGroup: group,
-        orderDivision: group,
-        Langkah: stepNum,
-        stepNo: stepNum,
+        title: orderData.title || stepName,
+        customers: orderData.customers || 'ANDRITZ ISC Internal',
+        soDocument: orderData.soDocument || '-',
+        wbsProdNo: orderData.wbsProdNo || '-',
+        prodOrderNo: targetNo,
+        orderDivision: orderData.orderDivision || orderData.ProductGroup || 'PKW',
+        ProductGroup: orderData.ProductGroup || orderData.orderDivision || 'PKW',
+        shortDescSO: orderData.materialDescription || orderData.title || stepName,
+        materialNo: orderData.materialNo || '-',
+        materialDescription: orderData.materialDescription || orderData.title || stepName,
+        Langkah: index + 1,
+        stepNo: index + 1,
         NamaLangkah: stepName,
         stepName: stepName,
-        NoKonfirmasi: String(step.NoKonfirmasi || targetNo).trim(),
-        Status: isDone ? 'Selesai' : (step.Status || 'Berjalan'),
-        status: isDone ? 1 : 0,
-        barcodeStatus: isDone ? 'FIN' : 'PROG',
-        Created: new Date().toISOString(),
-        Modified: new Date().toISOString()
+        NoKonfirmasi: step.NoKonfirmasi || targetNo,
+        qtyOrder: parseFloat(orderData.qtyOrder) || 1.0,
+        planStart: orderData.planStart || new Date().toISOString().split('T')[0],
+        planFinish: orderData.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        Status: stepDone ? 'Selesai' : (step.Status || 'Berjalan'),
+        status: stepDone ? 1 : 0,
+        barcodeStatus: stepDone ? 'FIN' : (step.barcodeStatus || 'PROG')
       };
     });
 
-    // 1. INSTANT OPTIMISTIC UPDATE: Add to local state immediately so user sees it right away!
-    const optimisticOrders = [...itemsToCreate, ...previousOrders];
+    // 1. INSTANT OPTIMISTIC UPDATE: Prepend new order so user sees it right away
+    const previousOrders = ordersRef.current;
+    const filteredPrevious = previousOrders.filter(
+      (s) => String(s.NoProduksi || s.orderNo).trim() !== targetNo
+    );
+    const optimisticOrders = [...newItems, ...filteredPrevious];
+
     setOrders(optimisticOrders);
     ordersRef.current = optimisticOrders;
     persistOrderSnapshot(optimisticOrders);
     setSelectedOrderNo(targetNo);
 
-    // 2. PROTECT FROM OVERWRITE during SharePoint cloud replication window (3 minutes)
-    recentCreatedOrdersRef.current.set(targetNo, {
-      items: itemsToCreate,
-      timestamp: Date.now(),
-      expiresAt: Date.now() + 180000
+    // Save in persistent custom orders registry
+    const existingCustom = getStorageItem('isc_production_custom_orders') || [];
+    const filteredCustom = Array.isArray(existingCustom)
+      ? existingCustom.filter((s) => String(s.NoProduksi || s.orderNo).trim() !== targetNo)
+      : [];
+    const updatedCustom = [...newItems, ...filteredCustom];
+    setStorageItem('isc_production_custom_orders', updatedCustom);
+
+    // Lock recent updates for 5 minutes so background polling never overwrites it
+    newItems.forEach((item) => {
+      const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
+      recentConfirmedUpdatesRef.current.set(key, {
+        id: item.id,
+        status: item.status,
+        Status: item.Status,
+        barcodeStatus: item.barcodeStatus,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + 300000
+      });
     });
 
-    showToast(`Order #${targetNo} (${itemsToCreate.length} langkah) ditambahkan! Menyimpan ke cloud SharePoint...`, 'info');
+    showToast(`Order #${targetNo} (${newItems.length} langkah) berhasil ditambahkan.`, 'success');
 
-    // 3. PERSIST TO SHAREPOINT IN BACKGROUND
-    activeSavesCountRef.current++;
-    setIsLoadingCloud(true);
-
+    // 2. BACKGROUND SYNC TO SHAREPOINT
     try {
+      const itemsToCreate = newItems.map((item) => ({
+        ...item,
+        stepNo: item.Langkah,
+        stepName: item.NamaLangkah
+      }));
       await orderApiService.createOrders(itemsToCreate);
-      showToast(`Order #${targetNo} (${itemsToCreate.length} langkah) berhasil tersimpan di SharePoint.`, 'success');
     } catch (err) {
-      console.error('[CreateOrder] Background cloud save error:', err);
-      showToast(`Gagal menyimpan Order #${targetNo} ke SharePoint: ${err.message}`, 'error');
+      console.error('[handleCreateOrder] SharePoint background save error:', err);
+      showToast(`Order #${targetNo} tersimpan lokal. Gagal sinkronisasi ke SharePoint: ${err.message}`, 'warning');
     } finally {
       activeSavesCountRef.current = Math.max(0, activeSavesCountRef.current - 1);
       setIsLoadingCloud(false);
@@ -821,6 +846,14 @@ export default function App() {
         });
       });
 
+      // Also update persistent custom orders registry if this order was stored there
+      const existingCustom = getStorageItem('isc_production_custom_orders') || [];
+      if (Array.isArray(existingCustom) && existingCustom.some((s) => String(s.NoProduksi || s.orderNo).trim() === targetNo)) {
+        const filteredCustom = existingCustom.filter((s) => String(s.NoProduksi || s.orderNo).trim() !== targetNo);
+        const updatedCustom = [...items, ...filteredCustom];
+        setStorageItem('isc_production_custom_orders', updatedCustom);
+      }
+
       showToast(`Perubahan order #${targetNo} tersimpan di SharePoint.`, 'success');
     } catch (err) {
       // 4. ROLLBACK ON ERROR
@@ -839,10 +872,6 @@ export default function App() {
     setIsLoadingCloud(true);
     try {
       const targetNo = String(orderObj.NoProduksi || orderObj.orderNo || '').trim();
-      if (recentCreatedOrdersRef.current.has(targetNo)) {
-        recentCreatedOrdersRef.current.delete(targetNo);
-      }
-
       const stepRecords = orders.filter(
         (step) => String(step.NoProduksi || step.orderNo).trim() === targetNo
       );
@@ -852,27 +881,32 @@ export default function App() {
           .filter((id) => id > 0)
       )];
 
-      if (idsToDelete.length === 0) {
-        // Order was created locally and has not received SharePoint ID yet, delete locally immediately
-        const remaining = orders.filter((step) => String(step.NoProduksi || step.orderNo).trim() !== targetNo);
-        setOrders(remaining);
-        ordersRef.current = remaining;
-        persistOrderSnapshot(remaining);
-        if (selectedOrderNo === targetNo) setSelectedOrderNo('');
-        showToast(`Order #${targetNo} berhasil dihapus.`, 'success');
-        return;
+      // Immediately delete from custom orders registry
+      const existingCustom = getStorageItem('isc_production_custom_orders') || [];
+      if (Array.isArray(existingCustom)) {
+        const filteredCustom = existingCustom.filter(
+          (s) => String(s.NoProduksi || s.orderNo).trim() !== targetNo
+        );
+        setStorageItem('isc_production_custom_orders', filteredCustom);
       }
 
-      for (const id of idsToDelete) {
-        await orderApiService.deleteOrder(id);
-      }
-      if (!(await handleSyncCloud(true))) {
-        throw new Error('Penghapusan dikirim, tetapi data SharePoint gagal dimuat ulang.');
+      // Optimistic delete from local orders state
+      const optimisticOrders = ordersRef.current.filter(
+        (s) => String(s.NoProduksi || s.orderNo).trim() !== targetNo
+      );
+      setOrders(optimisticOrders);
+      ordersRef.current = optimisticOrders;
+      persistOrderSnapshot(optimisticOrders);
+
+      if (idsToDelete.length > 0) {
+        for (const id of idsToDelete) {
+          await orderApiService.deleteOrder(id);
+        }
       }
       if (selectedOrderNo === targetNo) setSelectedOrderNo('');
-      showToast(`Order #${targetNo} berhasil dihapus dari SharePoint.`, 'success');
+      showToast(`Order #${targetNo} berhasil dihapus.`, 'success');
     } catch (err) {
-      showToast(`Gagal menghapus order dari SharePoint: ${err.message}`, 'error');
+      showToast(`Gagal menghapus order: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
     }
@@ -908,6 +942,17 @@ export default function App() {
       setOrders(optimistic);
       ordersRef.current = optimistic;
       persistOrderSnapshot(optimistic);
+
+      // Also update custom orders registry if present
+      const existingCustom = getStorageItem('isc_production_custom_orders') || [];
+      if (Array.isArray(existingCustom) && existingCustom.some((s) => String(s.NoProduksi || s.orderNo).trim() === String(orderNo).trim())) {
+        const updatedCustom = existingCustom.map((s) =>
+          String(s.NoProduksi || s.orderNo).trim() === String(orderNo).trim()
+            ? { ...s, Status: 'Berjalan', status: 0, barcodeStatus: 'PROG' }
+            : s
+        );
+        setStorageItem('isc_production_custom_orders', updatedCustom);
+      }
 
       await orderApiService.updateOrder(records);
 

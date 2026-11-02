@@ -10,7 +10,12 @@ const DELETE_URL = process.env.POWER_AUTOMATE_DELETE_URL || "https://default6785
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Role');
+  res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.sharepoint.com https://*.office.com https://*.office365.com https://*.microsoft.com https://teams.microsoft.com http://localhost:* https://localhost:*;");
+  if (typeof res.removeHeader === 'function') {
+    res.removeHeader('X-Frame-Options');
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -70,6 +75,7 @@ export default async function handler(req, res) {
           ]
         };
         const seenMulti = new Set();
+        const orderStepCounter = new Map();
 
         for (const sp of rawItems) {
           const rawProdOrder = String(sp.field_4 || '').trim();
@@ -99,16 +105,6 @@ export default async function handler(req, res) {
             orderNo = `ORD-${sp.ID || '0'}`;
           }
 
-          if (
-            DELETED_ORDERS.has(orderNo) ||
-            DELETED_ORDERS.has(rawProdOrder) ||
-            DELETED_ORDERS.has(rawTitle) ||
-            sp.ID === 99 || sp.ID === '99' ||
-            rawTitle === 'jkjsasa'
-          ) {
-            continue;
-          }
-
           let processName = rawShortDesc || rawMatDesc;
           if (!processName || processName === '0') {
             processName = (rawTitle && isNaN(Number(rawTitle))) ? rawTitle : 'Proses Produksi ISC';
@@ -128,9 +124,16 @@ export default async function handler(req, res) {
             conf = '9000' + String(sp.ID || 1).padStart(4, '0');
           }
 
-          const isOrder53072678 = orderNo === '53072678';
-          const statusNum = (isOrder53072678 || sp.field_12 === 1) ? 1 : 0;
+          const rawStatus = sp.field_12 ?? sp.status ?? sp.Status;
+          const statusNum = Number(rawStatus) === 1 || String(rawStatus).toLowerCase() === 'selesai' ? 1 : 0;
           const statusText = statusNum === 1 ? 'Selesai' : 'Berjalan';
+
+          const currentStepCount = (orderStepCounter.get(orderNo) || 0) + 1;
+          orderStepCounter.set(orderNo, currentStepCount);
+
+          const rawStepNo = parseInt(sp.stepNo || sp.StepNo || sp.Langkah || sp.field_13, 10);
+          const stepNo = (rawStepNo && rawStepNo > 0) ? rawStepNo : currentStepCount;
+          const stepName = String(sp.stepName || sp.StepName || sp.NamaLangkah || sp.field_14 || (currentStepCount > 1 ? `${processName} - Langkah ${currentStepCount}` : processName)).trim();
 
           const baseItem = {
             id: parseInt(sp.ID, 10) || 0,
@@ -138,7 +141,7 @@ export default async function handler(req, res) {
             orderNo: orderNo,
             NoProduksi: orderNo,
             title: processName,
-            NamaLangkah: processName,
+            NamaLangkah: stepName,
             customers: rawCustomer || 'ANDRITZ ISC Internal',
             soDocument: rawSO && rawSO !== '0' ? rawSO : '-',
             wbsProdNo: rawWBS && rawWBS !== '0' ? rawWBS : '-',
@@ -148,12 +151,14 @@ export default async function handler(req, res) {
             shortDescSO: rawShortDesc && rawShortDesc !== '0' ? rawShortDesc : '-',
             materialNo: rawMatNo && rawMatNo !== '0' ? rawMatNo : '-',
             materialDescription: rawMatDesc && rawMatDesc !== '0' ? rawMatDesc : processName,
+            stepNo,
+            stepName,
             qtyOrder: parseFloat(sp.field_9) || 1.0,
             planStart: sp.field_10 ? String(sp.field_10).split('T')[0] : '2026-10-26',
             planFinish: sp.field_11 ? String(sp.field_11).split('T')[0] : '2026-11-15',
             status: statusNum,
             Status: statusText,
-            Langkah: 1,
+            Langkah: stepNo,
             NoKonfirmasi: conf,
             Created: String(sp.Created || ''),
             Modified: String(sp.Modified || ''),
@@ -195,7 +200,33 @@ export default async function handler(req, res) {
         });
       }
 
+      case 'dashboard_analytics':
+      case 'analytics': {
+        const callerRole = req.headers['x-user-role'] || req.query.role || '';
+        if (String(callerRole).toLowerCase() !== 'admin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Akses ditolak: Hanya role Admin yang berhak mengakses analitik dashboard.'
+          });
+        }
+        return res.status(200).json({
+          success: true,
+          authorized: true,
+          role: 'admin',
+          timestamp: new Date().toISOString(),
+          message: 'Akses Dashboard Analisis Admin terverifikasi.'
+        });
+      }
+
       case 'create': {
+        const callerRole = req.headers['x-user-role'] || req.query.role || 'admin';
+        if (String(callerRole).toLowerCase() !== 'admin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Akses ditolak: Hanya role Admin yang berhak melakukan import / pembuatan order produksi.'
+          });
+        }
+
         const rawItems = Array.isArray(body.items) ? body.items : (Array.isArray(body) ? body : [body]);
         const formattedItems = [];
 
@@ -293,32 +324,14 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Valid integer ID required for deletion' });
         }
 
-        try {
-          const delRes = await fetch(DELETE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ID: id })
-          });
+        const delRes = await fetch(DELETE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ID: id })
+        });
 
-          const text = await delRes.text();
-
-          // If upstream SharePoint connector returns 502 NoResponse or 404, the item does not exist or was already deleted
-          if (delRes.status === 502 || delRes.status === 404 || text.includes('NoResponse')) {
-            return res.status(200).json({
-              success: true,
-              message: 'Item tidak ditemukan di SharePoint atau sudah terhapus.',
-              id
-            });
-          }
-
-          return res.status(delRes.status).send(text);
-        } catch (fetchErr) {
-          return res.status(200).json({
-            success: true,
-            warning: fetchErr.message,
-            id
-          });
-        }
+        const text = await delRes.text();
+        return res.status(delRes.status).send(text);
       }
 
       default:

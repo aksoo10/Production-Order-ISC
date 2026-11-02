@@ -130,7 +130,8 @@ export const orderApiService = {
       qtyOrder: parseFloat(it.qtyOrder) || 1.0,
       planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
       planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-      status: statusVal
+      status: statusVal,
+      NoKonfirmasi: String(it.NoKonfirmasi || '')
     };
   },
 

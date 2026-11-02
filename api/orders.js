@@ -75,6 +75,7 @@ export default async function handler(req, res) {
           ]
         };
         const seenMulti = new Set();
+        const orderStepCounter = new Map();
 
         for (const sp of rawItems) {
           const rawProdOrder = String(sp.field_4 || '').trim();
@@ -126,8 +127,13 @@ export default async function handler(req, res) {
           const rawStatus = sp.field_12 ?? sp.status ?? sp.Status;
           const statusNum = Number(rawStatus) === 1 || String(rawStatus).toLowerCase() === 'selesai' ? 1 : 0;
           const statusText = statusNum === 1 ? 'Selesai' : 'Berjalan';
-          const stepNo = parseInt(sp.stepNo || sp.StepNo || sp.Langkah || sp.field_13, 10) || 1;
-          const stepName = String(sp.stepName || sp.StepName || sp.NamaLangkah || sp.field_14 || processName).trim();
+
+          const currentStepCount = (orderStepCounter.get(orderNo) || 0) + 1;
+          orderStepCounter.set(orderNo, currentStepCount);
+
+          const rawStepNo = parseInt(sp.stepNo || sp.StepNo || sp.Langkah || sp.field_13, 10);
+          const stepNo = (rawStepNo && rawStepNo > 0) ? rawStepNo : currentStepCount;
+          const stepName = String(sp.stepName || sp.StepName || sp.NamaLangkah || sp.field_14 || (currentStepCount > 1 ? `${processName} - Langkah ${currentStepCount}` : processName)).trim();
 
           const baseItem = {
             id: parseInt(sp.ID, 10) || 0,
@@ -153,7 +159,6 @@ export default async function handler(req, res) {
             status: statusNum,
             Status: statusText,
             Langkah: stepNo,
-            NamaLangkah: stepName,
             NoKonfirmasi: conf,
             Created: String(sp.Created || ''),
             Modified: String(sp.Modified || ''),
@@ -319,19 +324,14 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Valid integer ID required for deletion' });
         }
 
-        try {
-          const delRes = await fetch(DELETE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ID: id })
-          });
+        const delRes = await fetch(DELETE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ID: id })
+        });
 
-          const text = await delRes.text();
-
-          return res.status(delRes.status).send(text);
-        } catch (fetchErr) {
-          throw fetchErr;
-        }
+        const text = await delRes.text();
+        return res.status(delRes.status).send(text);
       }
 
       default:

@@ -94,31 +94,31 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
     e.preventDefault();
     setError('');
 
-    const trimmedOrderNo = formData.orderNo.trim();
-    if (!trimmedOrderNo) {
+    if (!formData.orderNo.trim()) {
       setError('Production Order Number (orderNo) is required.');
       return;
     }
 
-    const trimmedTitle = formData.title.trim() || formData.materialDescription.trim() || `Order ${trimmedOrderNo}`;
+    if (!formData.title.trim()) {
+      setError('Job / Order Title is required.');
+      return;
+    }
 
     if (steps.length === 0) {
       setError('At least 1 process step is required.');
       return;
     }
 
-    const sanitizedSteps = steps.map((st, idx) => ({
+    const cleanedSteps = steps.map((st, idx) => ({
       ...st,
-      Langkah: idx + 1,
-      NamaLangkah: (st.NamaLangkah || '').trim() || `${trimmedTitle} - Langkah ${idx + 1}`,
-      NoKonfirmasi: (st.NoKonfirmasi || '').trim() || trimmedOrderNo
+      NamaLangkah: (st.NamaLangkah && st.NamaLangkah.trim())
+        ? st.NamaLangkah.trim()
+        : `${formData.title || 'Proses'} - Langkah ${idx + 1}`
     }));
 
     onSubmit({
       ...formData,
-      orderNo: trimmedOrderNo,
-      title: trimmedTitle,
-      steps: sanitizedSteps
+      steps: cleanedSteps
     });
   };
 
