@@ -150,6 +150,7 @@ export default function OrderPanel({
       displayStep.status === 1
     )
   );
+  const currentBarcodeStatus = isDisplayStepFinished ? 'FIN' : 'PROG';
 
   return (
     <div className="panel-container order-panel">
@@ -341,93 +342,72 @@ export default function OrderPanel({
                       fontSize={17}
                     />
 
-                    {/* Step Confirmation Status Barcodes (PROG & FIN) placed under Confirmation No. Barcode */}
+                    {/* Unified Step Confirmation Status Barcode with Dropdown */}
                     <div className="status-barcodes-wrapper">
-                      <div className="status-barcodes-header">
-                        <div className="flex items-center gap-2">
-                          <span className="status-barcodes-title">Step Confirmation Status Barcode:</span>
-                          <span className={`badge-pill font-mono text-xs ${isDisplayStepFinished ? 'status-badge-fin' : 'status-badge-prog'}`}>
-                            {isDisplayStepFinished ? 'Status Saat Ini: FIN (Finished)' : 'Status Saat Ini: PROG (In Progress)'}
-                          </span>
-                        </div>
-                        <span className="text-xs text-muted font-mono hidden sm:inline">
-                          Pindai barcode status di bawah untuk konfirmasi ke SAP
-                        </span>
-                      </div>
-
-                      <div className="status-barcodes-grid">
-                        {/* 1. PROG Barcode Card */}
-                        <div className={`status-barcode-card-container ${!isDisplayStepFinished ? 'is-active-prog' : ''}`}>
-                          <div className="status-card-action-bar">
-                            <span className={`status-badge-active ${!isDisplayStepFinished ? 'prog' : 'inactive'}`}>
-                              {!isDisplayStepFinished ? (
-                                <>
-                                  <Clock size={12} />
-                                  <span>STATUS AKTIF</span>
-                                </>
-                              ) : (
-                                <span>PROG — In Progress</span>
-                              )}
+                      <div className={`unified-status-card ${isDisplayStepFinished ? 'status-fin-active' : 'status-prog-active'}`}>
+                        {/* Header with Dropdown Selector */}
+                        <div className="unified-status-header">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="unified-status-label">
+                              STATUS BARCODE:
                             </span>
-                            <button
-                              type="button"
-                              className={`btn btn-xs ${!isDisplayStepFinished ? 'btn-primary' : 'btn-outline'}`}
-                              onClick={() => handleBarcodeStatusChange('PROG')}
-                              title="Terapkan status langkah menjadi PROG (In Progress)"
-                            >
-                              {!isDisplayStepFinished ? 'Aktif' : 'Terapkan PROG'}
-                            </button>
+                            <div className="status-barcode-select-wrapper">
+                              <select
+                                className={`status-barcode-select font-mono ${isDisplayStepFinished ? 'status-fin' : 'status-prog'}`}
+                                value={currentBarcodeStatus}
+                                onChange={(e) => handleBarcodeStatusChange(e.target.value)}
+                                title="Pilih status konfirmasi (In Progress / Finished) untuk menampilkan barcode"
+                              >
+                                <option value="PROG">PROG — In Progress</option>
+                                <option value="FIN">FIN — Finished</option>
+                              </select>
+                            </div>
                           </div>
 
-                          <BarcodeCard
-                            value="PROG"
-                            label="PROG — IN PROGRESS"
-                            subtitle="Partial Confirmation Status"
-                            badgeText="3A. Scan PROG to SAP"
-                            highlightColor="#00A3E0"
-                            format="CODE128"
-                            height={52}
-                            width={2.0}
-                            fontSize={14}
-                            compact={true}
-                          />
-                        </div>
-
-                        {/* 2. FIN Barcode Card */}
-                        <div className={`status-barcode-card-container ${isDisplayStepFinished ? 'is-active-fin' : ''}`}>
-                          <div className="status-card-action-bar">
-                            <span className={`status-badge-active ${isDisplayStepFinished ? 'fin' : 'inactive'}`}>
+                          <div className="flex items-center gap-2">
+                            <span className={`status-badge-active ${isDisplayStepFinished ? 'fin' : 'prog'}`}>
                               {isDisplayStepFinished ? (
                                 <>
-                                  <CheckCircle2 size={12} />
-                                  <span>STATUS AKTIF</span>
+                                  <CheckCircle2 size={13} />
+                                  <span>STATUS AKTIF: FIN (FINISHED)</span>
                                 </>
                               ) : (
-                                <span>FIN — Finished</span>
+                                <>
+                                  <Clock size={13} />
+                                  <span>STATUS AKTIF: PROG (IN PROGRESS)</span>
+                                </>
                               )}
                             </span>
-                            <button
-                              type="button"
-                              className={`btn btn-xs ${isDisplayStepFinished ? 'btn-success' : 'btn-outline'}`}
-                              onClick={() => handleBarcodeStatusChange('FIN')}
-                              title="Terapkan status langkah menjadi FIN (Finished)"
-                            >
-                              {isDisplayStepFinished ? 'Aktif' : 'Terapkan FIN'}
-                            </button>
                           </div>
+                        </div>
 
-                          <BarcodeCard
-                            value="FIN"
-                            label="FIN — FINISHED"
-                            subtitle="Final Confirmation Status"
-                            badgeText="3B. Scan FIN to SAP"
-                            highlightColor="#10B981"
-                            format="CODE128"
-                            height={52}
-                            width={2.0}
-                            fontSize={14}
-                            compact={true}
-                          />
+                        {/* Dynamic Barcode Display for the Selected Status */}
+                        <div className="unified-status-barcode-body">
+                          {isDisplayStepFinished ? (
+                            <BarcodeCard
+                              value="FIN"
+                              label="STATUS BARCODE: FIN — FINISHED"
+                              subtitle="Final Confirmation Status — Scan or enter into SAP"
+                              badgeText="3. Scan FIN to SAP"
+                              highlightColor="#10B981"
+                              format="CODE128"
+                              height={64}
+                              width={2.2}
+                              fontSize={16}
+                            />
+                          ) : (
+                            <BarcodeCard
+                              value="PROG"
+                              label="STATUS BARCODE: PROG — IN PROGRESS"
+                              subtitle="Partial Confirmation Status — Scan or enter into SAP"
+                              badgeText="3. Scan PROG to SAP"
+                              highlightColor="#00A3E0"
+                              format="CODE128"
+                              height={64}
+                              width={2.2}
+                              fontSize={16}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
