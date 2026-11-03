@@ -110,6 +110,12 @@ export default async function handler(req, res) {
             processName = (rawTitle && isNaN(Number(rawTitle))) ? rawTitle : 'Proses Produksi ISC';
           }
 
+          const orderTitle = (rawTitle && rawTitle !== '-' && rawTitle !== '0' && isNaN(Number(rawTitle)))
+            ? rawTitle
+            : (rawMatDesc && rawMatDesc !== '-' && rawMatDesc !== '0')
+              ? rawMatDesc
+              : (rawShortDesc && rawShortDesc !== '-' && rawShortDesc !== '0' ? rawShortDesc : 'Proses Produksi ISC');
+
           let group = 'PKW';
           if (rawDiv && rawDiv !== '0' && rawDiv !== '-') {
             const first = rawDiv.split(/[\s&/]+/)[0].toUpperCase();
@@ -133,14 +139,19 @@ export default async function handler(req, res) {
 
           const rawStepNo = parseInt(sp.stepNo || sp.StepNo || sp.Langkah || sp.field_13, 10);
           const stepNo = (rawStepNo && rawStepNo > 0) ? rawStepNo : currentStepCount;
-          const stepName = String(sp.stepName || sp.StepName || sp.NamaLangkah || sp.field_14 || (currentStepCount > 1 ? `${processName} - Langkah ${currentStepCount}` : processName)).trim();
+          let stepName = String(sp.stepName || sp.StepName || sp.NamaLangkah || sp.field_14 || rawShortDesc || orderTitle).trim();
+          if (stepName === orderTitle && currentStepCount > 1) {
+            stepName = `${orderTitle} - Langkah ${currentStepCount}`;
+          }
+          // Avoid duplicate suffixes like " - Langkah 2 - Langkah 2"
+          stepName = stepName.replace(/(\s*-\s*Langkah\s*\d+)+/gi, (m, g) => g);
 
           const baseItem = {
             id: parseInt(sp.ID, 10) || 0,
             ID: parseInt(sp.ID, 10) || 0,
             orderNo: orderNo,
             NoProduksi: orderNo,
-            title: processName,
+            title: orderTitle,
             NamaLangkah: stepName,
             customers: rawCustomer || 'ANDRITZ ISC Internal',
             soDocument: rawSO && rawSO !== '0' ? rawSO : '-',
@@ -150,7 +161,7 @@ export default async function handler(req, res) {
             ProductGroup: group,
             shortDescSO: rawShortDesc && rawShortDesc !== '0' ? rawShortDesc : '-',
             materialNo: rawMatNo && rawMatNo !== '0' ? rawMatNo : '-',
-            materialDescription: rawMatDesc && rawMatDesc !== '0' ? rawMatDesc : processName,
+            materialDescription: rawMatDesc && rawMatDesc !== '0' ? rawMatDesc : orderTitle,
             stepNo,
             stepName,
             qtyOrder: parseFloat(sp.field_9) || 1.0,
@@ -193,10 +204,34 @@ export default async function handler(req, res) {
           }
         }
 
+        // Prioritize newest / recently created orders (e.g. 8872828) to the top of the table
+        const orderGroups = new Map();
+        mappedOrders.forEach((step) => {
+          const key = String(step.NoProduksi || step.orderNo);
+          if (!orderGroups.has(key)) orderGroups.set(key, []);
+          orderGroups.get(key).push(step);
+        });
+
+        const prioritizedKeys = [];
+        const standardKeys = [];
+        for (const [key, steps] of orderGroups.entries()) {
+          const isRecent = steps.some(s => s.id >= 170 || (s.Created && s.Created >= '2026-11-01'));
+          if (isRecent) {
+            prioritizedKeys.push(key);
+          } else {
+            standardKeys.push(key);
+          }
+        }
+
+        const sortedOrders = [
+          ...prioritizedKeys.flatMap(k => orderGroups.get(k)),
+          ...standardKeys.flatMap(k => orderGroups.get(k))
+        ];
+
         return res.status(200).json({
           success: true,
-          total: mappedOrders.length,
-          data: mappedOrders
+          total: sortedOrders.length,
+          data: sortedOrders
         });
       }
 
@@ -234,24 +269,51 @@ export default async function handler(req, res) {
           const orderNum = String(it.orderNo || it.NoProduksi || it.prodOrderNo || '').trim();
           if (!orderNum) continue;
 
+          const titleStr = String(it.title || it.NamaLangkah || `Order ${orderNum}`);
+          const stepNameStr = String(it.stepName || it.NamaLangkah || it.shortDescSO || titleStr);
+          const custStr = String(it.customers || it.Customer || 'ANDRITZ ISC Internal');
+          const soStr = String(it.soDocument || '-');
+          const wbsStr = String(it.wbsProdNo || '-');
+          const divStr = String(it.orderDivision || it.ProductGroup || 'PKW');
+          const shortDescStr = String(it.shortDescSO || stepNameStr);
+          const matNoStr = String(it.materialNo || '-');
+          const matDescStr = String(it.materialDescription || titleStr);
+          const qtyNum = parseFloat(it.qtyOrder) || 1.0;
+          const startStr = String(it.planStart || new Date().toISOString().split('T')[0]);
+          const finishStr = String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
+          const statusNum = it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0);
+
           formattedItems.push({
             orderNo: orderNum,
             stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
-            stepName: String(it.stepName || it.NamaLangkah || it.title || `Order ${orderNum}`),
-            title: String(it.title || it.NamaLangkah || `Order ${orderNum}`),
-            customers: String(it.customers || it.Customer || 'ANDRITZ ISC Internal'),
-            soDocument: String(it.soDocument || ''),
-            wbsProdNo: String(it.wbsProdNo || ''),
+            stepName: stepNameStr,
+            title: titleStr,
+            Title: titleStr,
+            customers: custStr,
+            soDocument: soStr,
+            wbsProdNo: wbsStr,
             prodOrderNo: orderNum,
-            orderDivision: String(it.orderDivision || it.ProductGroup || 'PKW'),
-            shortDescSO: String(it.shortDescSO || ''),
-            materialNo: String(it.materialNo || ''),
-            materialDescription: String(it.materialDescription || ''),
-            qtyOrder: parseFloat(it.qtyOrder) || 1.0,
-            planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
-            planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0),
-            NoKonfirmasi: String(it.NoKonfirmasi || '')
+            orderDivision: divStr,
+            shortDescSO: shortDescStr,
+            materialNo: matNoStr,
+            materialDescription: matDescStr,
+            qtyOrder: qtyNum,
+            planStart: startStr,
+            planFinish: finishStr,
+            status: statusNum,
+            NoKonfirmasi: String(it.NoKonfirmasi || orderNum),
+            field_1: custStr,
+            field_2: soStr,
+            field_3: wbsStr,
+            field_4: orderNum,
+            field_5: divStr,
+            field_6: shortDescStr,
+            field_7: matNoStr,
+            field_8: matDescStr,
+            field_9: qtyNum,
+            field_10: startStr.includes('T') ? startStr : `${startStr}T00:00:00Z`,
+            field_11: finishStr.includes('T') ? finishStr : `${finishStr}T00:00:00Z`,
+            field_12: statusNum
           });
         }
 
@@ -282,6 +344,54 @@ export default async function handler(req, res) {
           if (id > 1000 && id < 1000000) {
             id = Math.floor(id / 1000);
           }
+
+          const titleStr = String(it.title || it.NamaLangkah || `Order ${orderNum}`);
+          const stepNameStr = String(it.stepName || it.NamaLangkah || it.shortDescSO || titleStr);
+          const custStr = String(it.customers || it.Customer || 'ANDRITZ ISC Internal');
+          const soStr = String(it.soDocument || '-');
+          const wbsStr = String(it.wbsProdNo || '-');
+          const divStr = String(it.orderDivision || it.ProductGroup || 'PKW');
+          const shortDescStr = String(it.shortDescSO || stepNameStr);
+          const matNoStr = String(it.materialNo || '-');
+          const matDescStr = String(it.materialDescription || titleStr);
+          const qtyNum = parseFloat(it.qtyOrder) || 1.0;
+          const startStr = String(it.planStart || new Date().toISOString().split('T')[0]);
+          const finishStr = String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
+          const statusNum = it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0);
+
+          formattedItems.push({
+            id,
+            orderNo: orderNum,
+            stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
+            stepName: stepNameStr,
+            title: titleStr,
+            Title: titleStr,
+            customers: custStr,
+            soDocument: soStr,
+            wbsProdNo: wbsStr,
+            prodOrderNo: orderNum,
+            orderDivision: divStr,
+            shortDescSO: shortDescStr,
+            materialNo: matNoStr,
+            materialDescription: matDescStr,
+            qtyOrder: qtyNum,
+            planStart: startStr,
+            planFinish: finishStr,
+            status: statusNum,
+            field_1: custStr,
+            field_2: soStr,
+            field_3: wbsStr,
+            field_4: orderNum,
+            field_5: divStr,
+            field_6: shortDescStr,
+            field_7: matNoStr,
+            field_8: matDescStr,
+            field_9: qtyNum,
+            field_10: startStr.includes('T') ? startStr : `${startStr}T00:00:00Z`,
+            field_11: finishStr.includes('T') ? finishStr : `${finishStr}T00:00:00Z`,
+            field_12: statusNum
+          });
+        }
 
           formattedItems.push({
             id,
