@@ -311,20 +311,11 @@ export default function OrderPanel({
               </div>
 
               <div className="spotlight-content-grid">
-                {/* Step Description & Confirmation Number Header */}
+                {/* Step Description Header */}
                 <div className="spotlight-header-meta">
                   <div className="step-name-box">
                     <span className="text-muted text-xs tracking-wider uppercase font-semibold">Step Name:</span>
                     <h4 className="active-step-title">{displayStep.NamaLangkah}</h4>
-                  </div>
-
-                  <div className="meta-right-controls">
-                    <div className="konfirmasi-meta-box">
-                      <span className="text-muted text-xs tracking-wider uppercase font-semibold">SAP Confirmation No.:</span>
-                      <div className="konfirmasi-display font-mono">
-                        <span>{displayStep.NoKonfirmasi || currentOrder.NoProduksi}</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
