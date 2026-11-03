@@ -8,7 +8,7 @@ import {
   BadgeCheck,
   Plus
 } from 'lucide-react';
-import { INITIAL_PERSONNEL } from '../utils/initialData';
+import { INITIAL_PERSONNEL, isDummyPersonnel } from '../utils/initialData';
 
 export default function SearchableOperatorSelect({
   personnel = [],
@@ -29,7 +29,7 @@ export default function SearchableOperatorSelect({
     // Deduplicate by NoPersonal
     const map = new Map();
     list.forEach((p) => {
-      if (p && (p.NoPersonal || p.Nama)) {
+      if (p && (p.NoPersonal || p.Nama) && !isDummyPersonnel(p)) {
         map.set(String(p.NoPersonal || p.Nama), p);
       }
     });

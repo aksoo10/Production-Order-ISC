@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { UserCheck, Users, CheckCircle2 } from 'lucide-react';
-import { INITIAL_PERSONNEL } from '../utils/initialData';
+import { INITIAL_PERSONNEL, isDummyPersonnel } from '../utils/initialData';
 
 export default function OperatorPanel({
   personnel = [],
@@ -12,7 +12,7 @@ export default function OperatorPanel({
     const list = Array.isArray(personnel) && personnel.length > 0 ? personnel : INITIAL_PERSONNEL;
     const map = new Map();
     list.forEach((p) => {
-      if (p && (p.NoPersonal || p.Nama)) {
+      if (p && (p.NoPersonal || p.Nama) && !isDummyPersonnel(p)) {
         map.set(String(p.NoPersonal || p.Nama), p);
       }
     });

@@ -186,9 +186,10 @@ export default function App() {
     try {
       const saved = getStorageItem('isc_production_personnel');
       if (saved && Array.isArray(saved) && saved.length > 0) {
+        const cleaned = saved.filter((p) => !isDummyPersonnel(p));
         const map = new Map();
         INITIAL_PERSONNEL.forEach((p) => map.set(String(p.NoPersonal), p));
-        saved.forEach((p) => map.set(String(p.NoPersonal), p));
+        cleaned.forEach((p) => map.set(String(p.NoPersonal), p));
         return Array.from(map.values());
       }
       return INITIAL_PERSONNEL;

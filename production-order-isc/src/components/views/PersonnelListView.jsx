@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Users, Search, Scan, X } from 'lucide-react';
 import BarcodeCard from '../BarcodeCard';
+import { isDummyPersonnel } from '../../utils/initialData';
 
 export default function PersonnelListView({
   personnel,
@@ -11,6 +12,8 @@ export default function PersonnelListView({
 
   const filtered = useMemo(() => {
     return personnel.filter((person) => {
+      if (isDummyPersonnel(person)) return false;
+
       const matchesGroup =
         selectedGroup === 'ALL' ||
         (person.ProductGroup && person.ProductGroup.toUpperCase() === selectedGroup.toUpperCase());

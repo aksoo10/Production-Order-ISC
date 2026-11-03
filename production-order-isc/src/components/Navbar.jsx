@@ -6,7 +6,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import andritzLogo from '../assets/andritz-logo.png';
-import { INITIAL_PERSONNEL } from '../utils/initialData';
+import { INITIAL_PERSONNEL, isDummyPersonnel } from '../utils/initialData';
 
 export default function Navbar({
   onLogout,
@@ -24,7 +24,7 @@ export default function Navbar({
     const list = Array.isArray(personnel) && personnel.length > 0 ? personnel : INITIAL_PERSONNEL;
     const map = new Map();
     list.forEach((p) => {
-      if (p && (p.NoPersonal || p.Nama)) {
+      if (p && (p.NoPersonal || p.Nama) && !isDummyPersonnel(p)) {
         map.set(String(p.NoPersonal || p.Nama), p);
       }
     });

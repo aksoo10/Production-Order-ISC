@@ -3,18 +3,69 @@
  * Baseline Data - Synced from SharePoint 'Production Planning ISC'
  */
 
-export const DUMMY_PERSONNEL_IDS = [];
-export const DUMMY_PERSONNEL_NAMES = [];
+export const DUMMY_PERSONNEL_IDS = [
+  "2324",
+  "530617",
+  "109842",
+  "442190",
+  "331088",
+  "550123"
+];
+export const DUMMY_PERSONNEL_NAMES = [
+  "Dudi",
+  "Renan Aldi",
+  "Agus Pratama",
+  "Siti Rahma",
+  "Hendrik Wijaya"
+];
 
-export const isDummyPersonnel = () => false;
+export const isDummyPersonnel = (person) => {
+  if (!person) return false;
+  const id = String(person.NoPersonal || '').trim();
+  return DUMMY_PERSONNEL_IDS.includes(id);
+};
 
 export const INITIAL_PERSONNEL = [
-  { NoPersonal: "2324", Nama: "Dudi", ProductGroup: "PKW" },
-  { NoPersonal: "530617", Nama: "Renan Aldi", ProductGroup: "PKW" },
-  { NoPersonal: "109842", Nama: "Agus Pratama", ProductGroup: "PULP" },
-  { NoPersonal: "442190", Nama: "Siti Rahma", ProductGroup: "SERVICE" },
-  { NoPersonal: "331088", Nama: "Budi Santoso", ProductGroup: "WORKSHOP" },
-  { NoPersonal: "550123", Nama: "Hendrik Wijaya", ProductGroup: "PKW" }
+  { NoPersonal: "137834", Nama: "ROLAN DAMANIK", ProductGroup: "PKW" },
+  { NoPersonal: "139437", Nama: "BAMBANG KURNADI", ProductGroup: "PKW" },
+  { NoPersonal: "141082", Nama: "RONI MIKIRONI", ProductGroup: "PKW" },
+  { NoPersonal: "142042", Nama: "LIORIS A. MAHENDRA", ProductGroup: "PKW" },
+  { NoPersonal: "65602",  Nama: "YANTO SUGIANTO", ProductGroup: "PKW" },
+  { NoPersonal: "142044", Nama: "HARIANTO", ProductGroup: "PKW" },
+  { NoPersonal: "141083", Nama: "SANRO SITORUS", ProductGroup: "PKW" },
+  { NoPersonal: "141084", Nama: "AMOS PANGGABEAN", ProductGroup: "PKW" },
+  { NoPersonal: "141081", Nama: "MUHAMAD RIFAT", ProductGroup: "PKW" },
+  { NoPersonal: "142043", Nama: "EDY HARTONO", ProductGroup: "PKW" },
+  { NoPersonal: "65587",  Nama: "DIDIN SAEPUDIN", ProductGroup: "PKW" },
+  { NoPersonal: "143378", Nama: "M. ANDI FACHRURI", ProductGroup: "PKW" },
+  { NoPersonal: "140023", Nama: "REFIAL MUSTAFA", ProductGroup: "PKW" },
+  { NoPersonal: "137836", Nama: "RIDWAN", ProductGroup: "PKW" },
+  { NoPersonal: "140022", Nama: "RIO PUTRA", ProductGroup: "PKW" },
+  { NoPersonal: "140020", Nama: "MUHAMAD YOGI", ProductGroup: "PKW" },
+  { NoPersonal: "65537",  Nama: "PAHRI ADRI", ProductGroup: "PKW" },
+  { NoPersonal: "65551",  Nama: "RANDI FIRDAUS", ProductGroup: "PKW" },
+  { NoPersonal: "140018", Nama: "KARTOGI SIMBOLON", ProductGroup: "PKW" },
+  { NoPersonal: "137835", Nama: "LANANG SETA", ProductGroup: "PKW" },
+  { NoPersonal: "140019", Nama: "MUHAMMAD SANI", ProductGroup: "PKW" },
+  { NoPersonal: "65607",  Nama: "DASMAN TAMBUNAN", ProductGroup: "PKW" },
+  { NoPersonal: "135942", Nama: "IBNU DEWANTARA", ProductGroup: "PKW" },
+  { NoPersonal: "135947", Nama: "JERICHO", ProductGroup: "PKW" },
+  { NoPersonal: "65583",  Nama: "BUDI SANTOSO", ProductGroup: "PKW" },
+  { NoPersonal: "65555",  Nama: "ARY PRAYOGA", ProductGroup: "PKW" },
+  { NoPersonal: "65588",  Nama: "AGUS HENDRAWAN", ProductGroup: "PKW" },
+  { NoPersonal: "144209", Nama: "INDRA PRIANTO", ProductGroup: "PKW" },
+  { NoPersonal: "143646", Nama: "M. CANDRA ADITYA", ProductGroup: "PKW" },
+  { NoPersonal: "147082", Nama: "DEDY ANDRIANSYAH", ProductGroup: "PKW" },
+  { NoPersonal: "147081", Nama: "SYAHRI SAPUTRA", ProductGroup: "PKW" },
+  { NoPersonal: "147079", Nama: "MUHAMMAD FIKRY", ProductGroup: "PKW" },
+  { NoPersonal: "147067", Nama: "PONIRAN", ProductGroup: "PKW" },
+  { NoPersonal: "147080", Nama: "MULYONO", ProductGroup: "PKW" },
+  { NoPersonal: "147085", Nama: "YUKHRIZUL ALMUFAZRI", ProductGroup: "PKW" },
+  { NoPersonal: "140171", Nama: "M. JAUHARI", ProductGroup: "PKW" },
+  { NoPersonal: "141735", Nama: "DUDI APRIADI", ProductGroup: "PKW" },
+  { NoPersonal: "147105", Nama: "JOSEFIN RINTONGA", ProductGroup: "PKW" },
+  { NoPersonal: "147718", Nama: "DENI FIRMANSYAH", ProductGroup: "PKW" },
+  { NoPersonal: "147551", Nama: "ADHAN AHMAD BAYYITI", ProductGroup: "PKW" }
 ];
 
 export const DEFAULT_DELETED_ORDERS = ['S-10-P84786-643', '102910210'];
