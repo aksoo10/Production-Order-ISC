@@ -112,7 +112,7 @@ export default function LoginView({
             <span className="andritz-logotype-cyan" style={{ fontSize: '1.6rem', fontWeight: 800 }}>ISC</span>
           </div>
 
-          <h2 className="login-title font-heading">Production Workshop Login Portal</h2>
+          <h2 className="login-title font-heading">Production Planning Order</h2>
         </div>
 
         {/* Role Switcher Tabs */}
