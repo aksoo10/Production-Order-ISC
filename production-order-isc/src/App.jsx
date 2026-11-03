@@ -609,26 +609,35 @@ export default function App() {
             const serverIsDone = serverStep.status === 1 || String(serverStep.Status).toLowerCase() === 'selesai';
             const recentIsDone = recent.status === 1 || String(recent.Status).toLowerCase() === 'selesai';
 
+            let updatedStatus = {};
             if (recentIsDone && !serverIsDone) {
               // Server data is stale! Preserve confirmed completed status
-              return {
-                ...serverStep,
+              updatedStatus = {
                 status: 1,
                 Status: 'Selesai',
                 barcodeStatus: recent.barcodeStatus || 'FIN'
               };
             } else if (!recentIsDone && serverIsDone) {
               // Server has not replicated revert yet! Preserve reverted status
-              return {
-                ...serverStep,
+              updatedStatus = {
                 status: 0,
                 Status: 'Berjalan',
                 barcodeStatus: recent.barcodeStatus || 'PROG'
               };
-            } else {
-              // Server has caught up with latest state
-              recentConfirmedUpdatesRef.current.delete(key);
             }
+
+            // Always preserve recently updated fields (title, NamaLangkah, etc.) to prevent stale server data overwrite
+            return {
+              ...serverStep,
+              ...updatedStatus,
+              title: recent.title || serverStep.title,
+              NamaLangkah: recent.NamaLangkah || serverStep.NamaLangkah,
+              stepName: recent.stepName || serverStep.stepName || recent.NamaLangkah,
+              materialDescription: recent.materialDescription || serverStep.materialDescription,
+              shortDescSO: recent.shortDescSO || serverStep.shortDescSO,
+              ProductGroup: recent.ProductGroup || serverStep.ProductGroup,
+              customers: recent.customers || serverStep.customers
+            };
           } else {
             recentConfirmedUpdatesRef.current.delete(key);
           }
@@ -810,6 +819,8 @@ export default function App() {
         }
       });
 
+      const cleanTitle = String(orderData.title || '').trim();
+
       const items = submittedSteps.map((step, index) => {
         const stepNo = index + 1;
         let stepId = Number(step.id || step.ID) || 0;
@@ -819,7 +830,13 @@ export default function App() {
         }
 
         const stepDone = isCompleted || String(step.Status).toLowerCase() === 'selesai' || String(step.Status).toLowerCase() === 'completed' || Number(step.status) === 1;
-        const stepName = String(step.NamaLangkah || '').trim() || `${orderData.title || 'Proses'} - Langkah ${stepNo}`;
+        
+        let stepName = String(step.NamaLangkah || '').trim();
+        if (!stepName || (submittedSteps.length === 1 && cleanTitle)) {
+          stepName = cleanTitle;
+        } else if (!stepName) {
+          stepName = `${cleanTitle || 'Proses'} - Langkah ${stepNo}`;
+        }
 
         return {
           ...orderData,
@@ -827,6 +844,10 @@ export default function App() {
           ID: stepId,
           orderNo: targetNo,
           NoProduksi: targetNo,
+          title: cleanTitle || stepName,
+          Title: cleanTitle || stepName,
+          materialDescription: cleanTitle || orderData.materialDescription || stepName,
+          shortDescSO: cleanTitle || orderData.shortDescSO || stepName,
           ProductGroup: orderData.ProductGroup || orderData.orderDivision || 'PKW',
           Langkah: stepNo,
           stepNo: stepNo,
@@ -864,6 +885,14 @@ export default function App() {
         const key = `${String(item.orderNo || item.NoProduksi).trim()}:${Number(item.stepNo || item.Langkah)}`;
         recentConfirmedUpdatesRef.current.set(key, {
           id: item.id,
+          title: item.title,
+          Title: item.title,
+          NamaLangkah: item.NamaLangkah,
+          stepName: item.stepName,
+          materialDescription: item.materialDescription,
+          shortDescSO: item.shortDescSO,
+          ProductGroup: item.ProductGroup,
+          customers: item.customers,
           status: item.status,
           Status: item.Status,
           barcodeStatus: item.barcodeStatus,
@@ -871,6 +900,23 @@ export default function App() {
           expiresAt: Date.now() + 300000
         });
       });
+
+      // Update custom orders in localStorage if this order was saved there
+      const existingCustom = getStorageItem('isc_production_custom_orders') || [];
+      if (Array.isArray(existingCustom) && existingCustom.length > 0) {
+        const hasCustom = existingCustom.some(
+          (c) => String(c.NoProduksi || c.orderNo).trim() === targetNo || String(c.NoProduksi || c.orderNo).trim() === originalNo
+        );
+        if (hasCustom) {
+          const updatedCustom = [
+            ...items,
+            ...existingCustom.filter(
+              (c) => String(c.NoProduksi || c.orderNo).trim() !== targetNo && String(c.NoProduksi || c.orderNo).trim() !== originalNo
+            )
+          ];
+          setStorageItem('isc_production_custom_orders', updatedCustom);
+        }
+      }
 
       // 3. BACKGROUND PERSIST TO SHAREPOINT
       try {

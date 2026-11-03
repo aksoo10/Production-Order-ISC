@@ -140,6 +140,7 @@ export const orderApiService = {
       stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
       stepName: String(it.stepName || it.NamaLangkah || titleVal).trim(),
       title: titleVal,
+      Title: titleVal,
       customers: custVal,
       soDocument: String(it.soDocument || '-'),
       wbsProdNo: String(it.wbsProdNo || '-'),

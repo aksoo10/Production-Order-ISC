@@ -189,8 +189,8 @@ try {
                     'ID'                  => $idVal,
                     'orderNo'             => $orderNo,
                     'NoProduksi'          => $orderNo,
-                    'title'               => !empty($sp['Title']) ? (string)$sp['Title'] : 'Proses Produksi',
-                    'NamaLangkah'         => !empty($sp['Title']) ? (string)$sp['Title'] : 'Proses Produksi',
+                    'title'               => !empty($sp['Title']) && is_numeric($sp['Title']) === false ? (string)$sp['Title'] : (!empty($sp['field_8']) ? (string)$sp['field_8'] : (!empty($sp['field_6']) ? (string)$sp['field_6'] : 'Proses Produksi')),
+                    'NamaLangkah'         => $stepName,
                     'customers'           => (string)($sp['field_1'] ?? 'ANDRITZ ISC Internal'),
                     'soDocument'          => (string)($sp['field_2'] ?? '-'),
                     'wbsProdNo'           => (string)($sp['field_3'] ?? '-'),
@@ -373,24 +373,50 @@ try {
                     $statusVal = (strtolower($it['Status']) === 'selesai') ? 1 : 0;
                 }
 
+                $titleStr = (string)($it['title'] ?? $it['Title'] ?? $it['NamaLangkah'] ?? ('Order ' . $orderNum));
+                $stepNameStr = (string)($it['stepName'] ?? $it['NamaLangkah'] ?? $it['shortDescSO'] ?? $titleStr);
+                $custStr = (string)($it['customers'] ?? $it['Customer'] ?? '');
+                $soStr = (string)($it['soDocument'] ?? '');
+                $wbsStr = (string)($it['wbsProdNo'] ?? '');
+                $divStr = (string)($it['orderDivision'] ?? $it['ProductGroup'] ?? 'PKW');
+                $shortDescStr = (string)($it['shortDescSO'] ?? $stepNameStr);
+                $matNoStr = (string)($it['materialNo'] ?? '');
+                $matDescStr = (string)($it['materialDescription'] ?? $titleStr);
+                $qtyNum = isset($it['qtyOrder']) ? (float)$it['qtyOrder'] : 1.0;
+                $startStr = !empty($it['planStart']) ? (string)$it['planStart'] : date('Y-m-d');
+                $finishStr = !empty($it['planFinish']) ? (string)$it['planFinish'] : date('Y-m-d', strtotime('+14 days'));
+
                 $formattedItems[] = [
                     'id'                  => $id,
                     'orderNo'             => $orderNum,
                     'stepNo'              => (int)($it['stepNo'] ?? $it['Langkah'] ?? 1),
-                    'stepName'            => (string)($it['stepName'] ?? $it['NamaLangkah'] ?? $it['title'] ?? ('Order ' . $orderNum)),
-                    'title'               => (string)($it['title'] ?? $it['NamaLangkah'] ?? ('Order ' . $orderNum)),
-                    'customers'           => (string)($it['customers'] ?? $it['Customer'] ?? ''),
-                    'soDocument'          => (string)($it['soDocument'] ?? ''),
-                    'wbsProdNo'           => (string)($it['wbsProdNo'] ?? ''),
+                    'stepName'            => $stepNameStr,
+                    'title'               => $titleStr,
+                    'Title'               => $titleStr,
+                    'customers'           => $custStr,
+                    'soDocument'          => $soStr,
+                    'wbsProdNo'           => $wbsStr,
                     'prodOrderNo'         => $orderNum,
-                    'orderDivision'       => (string)($it['orderDivision'] ?? $it['ProductGroup'] ?? 'PKW'),
-                    'shortDescSO'         => (string)($it['shortDescSO'] ?? ''),
-                    'materialNo'          => (string)($it['materialNo'] ?? ''),
-                    'materialDescription' => (string)($it['materialDescription'] ?? ''),
-                    'qtyOrder'            => isset($it['qtyOrder']) ? (float)$it['qtyOrder'] : 1.0,
-                    'planStart'           => !empty($it['planStart']) ? (string)$it['planStart'] : date('Y-m-d'),
-                    'planFinish'          => !empty($it['planFinish']) ? (string)$it['planFinish'] : date('Y-m-d', strtotime('+14 days')),
-                    'status'              => $statusVal
+                    'orderDivision'       => $divStr,
+                    'shortDescSO'         => $shortDescStr,
+                    'materialNo'          => $matNoStr,
+                    'materialDescription' => $matDescStr,
+                    'qtyOrder'            => $qtyNum,
+                    'planStart'           => $startStr,
+                    'planFinish'          => $finishStr,
+                    'status'              => $statusVal,
+                    'field_1'             => $custStr,
+                    'field_2'             => $soStr,
+                    'field_3'             => $wbsStr,
+                    'field_4'             => $orderNum,
+                    'field_5'             => $divStr,
+                    'field_6'             => $shortDescStr,
+                    'field_7'             => $matNoStr,
+                    'field_8'             => $matDescStr,
+                    'field_9'             => $qtyNum,
+                    'field_10'            => str_contains($startStr, 'T') ? $startStr : ($startStr . 'T00:00:00Z'),
+                    'field_11'            => str_contains($finishStr, 'T') ? $finishStr : ($finishStr . 'T00:00:00Z'),
+                    'field_12'            => $statusVal
                 ];
             }
 

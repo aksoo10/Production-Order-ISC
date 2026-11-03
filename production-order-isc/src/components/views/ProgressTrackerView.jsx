@@ -73,6 +73,11 @@ export default function ProgressTrackerView({
           ProductGroup: String(step.ProductGroup || step.orderDivision || 'PKW').trim().toUpperCase(),
           steps: []
         });
+      } else {
+        const existing = map.get(orderNo);
+        if (step.title && (!existing.title || existing.title === existing.NamaLangkah)) {
+          existing.title = step.title;
+        }
       }
       map.get(orderNo).steps.push(step);
     });
@@ -88,12 +93,14 @@ export default function ProgressTrackerView({
         sortedSteps.find(
           (s) => String(s.Status || '').toLowerCase() !== 'selesai' && s.status !== 1
         ) || null;
+      const finalTitle = order.title || sortedSteps.find((s) => s.title)?.title || sortedSteps[0]?.NamaLangkah || '';
 
       // Determine order-level barcode status: FIN if all steps done, else PROG
       const orderBarcodeStatus = isComplete ? 'FIN' : 'PROG';
 
       return {
         ...order,
+        title: finalTitle,
         steps: sortedSteps,
         totalSteps,
         completedSteps,

@@ -68,6 +68,11 @@ export default function OrdersListView({
           status: step.status !== undefined ? step.status : (String(step.Status).toLowerCase() === 'selesai' ? 1 : 0),
           steps: []
         });
+      } else {
+        const existing = map.get(orderNo);
+        if (step.title && (!existing.title || existing.title === existing.NamaLangkah)) {
+          existing.title = step.title;
+        }
       }
       map.get(orderNo).steps.push(step);
     });
@@ -82,9 +87,11 @@ export default function OrdersListView({
       const activeStep = sortedSteps.find(
         (s) => String(s.Status).toLowerCase() !== 'selesai' && String(s.Status).toLowerCase() !== 'completed' && Number(s.status) !== 1
       ) || null;
+      const finalTitle = order.title || sortedSteps.find((s) => s.title)?.title || sortedSteps[0]?.NamaLangkah || '';
 
       return {
         ...order,
+        title: finalTitle,
         steps: sortedSteps,
         totalSteps,
         completedSteps,

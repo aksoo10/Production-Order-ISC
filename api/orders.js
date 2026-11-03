@@ -386,6 +386,7 @@ export default async function handler(req, res) {
             stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
             stepName: stepNameStr,
             title: titleStr,
+            Title: titleStr,
             customers: custStr,
             soDocument: soStr,
             wbsProdNo: wbsStr,
@@ -397,7 +398,19 @@ export default async function handler(req, res) {
             qtyOrder: qtyNum,
             planStart: startStr,
             planFinish: finishStr,
-            status: statusNum
+            status: statusNum,
+            field_1: custStr,
+            field_2: soStr,
+            field_3: wbsStr,
+            field_4: orderNum,
+            field_5: divStr,
+            field_6: shortDescStr,
+            field_7: matNoStr,
+            field_8: matDescStr,
+            field_9: qtyNum,
+            field_10: startStr.includes('T') ? startStr : `${startStr}T00:00:00Z`,
+            field_11: finishStr.includes('T') ? finishStr : `${finishStr}T00:00:00Z`,
+            field_12: statusNum
           });
         }
 

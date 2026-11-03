@@ -76,6 +76,39 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     const parsedVal = type === 'number' ? (parseFloat(value) || 0) : value;
+
+    if (name === 'title') {
+      const oldTitle = formData.title;
+      const newTitle = String(value);
+
+      setFormData((prev) => ({
+        ...prev,
+        title: newTitle,
+        materialDescription: (!prev.materialDescription || prev.materialDescription === oldTitle) ? newTitle : prev.materialDescription,
+        shortDescSO: (!prev.shortDescSO || prev.shortDescSO === oldTitle) ? newTitle : prev.shortDescSO
+      }));
+
+      // Automatically keep step names in sync with the updated Job Title
+      setSteps((prevSteps) =>
+        prevSteps.map((st, idx) => {
+          if (
+            prevSteps.length === 1 ||
+            !st.NamaLangkah ||
+            st.NamaLangkah === oldTitle ||
+            st.NamaLangkah === `${oldTitle} - Langkah ${idx + 1}` ||
+            (oldTitle && String(st.NamaLangkah).startsWith(oldTitle))
+          ) {
+            return {
+              ...st,
+              NamaLangkah: prevSteps.length === 1 ? newTitle : `${newTitle} - Langkah ${idx + 1}`
+            };
+          }
+          return st;
+        })
+      );
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: parsedVal
@@ -167,12 +200,25 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
       (s) => String(s.Status).toLowerCase() === 'selesai' || String(s.Status).toLowerCase() === 'completed'
     );
 
-    const finalSteps = isOrderCompleted
-      ? steps.map((s) => ({ ...s, Status: 'Selesai' }))
-      : steps;
+    const cleanTitle = String(formData.title || '').trim();
+
+    const finalSteps = steps.map((s, idx) => {
+      let sName = String(s.NamaLangkah || '').trim();
+      if (!sName || steps.length === 1) {
+        sName = cleanTitle;
+      }
+      return {
+        ...s,
+        NamaLangkah: sName,
+        Status: isOrderCompleted ? 'Selesai' : s.Status
+      };
+    });
 
     onSubmit({
       ...formData,
+      title: cleanTitle,
+      materialDescription: cleanTitle,
+      shortDescSO: cleanTitle,
       status: isOrderCompleted ? 1 : 0,
       steps: finalSteps
     });

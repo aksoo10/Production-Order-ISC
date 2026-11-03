@@ -33,6 +33,7 @@ export default function OrderPanel({
       if (!map.has(orderNo)) {
         map.set(orderNo, {
           NoProduksi: orderNo,
+          title: step.title || step.NamaLangkah || '',
           ProductGroup: step.ProductGroup || '',
           steps: []
         });
