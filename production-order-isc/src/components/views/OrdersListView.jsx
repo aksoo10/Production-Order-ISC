@@ -139,9 +139,12 @@ export default function OrdersListView({
 
   // Handle Edit Submit
   const handleEditSubmit = async (formData) => {
+    if (formData?.orderNo) {
+      setExpandedOrder(String(formData.orderNo).trim());
+    }
+    setOrderToEdit(null);
     if (onUpdateOrder) {
       await onUpdateOrder(formData);
-      setOrderToEdit(null);
     }
   };
 

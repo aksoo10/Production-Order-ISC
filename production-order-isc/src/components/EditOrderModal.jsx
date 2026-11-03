@@ -189,7 +189,7 @@ export default function EditOrderModal({ isOpen, onClose, onSubmit, order, isLoa
         <div className="modal-header">
           <div className="flex items-center gap-2">
             <Edit3 className="text-cyan" size={20} />
-            <h3 className="modal-title">Edit Order #{formData.orderNo} (SharePoint ID: {formData.id})</h3>
+            <h3 className="modal-title">Edit Order #{formData.orderNo} {Number(formData.id) > 0 && Number(formData.id) < 1000000000 ? `(SharePoint ID: ${formData.id})` : ''}</h3>
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose} disabled={isLoading}>
             <X size={18} />
