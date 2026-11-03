@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { UserCheck, Users, CheckCircle2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { UserCheck, Users, CheckCircle2, Search, X } from 'lucide-react';
 import { INITIAL_PERSONNEL, isDummyPersonnel } from '../utils/initialData';
 
 export default function OperatorPanel({
@@ -7,6 +7,8 @@ export default function OperatorPanel({
   selectedOperator,
   onSelectOperator
 }) {
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Ensure all personnel are available without exception
   const allPersonnel = useMemo(() => {
     const list = Array.isArray(personnel) && personnel.length > 0 ? personnel : INITIAL_PERSONNEL;
@@ -24,7 +26,52 @@ export default function OperatorPanel({
     return Array.from(map.values());
   }, [personnel]);
 
+  // Filtered operators based on search term
+  const filteredPersonnel = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return allPersonnel;
+    }
+    const term = searchTerm.toLowerCase().trim();
+    return allPersonnel.filter((p) => {
+      const matchName = p.Nama && String(p.Nama).toLowerCase().includes(term);
+      const matchNo = p.NoPersonal && String(p.NoPersonal).toLowerCase().includes(term);
+      const matchGroup = p.ProductGroup && String(p.ProductGroup).toLowerCase().includes(term);
+      return matchName || matchNo || matchGroup;
+    });
+  }, [allPersonnel, searchTerm]);
+
   const activeOperator = selectedOperator || null;
+
+  // Handle search input changes, supporting quick barcode scanning of Personnel No.
+  const handleSearchChange = (val) => {
+    setSearchTerm(val);
+    const trimmed = val.trim();
+    if (trimmed) {
+      const exact = allPersonnel.find(
+        (p) => String(p.NoPersonal).toLowerCase() === trimmed.toLowerCase()
+      );
+      if (exact) {
+        onSelectOperator(exact);
+      }
+    }
+  };
+
+  // Support Enter key in search box to select top matching operator
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && filteredPersonnel.length > 0) {
+      e.preventDefault();
+      onSelectOperator(filteredPersonnel[0]);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
+
+  const isActiveInFiltered = Boolean(
+    activeOperator &&
+    filteredPersonnel.some((p) => String(p.NoPersonal) === String(activeOperator.NoPersonal))
+  );
 
   // Generate initials for avatar
   const getInitials = (name) => {
@@ -49,8 +96,33 @@ export default function OperatorPanel({
         </span>
       </div>
 
-      {/* Operator Filter Dropdown (Pure Filter Dropdown, No Search) */}
-      <div className="operator-select-field-section">
+      {/* Operator Filter & Search Bar (Divided into 2: Search & Filter Nama Operator) */}
+      <div className="operator-selector-bar">
+        {/* 1. Search Box */}
+        <div className="panel-search-box operator-search-box">
+          <Search size={16} className="search-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search operator, No. Personal..."
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            aria-label="Search operator"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              className="search-clear-btn"
+              onClick={handleClearSearch}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* 2. Filter Nama Operator Dropdown */}
         <div className="operator-filter-pill-container">
           <div className="combobox-field-label">
             <UserCheck size={16} className="text-cyan" />
@@ -58,7 +130,7 @@ export default function OperatorPanel({
           </div>
           <select
             className="operator-select-dropdown"
-            value={activeOperator?.NoPersonal || ''}
+            value={isActiveInFiltered ? (activeOperator?.NoPersonal || '') : ''}
             onChange={(e) => {
               const val = e.target.value;
               if (!val) {
@@ -70,8 +142,12 @@ export default function OperatorPanel({
             }}
             title={activeOperator ? `${activeOperator.Nama} — Personnel No.: ${activeOperator.NoPersonal} (${activeOperator.ProductGroup || 'PKW'})` : "Select Workshop Operator"}
           >
-            <option value="">-- Select Operator ({allPersonnel.length}) --</option>
-            {allPersonnel.map((op) => (
+            <option value="">
+              {searchTerm.trim()
+                ? (filteredPersonnel.length > 0 ? `-- Filtered (${filteredPersonnel.length}) --` : '-- No operator found --')
+                : `-- Select Operator (${allPersonnel.length}) --`}
+            </option>
+            {filteredPersonnel.map((op) => (
               <option key={op.NoPersonal || op.Nama} value={op.NoPersonal}>
                 {op.Nama} — Personnel No.: {op.NoPersonal} ({op.ProductGroup || 'PKW'})
               </option>

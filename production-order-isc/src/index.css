@@ -1263,7 +1263,8 @@ h1, h2, h3, h4, h5, h6 {
   .panel-container.operator-panel .panel-header {
     display: none !important;
   }
-  .operator-select-field-section {
+  .operator-select-field-section,
+  .operator-selector-bar {
     margin-bottom: 0 !important;
   }
   .selected-operator-showcase {
@@ -3940,8 +3941,48 @@ select.modal-input option {
   width: 100%;
 }
 
-.operator-select-field-section {
+.operator-select-field-section,
+.operator-selector-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
   margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.operator-selector-bar .operator-search-box {
+  flex: 1 1 200px;
+  min-width: 160px;
+  height: 38px;
+  max-height: 38px;
+  min-height: 38px;
+  box-sizing: border-box;
+}
+
+.operator-selector-bar .operator-filter-pill-container {
+  flex: 1 1 200px;
+  min-width: 160px;
+  height: 38px;
+  max-height: 38px;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 0 12px;
+}
+
+@media (max-width: 720px) {
+  .operator-selector-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .operator-selector-bar .operator-search-box,
+  .operator-selector-bar .operator-filter-pill-container {
+    width: 100%;
+    flex: 0 0 38px;
+  }
 }
 
 .operator-filter-pill-container {
