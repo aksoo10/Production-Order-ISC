@@ -69,43 +69,54 @@ $GET_URL    = getenv('POWER_AUTOMATE_GET_URL') ?: $_ENV['POWER_AUTOMATE_GET_URL'
 $UPDATE_URL = getenv('POWER_AUTOMATE_UPDATE_URL') ?: $_ENV['POWER_AUTOMATE_UPDATE_URL'] ?? '';
 $CREATE_URL = getenv('POWER_AUTOMATE_CREATE_URL') ?: $_ENV['POWER_AUTOMATE_CREATE_URL'] ?? '';
 
-// Helper for HTTP requests
-function sendHttpRequest($url, $method = 'POST', $data = null) {
+// Helper for HTTP requests with automatic retry on 502/504
+function sendHttpRequest($url, $method = 'POST', $data = null, $maxRetries = 2) {
     if (empty($url)) {
         throw new Exception("Power Automate endpoint URL not configured in .env");
     }
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
-    $headers = ['Content-Type: application/json; charset=utf-8'];
-    if ($data !== null) {
-        $jsonPayload = is_string($data) ? $data : json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonPayload);
-        $headers[] = 'Content-Length: ' . strlen($jsonPayload);
-    } else {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, '{}');
+        $headers = ['Content-Type: application/json; charset=utf-8'];
+        if ($data !== null) {
+            $jsonPayload = is_string($data) ? $data : json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonPayload);
+            $headers[] = 'Content-Length: ' . strlen($jsonPayload);
+        } else {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, '{}');
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false) {
+            if ($attempt < $maxRetries) {
+                sleep($attempt + 1);
+                continue;
+            }
+            throw new Exception("cURL Error: " . $curlError);
+        }
+
+        if (($httpCode === 502 || $httpCode === 504) && $attempt < $maxRetries) {
+            sleep($attempt + 1);
+            continue;
+        }
+
+        return [
+            'status' => $httpCode,
+            'body' => $response,
+            'json' => json_decode($response, true)
+        ];
     }
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    if ($response === false) {
-        throw new Exception("cURL Error: " . $curlError);
-    }
-
-    return [
-        'status' => $httpCode,
-        'body' => $response,
-        'json' => json_decode($response, true)
-    ];
 }
 
 // -----------------------------------------------------------------------------

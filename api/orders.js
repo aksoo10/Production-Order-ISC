@@ -7,6 +7,27 @@ const CREATE_URL = process.env.POWER_AUTOMATE_CREATE_URL || "https://default6785
 const UPDATE_URL = process.env.POWER_AUTOMATE_UPDATE_URL || "https://default6785298fe857464b9b4b8071784026.32.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/00/workflows/bd33de7f9329466f9075d42fc87460a6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SJkeb4v_ojyVJRn2sutlDQI7vctYnqzWq5KEUok8WpM";
 const DELETE_URL = process.env.POWER_AUTOMATE_DELETE_URL || "https://default6785298fe857464b9b4b8071784026.32.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/30/workflows/3fce31d1bdcb48208e1616dc1240e098/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=5sghT0I9x9tHtJR-IS73iyv3yc_B4dXFXfh_KvB2eXc";
 
+async function fetchWithRetry(url, options, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if ((res.status === 502 || res.status === 504) && attempt < maxRetries) {
+        console.warn(`[Proxy] Power Automate HTTP ${res.status}, retrying attempt ${attempt + 1}...`);
+        await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt < maxRetries) {
+        console.warn(`[Proxy] Fetch error: ${err.message}, retrying attempt ${attempt + 1}...`);
+        await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -28,7 +49,7 @@ export default async function handler(req, res) {
     switch (action) {
       case 'get':
       case 'list': {
-        const response = await fetch(GET_URL, {
+        const response = await fetchWithRetry(GET_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: '{}'
@@ -321,7 +342,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'No valid items to create' });
         }
 
-        const createRes = await fetch(CREATE_URL, {
+        const createRes = await fetchWithRetry(CREATE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ items: formattedItems })
@@ -365,7 +386,6 @@ export default async function handler(req, res) {
             stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
             stepName: stepNameStr,
             title: titleStr,
-            Title: titleStr,
             customers: custStr,
             soDocument: soStr,
             wbsProdNo: wbsStr,
@@ -377,19 +397,7 @@ export default async function handler(req, res) {
             qtyOrder: qtyNum,
             planStart: startStr,
             planFinish: finishStr,
-            status: statusNum,
-            field_1: custStr,
-            field_2: soStr,
-            field_3: wbsStr,
-            field_4: orderNum,
-            field_5: divStr,
-            field_6: shortDescStr,
-            field_7: matNoStr,
-            field_8: matDescStr,
-            field_9: qtyNum,
-            field_10: startStr.includes('T') ? startStr : `${startStr}T00:00:00Z`,
-            field_11: finishStr.includes('T') ? finishStr : `${finishStr}T00:00:00Z`,
-            field_12: statusNum
+            status: statusNum
           });
         }
 
@@ -397,7 +405,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'No valid items to update (id and orderNo required)' });
         }
 
-        const updateRes = await fetch(UPDATE_URL, {
+        const updateRes = await fetchWithRetry(UPDATE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ items: formattedItems })
@@ -413,7 +421,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Valid integer ID required for deletion' });
         }
 
-        const delRes = await fetch(DELETE_URL, {
+        const delRes = await fetchWithRetry(DELETE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ID: id })

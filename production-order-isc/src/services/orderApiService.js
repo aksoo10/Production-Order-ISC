@@ -42,24 +42,45 @@ function getAuthHeaders() {
   };
 }
 
-async function requestWithoutCache(url, options = {}) {
-  return fetch(url, {
-    ...options,
-    cache: 'no-store',
-    headers: options.headers || {}
-  });
+async function requestWithoutCache(url, options = {}, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        cache: 'no-store',
+        headers: options.headers || {}
+      });
+
+      if ((response.status === 502 || response.status === 504) && attempt < maxRetries) {
+        console.warn(`[orderApiService] HTTP ${response.status} from ${url}, retrying in ${(attempt + 1) * 1000}ms...`);
+        await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
+        continue;
+      }
+      return response;
+    } catch (err) {
+      if (attempt < maxRetries) {
+        console.warn(`[orderApiService] Request error: ${err.message}, retrying in ${(attempt + 1) * 1000}ms...`);
+        await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 async function ensureSuccessfulResponse(response, operation) {
   const responseText = await response.text();
   if (!response.ok) {
-    throw new Error(`${operation} failed (HTTP ${response.status}): ${responseText}`);
+    if (response.status === 502 || response.status === 504 || responseText.includes('NoResponse')) {
+      throw new Error(`Koneksi SharePoint sedang sibuk (Timeout HTTP ${response.status}). Silakan coba beberapa saat lagi.`);
+    }
+    throw new Error(`${operation} gagal (HTTP ${response.status})`);
   }
   if (responseText) {
     try {
       const result = JSON.parse(responseText);
       if (result?.success === false) {
-        throw new Error(result.error || `${operation} was rejected by the server.`);
+        throw new Error(result.error || `${operation} ditolak oleh server.`);
       }
     } catch (err) {
       if (err instanceof SyntaxError) return;
