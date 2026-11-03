@@ -352,14 +352,6 @@ export default function OrderPanel({
                     <div className="single-barcode-col">
                       <div className="col-step-header">
                         <span className="col-step-badge step-1">1. PERSONEL</span>
-                        <div className="flex items-center gap-1.5 overflow-hidden">
-                          <span className="font-semibold text-main text-xs truncate">
-                            {selectedOperator?.Nama || 'Operator'}
-                          </span>
-                          <span className="font-mono text-cyan text-xs font-bold flex-shrink-0">
-                            #{selectedOperator?.NoPersonal || '-'}
-                          </span>
-                        </div>
                       </div>
                       <div className="col-barcode-render">
                         <BarcodeCard
@@ -380,14 +372,6 @@ export default function OrderPanel({
                     <div className="single-barcode-col">
                       <div className="col-step-header">
                         <span className="col-step-badge step-2">2. KONFIRMASI</span>
-                        <div className="flex items-center gap-1.5 overflow-hidden">
-                          <span className="font-semibold text-main text-xs truncate" title={displayStep.NamaLangkah}>
-                            Step {displayStep.Langkah}
-                          </span>
-                          <span className="font-mono text-cyan text-xs font-bold flex-shrink-0">
-                            #{displayStep.NoKonfirmasi || currentOrder.NoProduksi}
-                          </span>
-                        </div>
                       </div>
                       <div className="col-barcode-render">
                         <BarcodeCard
@@ -419,9 +403,6 @@ export default function OrderPanel({
                             <option value="FIN">FIN</option>
                           </select>
                         </div>
-                        <span className={`status-pill-badge font-mono text-xs ${isDisplayStepFinished ? 'fin' : 'prog'}`}>
-                          {isDisplayStepFinished ? 'FIN' : 'PROG'}
-                        </span>
                       </div>
                       <div className="col-barcode-render">
                         <BarcodeCard

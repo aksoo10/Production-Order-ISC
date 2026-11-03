@@ -2260,6 +2260,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 44px;
   padding: 8px 12px;
   background: rgba(0, 0, 0, 0.03);
   border-bottom: 1px solid var(--border-subtle);

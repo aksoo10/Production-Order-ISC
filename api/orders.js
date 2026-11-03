@@ -393,27 +393,6 @@ export default async function handler(req, res) {
           });
         }
 
-          formattedItems.push({
-            id,
-            orderNo: orderNum,
-            stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
-            stepName: String(it.stepName || it.NamaLangkah || it.title || `Order ${orderNum}`),
-            title: String(it.title || it.NamaLangkah || `Order ${orderNum}`),
-            customers: String(it.customers || it.Customer || ''),
-            soDocument: String(it.soDocument || ''),
-            wbsProdNo: String(it.wbsProdNo || ''),
-            prodOrderNo: orderNum,
-            orderDivision: String(it.orderDivision || it.ProductGroup || 'PKW'),
-            shortDescSO: String(it.shortDescSO || ''),
-            materialNo: String(it.materialNo || ''),
-            materialDescription: String(it.materialDescription || ''),
-            qtyOrder: parseFloat(it.qtyOrder) || 1.0,
-            planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
-            planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0)
-          });
-        }
-
         if (formattedItems.length === 0) {
           return res.status(400).json({ success: false, error: 'No valid items to update (id and orderNo required)' });
         }
