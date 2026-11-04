@@ -1051,7 +1051,7 @@ export default function App() {
   };
 
   // Excel Import Success Handler: Restricted strictly to Admin, persists to Cloud Database (SharePoint via Power Automate)
-  const handleImportSuccess = async (newOrders, newPersonnel) => {
+  const handleImportSuccess = async (newOrders, newPersonnel, options = {}, onProgress = null) => {
     if (!isAdmin) {
       showToast('Access denied: Only Admin role is authorized to import Excel data.', 'error');
       throw new Error('Access denied: Only Admin role is authorized to import data.');
@@ -1091,12 +1091,39 @@ export default function App() {
       });
       const toCreate = preparedOrders.filter((row) => !(Number(row.id || row.ID) > 0));
       const toUpdate = preparedOrders.filter((row) => Number(row.id || row.ID) > 0);
+      const totalSteps = toCreate.length + toUpdate.length;
+      let processedSteps = 0;
 
       if (toCreate.length > 0) {
-        await orderApiService.createOrders(toCreate);
+        await orderApiService.createOrders(toCreate, (curr) => {
+          if (typeof onProgress === 'function') {
+            onProgress(curr, totalSteps, `Menyimpan ${curr} dari ${totalSteps} langkah baru...`);
+          }
+        });
+        processedSteps += toCreate.length;
       }
       if (toUpdate.length > 0) {
-        await orderApiService.updateOrder(toUpdate);
+        await orderApiService.updateOrder(toUpdate, (curr) => {
+          if (typeof onProgress === 'function') {
+            onProgress(processedSteps + curr, totalSteps, `Memperbarui ${processedSteps + curr} dari ${totalSteps} langkah...`);
+          }
+        });
+      }
+
+      // Optimistically update orders in memory for instantaneous catalog update
+      setOrders((prev) => {
+        const existingMap = new Map(prev.map(p => [`${p.NoProduksi}:${p.Langkah}`, p]));
+        preparedOrders.forEach(po => {
+          existingMap.set(`${po.NoProduksi}:${po.Langkah}`, po);
+        });
+        const combined = Array.from(existingMap.values());
+        ordersRef.current = combined;
+        persistOrderSnapshot(combined);
+        return combined;
+      });
+
+      if (typeof onProgress === 'function') {
+        onProgress(totalSteps, totalSteps, 'Menyinkronkan status dengan cloud...');
       }
 
       if (newPersonnel?.length) setPersonnel(newPersonnel);

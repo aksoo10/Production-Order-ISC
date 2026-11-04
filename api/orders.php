@@ -69,8 +69,8 @@ $GET_URL    = getenv('POWER_AUTOMATE_GET_URL') ?: $_ENV['POWER_AUTOMATE_GET_URL'
 $UPDATE_URL = getenv('POWER_AUTOMATE_UPDATE_URL') ?: $_ENV['POWER_AUTOMATE_UPDATE_URL'] ?? '';
 $CREATE_URL = getenv('POWER_AUTOMATE_CREATE_URL') ?: $_ENV['POWER_AUTOMATE_CREATE_URL'] ?? '';
 
-// Helper for HTTP requests with automatic retry on 502/504
-function sendHttpRequest($url, $method = 'POST', $data = null, $maxRetries = 2) {
+// Helper for HTTP requests with automatic retry on 502/504/429
+function sendHttpRequest($url, $method = 'POST', $data = null, $maxRetries = 3) {
     if (empty($url)) {
         throw new Exception("Power Automate endpoint URL not configured in .env");
     }
@@ -106,7 +106,7 @@ function sendHttpRequest($url, $method = 'POST', $data = null, $maxRetries = 2) 
             throw new Exception("cURL Error: " . $curlError);
         }
 
-        if (($httpCode === 502 || $httpCode === 504) && $attempt < $maxRetries) {
+        if (($httpCode === 502 || $httpCode === 504 || $httpCode === 429) && $attempt < $maxRetries) {
             sleep($attempt + 1);
             continue;
         }

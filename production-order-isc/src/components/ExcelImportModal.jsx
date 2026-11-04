@@ -25,6 +25,7 @@ export default function ExcelImportModal({
   const [previewData, setPreviewData] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [duplicateMode, setDuplicateMode] = useState('update'); // 'update' | 'skip'
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, percent: 0, stage: '' });
   const fileInputRef = useRef(null);
 
   // Security Gate: strictly forbid non-admin access
@@ -169,16 +170,35 @@ export default function ExcelImportModal({
 
     setIsSubmitting(true);
     setErrorMsg('');
+    setImportProgress({
+      current: 0,
+      total: ordersToProcess.length,
+      percent: 0,
+      stage: 'Menyiapkan data order...'
+    });
 
     try {
-      await onImportSuccess(ordersToProcess, previewData.personnel, {
-        duplicateMode,
-        duplicateCount: previewData.duplicateOrderCount,
-        newCount: previewData.newOrderCount
-      });
+      await onImportSuccess(
+        ordersToProcess,
+        previewData.personnel,
+        {
+          duplicateMode,
+          duplicateCount: previewData.duplicateOrderCount,
+          newCount: previewData.newOrderCount
+        },
+        (current, total, stage) => {
+          setImportProgress({
+            current,
+            total,
+            percent: Math.round((current / Math.max(1, total)) * 100),
+            stage: stage || 'Menyimpan ke SharePoint Cloud...'
+          });
+        }
+      );
       // Reset state and close modal
       setFile(null);
       setPreviewData(null);
+      setImportProgress({ current: 0, total: 0, percent: 0, stage: '' });
       onClose();
     } catch (err) {
       setErrorMsg(`Failed to save to cloud database: ${err.message || 'System error occurred'}`);
@@ -191,6 +211,7 @@ export default function ExcelImportModal({
     if (isSubmitting) return;
     setFile(null);
     setPreviewData(null);
+    setImportProgress({ current: 0, total: 0, percent: 0, stage: '' });
     setErrorMsg('');
     onClose();
   };
@@ -406,14 +427,30 @@ export default function ExcelImportModal({
 
           {/* Submitting Progress Banner */}
           {isSubmitting && (
-            <div className="alert-box alert-info flex items-center gap-3 mt-2">
-              <Loader2 size={20} className="animate-spin text-cyan flex-shrink-0" />
-              <div className="alert-content">
-                <strong>Saving and Importing to Cloud Database...</strong>
-                <div className="text-xs">
-                  Sending order data to SharePoint via Power Automate and automatically refreshing table. Please do not close this page.
+            <div className="alert-box alert-info flex flex-col gap-2 mt-2">
+              <div className="flex items-center gap-3">
+                <Loader2 size={20} className="animate-spin text-cyan flex-shrink-0" />
+                <div className="alert-content">
+                  <strong>{importProgress.stage || 'Menyimpan & Mengimpor ke SharePoint Cloud...'}</strong>
+                  <div className="text-xs">
+                    {importProgress.total > 0
+                      ? `Memproses ${importProgress.current} dari ${importProgress.total} langkah (${importProgress.percent}%) secara cepat & paralel... Mohon jangan tutup halaman ini.`
+                      : 'Mengirim data order ke SharePoint via Power Automate. Mohon jangan tutup halaman ini.'}
+                  </div>
                 </div>
               </div>
+              {importProgress.total > 0 && (
+                <div className="progress-bar-track mt-1" style={{ height: '6px', width: '100%' }}>
+                  <div
+                    className="progress-bar-fill"
+                    style={{
+                      width: `${importProgress.percent}%`,
+                      transition: 'width 0.25s ease',
+                      backgroundColor: '#00A3E0'
+                    }}
+                  ></div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -437,7 +474,11 @@ export default function ExcelImportModal({
             {isSubmitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span>Importing to Cloud...</span>
+                <span>
+                  {importProgress.percent > 0
+                    ? `Mengimpor ke Cloud (${importProgress.percent}%)...`
+                    : 'Importing to Cloud...'}
+                </span>
               </>
             ) : (
               <>
