@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import {
   LogOut,
-  Layers,
   UserCheck,
   ExternalLink
 } from 'lucide-react';
@@ -63,25 +62,6 @@ export default function Navbar({
 
       {/* Right Controls: Filters + Logout */}
       <div className="header-right-controls">
-        {/* Product Group Filter */}
-        <div className="filter-pill-group">
-          <Layers size={14} className="filter-icon" />
-          <span className="filter-label">Group:</span>
-          <select
-            className="filter-select"
-            value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
-            title="Filter data by Product Group"
-          >
-            <option value="ALL">All Groups ({availableGroups.length})</option>
-            {availableGroups.map((grp) => (
-              <option key={grp} value={grp}>
-                Group {grp}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* Operator Filter */}
         <div className="filter-pill-group">
           <UserCheck size={14} className="filter-icon" />
