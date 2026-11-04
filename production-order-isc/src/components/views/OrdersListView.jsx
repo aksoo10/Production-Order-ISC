@@ -268,7 +268,6 @@ export default function OrdersListView({
             <thead>
               <tr>
                 <th style={{ width: '150px' }}>Production Order No.</th>
-                <th style={{ width: '100px' }}>Group</th>
                 <th>Job & Customer</th>
                 <th>Work Progress</th>
                 <th style={{ width: '130px' }}>Order Status</th>
@@ -278,8 +277,8 @@ export default function OrdersListView({
             {filteredOrders.length === 0 ? (
               <tbody>
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    No orders match your search or group filter.
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                    No orders match your search or filter.
                   </td>
                 </tr>
               </tbody>
@@ -301,9 +300,6 @@ export default function OrdersListView({
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td>
-                        <span className="group-tag">{ord.ProductGroup || 'PKW'}</span>
                       </td>
                       <td>
                         <div className="flex flex-col">
@@ -397,7 +393,7 @@ export default function OrdersListView({
                     {/* Expandable Steps Details */}
                     {isExpanded && (
                       <tr className="expanded-row-details">
-                        <td colSpan={6} style={{ padding: '16px 24px', backgroundColor: 'var(--bg-surface-elevated)' }}>
+                        <td colSpan={5} style={{ padding: '16px 24px', backgroundColor: 'var(--bg-surface-elevated)' }}>
                           <div className="font-bold text-xs uppercase text-muted mb-2 tracking-wider">
                             Operation Steps for Order {ord.NoProduksi}:
                           </div>
