@@ -8,7 +8,6 @@ import {
   Scan,
   Search,
   Filter,
-  Layers,
   ArrowRight,
   X,
   Copy,
@@ -28,18 +27,10 @@ export default function ProgressTrackerView({
   onSelectOrderAndOpenScanner
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [groupFilter, setGroupFilter] = useState(selectedGroup || 'ALL');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PROG' | 'FIN'
   const [selectedOrderFilter, setSelectedOrderFilter] = useState('ALL');
   const [operatorModalStep, setOperatorModalStep] = useState(null);
   const [copiedKonf, setCopiedKonf] = useState(false);
-
-  // Keep groupFilter in sync if parent selectedGroup changes
-  useEffect(() => {
-    if (selectedGroup) {
-      setGroupFilter(selectedGroup);
-    }
-  }, [selectedGroup]);
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -111,20 +102,11 @@ export default function ProgressTrackerView({
     });
   }, [orders]);
 
-  // Extract available unique groups
-  const availableGroups = useMemo(() => {
-    const set = new Set();
-    ordersGrouped.forEach((o) => {
-      if (o.ProductGroup) set.add(o.ProductGroup);
-    });
-    return Array.from(set).sort();
-  }, [ordersGrouped]);
-
-  // Filter orders based on search, group, status, and specific order selection
+  // Filter orders based on search, status, and specific order selection
   const filteredOrders = useMemo(() => {
     return ordersGrouped.filter((ord) => {
-      // 1. Group filter
-      if (groupFilter !== 'ALL' && ord.ProductGroup !== groupFilter.toUpperCase()) {
+      // 1. Group filter (if specified from prop)
+      if (selectedGroup && selectedGroup !== 'ALL' && ord.ProductGroup !== selectedGroup.toUpperCase()) {
         return false;
       }
 
@@ -156,7 +138,7 @@ export default function ProgressTrackerView({
 
       return matchNo || matchTitle || matchCust || matchGroup || matchStep;
     });
-  }, [ordersGrouped, groupFilter, selectedOrderFilter, statusFilter, searchTerm]);
+  }, [ordersGrouped, selectedGroup, selectedOrderFilter, statusFilter, searchTerm]);
 
   // Summary KPI statistics
   const stats = useMemo(() => {
@@ -298,25 +280,6 @@ export default function ProgressTrackerView({
                 <X size={14} />
               </button>
             )}
-          </div>
-
-          {/* Group Filter */}
-          <div className="filter-pill-group">
-            <Layers size={14} className="filter-icon" />
-            <span className="filter-label">Group:</span>
-            <select
-              className="filter-select font-mono"
-              value={groupFilter}
-              onChange={(e) => setGroupFilter(e.target.value)}
-              title="Filter by Product Group"
-            >
-              <option value="ALL">All Groups ({availableGroups.length})</option>
-              {availableGroups.map((grp) => (
-                <option key={grp} value={grp}>
-                  Group {grp}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Status Barcode Filter (PROG vs FIN) */}
