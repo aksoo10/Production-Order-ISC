@@ -164,42 +164,19 @@ export default function CreateOrderModal({ isOpen, onClose, onSubmit, isLoading 
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Production Order Number (Required) *
-                </label>
-                <input
-                  type="text"
-                  name="orderNo"
-                  className="modal-input font-mono"
-                  placeholder="Example: 10045690"
-                  value={formData.orderNo}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="input-label font-bold text-xs text-muted mb-1 block">
-                  Division / Product Group *
-                </label>
-                <select
-                  name="orderDivision"
-                  className="modal-input"
-                  value={formData.orderDivision}
-                  onChange={handleChange}
-                >
-                  <option value="PKW">PKW (Wood Process.Ser)</option>
-                  <option value="PULP">PULP (Pulp Process)</option>
-                  <option value="SERVICE">SERVICE (Field Service)</option>
-                  <option value="WORKSHOP">WORKSHOP (Machining & Fab)</option>
-                  <option value="MCH">MCH (Machining)</option>
-                  <option value="WLD">WLD (Welding)</option>
-                  <option value="ASY">ASY (Assembly)</option>
-                  <option value="FND">FND (Foundry)</option>
-                </select>
-              </div>
+            <div className="mb-3">
+              <label className="input-label font-bold text-xs text-muted mb-1 block">
+                Production Order Number (Required) *
+              </label>
+              <input
+                type="text"
+                name="orderNo"
+                className="modal-input font-mono"
+                placeholder="Example: 10045690"
+                value={formData.orderNo}
+                onChange={handleChange}
+                required
+              />
             </div>
 
             <div className="mb-3">

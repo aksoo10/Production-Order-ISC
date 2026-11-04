@@ -3,12 +3,10 @@ import {
   BarChart3,
   PieChart,
   ShieldAlert,
-  Layers,
   CheckCircle2,
   Clock,
   Activity,
-  TrendingUp,
-  Filter
+  TrendingUp
 } from 'lucide-react';
 import { orderApiService } from '../../services/orderApiService';
 
@@ -92,15 +90,6 @@ export default function DashboardChartView({
     });
   }, [orders]);
 
-  // Extract unique ProductGroups for filter
-  const availableGroups = useMemo(() => {
-    const set = new Set();
-    groupedOrders.forEach((o) => {
-      if (o.ProductGroup) set.add(o.ProductGroup);
-    });
-    return Array.from(set).sort();
-  }, [groupedOrders]);
-
   // Filter orders according to localGroupFilter
   const filteredOrders = useMemo(() => {
     if (localGroupFilter === 'ALL') return groupedOrders;
@@ -156,30 +145,7 @@ export default function DashboardChartView({
     };
   }, [filteredOrders, filteredSteps]);
 
-  // 3. Breakdown by Product Group
-  const groupStats = useMemo(() => {
-    const map = new Map();
-    filteredOrders.forEach((o) => {
-      const grp = o.ProductGroup || 'PKW';
-      if (!map.has(grp)) {
-        map.set(grp, { group: grp, totalOrders: 0, completedOrders: 0, totalSteps: 0, completedSteps: 0 });
-      }
-      const item = map.get(grp);
-      item.totalOrders += 1;
-      if (o.isComplete) item.completedOrders += 1;
-      item.totalSteps += o.totalSteps;
-      item.completedSteps += o.completedSteps;
-    });
-
-    return Array.from(map.values())
-      .map((g) => ({
-        ...g,
-        percent: g.totalSteps > 0 ? Math.round((g.completedSteps / g.totalSteps) * 100) : 0
-      }))
-      .sort((a, b) => b.totalOrders - a.totalOrders);
-  }, [filteredOrders]);
-
-  // 4. Breakdown by Top Customers
+  // 3. Breakdown by Top Customers
   const customerStats = useMemo(() => {
     const map = new Map();
     filteredOrders.forEach((o) => {
@@ -313,28 +279,6 @@ export default function DashboardChartView({
               <span>Analytics Dashboard & Chart Visualizations</span>
             </h2>
           </div>
-        </div>
-
-        {/* Filter Controls */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <div className="filter-pill-group">
-            <Filter size={14} className="filter-icon" />
-            <span className="filter-label">Group Filter:</span>
-            <select
-              className="filter-select font-mono"
-              value={localGroupFilter}
-              onChange={(e) => setLocalGroupFilter(e.target.value)}
-              title="Select Product Group"
-            >
-              <option value="ALL">All Groups ({groupedOrders.length} Orders)</option>
-              {availableGroups.map((grp) => (
-                <option key={grp} value={grp}>
-                  Group {grp}
-                </option>
-              ))}
-            </select>
-          </div>
-
         </div>
       </div>
 
@@ -511,53 +455,7 @@ export default function DashboardChartView({
           </div>
         </div>
 
-        {/* Chart 3: Horizontal Stacked Bar per Product Group */}
-        <div className="chart-card chart-card-span-2">
-          <div className="chart-card-header">
-            <div className="chart-card-title flex items-center gap-2 font-heading">
-              <Layers size={18} className="text-cyan" />
-              <span>Volume & Progress by Product Group (Division)</span>
-            </div>
-            <span className="chart-card-badge font-mono">{groupStats.length} Groups Detected</span>
-          </div>
-
-          <div className="chart-card-body">
-            {groupStats.length === 0 ? (
-              <div className="text-muted text-center py-6">No data available for this group.</div>
-            ) : (
-              <div className="bar-chart-list">
-                {groupStats.map((grp) => (
-                  <div key={grp.group} className="bar-chart-row">
-                    <div className="bar-chart-meta">
-                      <div className="bar-chart-name font-mono font-bold text-main">
-                        Group {grp.group}
-                      </div>
-                      <div className="bar-chart-stats font-mono text-xs text-muted">
-                        <span>{grp.totalOrders} Orders</span>
-                        <span>•</span>
-                        <span>{grp.completedSteps}/{grp.totalSteps} Steps</span>
-                        <span className="font-bold text-cyan">({grp.percent}%)</span>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar Track */}
-                    <div className="bar-chart-track">
-                      <div
-                        className="bar-chart-fill"
-                        style={{
-                          width: `${grp.percent}%`,
-                          backgroundColor: grp.percent === 100 ? '#10B981' : '#00A3E0'
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Chart 4: Top Customers Workload Distribution */}
+        {/* Chart 3: Top Customers Workload Distribution */}
         <div className="chart-card">
           <div className="chart-card-header">
             <div className="chart-card-title flex items-center gap-2 font-heading">
