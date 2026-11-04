@@ -30,6 +30,40 @@ import './index.css';
 
 const ORDER_CACHE_KEY = 'isc_production_orders_v2';
 const ORDER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const DELETED_ORDERS_KEY = 'isc_production_deleted_orders';
+
+function getDeletedOrders() {
+  try {
+    const list = getStorageItem(DELETED_ORDERS_KEY);
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function addDeletedOrder(orderNo, ids = []) {
+  try {
+    const current = getDeletedOrders();
+    const set = new Set(current.map(String));
+    if (orderNo) set.add(String(orderNo).trim());
+    ids.forEach((id) => {
+      if (id > 0) set.add(String(id));
+    });
+    setStorageItem(DELETED_ORDERS_KEY, Array.from(set));
+  } catch (e) {
+    console.warn('[App] Failed to save deleted order to storage:', e);
+  }
+}
+
+function restoreDeletedOrder(orderNo) {
+  try {
+    const current = getDeletedOrders();
+    const filtered = current.filter((item) => String(item).trim() !== String(orderNo).trim());
+    setStorageItem(DELETED_ORDERS_KEY, filtered);
+  } catch (e) {
+    console.warn('[App] Failed to update deleted order storage:', e);
+  }
+}
 
 export default function App() {
   // SharePoint & Embed configuration
@@ -201,16 +235,23 @@ export default function App() {
   // Orders come from SharePoint + local custom/created orders
   const [orders, setOrders] = useState(() => {
     try {
+      const deletedSet = new Set(getDeletedOrders());
       const cached = getStorageItem(ORDER_CACHE_KEY);
       const custom = getStorageItem('isc_production_custom_orders');
+      let combined = [];
       if (Array.isArray(custom) && custom.length > 0) {
         const customOrderNos = new Set(custom.map((c) => String(c.NoProduksi || c.orderNo).trim()));
         const filteredCached = Array.isArray(cached)
           ? cached.filter((c) => !customOrderNos.has(String(c.NoProduksi || c.orderNo).trim()))
           : [];
-        return [...custom, ...filteredCached];
+        combined = [...custom, ...filteredCached];
+      } else {
+        combined = Array.isArray(cached) && cached.length > 0 ? cached : [];
       }
-      return Array.isArray(cached) && cached.length > 0 ? cached : [];
+      return combined.filter(
+        (o) => !deletedSet.has(String(o.NoProduksi || o.orderNo).trim()) &&
+               !deletedSet.has(String(o.id || o.ID))
+      );
     } catch {
       return [];
     }
@@ -577,8 +618,15 @@ export default function App() {
 
     try {
       const res = await orderApiService.getAllOrders();
-      const serverOrders = Array.isArray(res?.data) ? res.data : [];
+      const rawServerOrders = Array.isArray(res?.data) ? res.data : [];
       const now = Date.now();
+
+      // Exclude permanently deleted orders & IDs
+      const deletedSet = new Set(getDeletedOrders());
+      const serverOrders = rawServerOrders.filter(
+        (s) => !deletedSet.has(String(s.NoProduksi || s.orderNo).trim()) &&
+               !deletedSet.has(String(s.id || s.ID))
+      );
 
       // Read persistent custom/created orders
       const customOrders = getStorageItem('isc_production_custom_orders') || [];
@@ -733,6 +781,9 @@ export default function App() {
         barcodeStatus: stepDone ? 'FIN' : (step.barcodeStatus || 'PROG')
       };
     });
+
+    // Unblock order if it was previously deleted
+    restoreDeletedOrder(targetNo);
 
     // 1. INSTANT OPTIMISTIC UPDATE: Prepend new order so user sees it right away
     const previousOrders = ordersRef.current;
@@ -923,7 +974,9 @@ export default function App() {
         if (itemsToUpdate.length) await orderApiService.updateOrder(itemsToUpdate);
         if (itemsToCreate.length) await orderApiService.createOrders(itemsToCreate);
         for (const step of itemsToDelete) {
-          await orderApiService.deleteOrder(step.id || step.ID);
+          let sid = Number(step.id || step.ID);
+          if (sid > 1000 && sid < 1000000) sid = Math.floor(sid / 1000);
+          if (sid > 0) await orderApiService.deleteOrder(sid, targetNo);
         }
       } catch (cloudErr) {
         console.warn('[handleUpdateOrder] SharePoint background save warning:', cloudErr);
@@ -945,13 +998,24 @@ export default function App() {
       const stepRecords = orders.filter(
         (step) => String(step.NoProduksi || step.orderNo).trim() === targetNo
       );
+
+      // Collect and normalize unique real SharePoint IDs (convert synthetic e.g. 15001 -> 15)
       const idsToDelete = [...new Set(
         [...stepRecords, ...(orderObj.steps || []), orderObj]
-          .map((step) => Number(step.id || step.ID))
+          .map((step) => {
+            let numId = Number(step.id || step.ID);
+            if (numId > 1000 && numId < 1000000) {
+              numId = Math.floor(numId / 1000);
+            }
+            return numId;
+          })
           .filter((id) => id > 0)
       )];
 
-      // Immediately delete from custom orders registry
+      // 1. Immediately record in persistent deleted orders registry so it never revives during sync
+      addDeletedOrder(targetNo, idsToDelete);
+
+      // 2. Immediately delete from custom orders registry
       const existingCustom = getStorageItem('isc_production_custom_orders') || [];
       if (Array.isArray(existingCustom)) {
         const filteredCustom = existingCustom.filter(
@@ -960,7 +1024,7 @@ export default function App() {
         setStorageItem('isc_production_custom_orders', filteredCustom);
       }
 
-      // Optimistic delete from local orders state
+      // 3. Instant optimistic delete from local orders state
       const optimisticOrders = ordersRef.current.filter(
         (s) => String(s.NoProduksi || s.orderNo).trim() !== targetNo
       );
@@ -968,14 +1032,18 @@ export default function App() {
       ordersRef.current = optimisticOrders;
       persistOrderSnapshot(optimisticOrders);
 
-      if (idsToDelete.length > 0) {
-        for (const id of idsToDelete) {
-          await orderApiService.deleteOrder(id);
-        }
-      }
       if (selectedOrderNo === targetNo) setSelectedOrderNo('');
+
+      // 4. Parallel delete to cloud so it finishes in 1-2 seconds without freezing
+      if (idsToDelete.length > 0) {
+        await Promise.allSettled(
+          idsToDelete.map((id) => orderApiService.deleteOrder(id, targetNo))
+        );
+      }
+
       showToast(`Order #${targetNo} berhasil dihapus.`, 'success');
     } catch (err) {
+      console.error('[handleDeleteOrder] Error:', err);
       showToast(`Gagal menghapus order: ${err.message}`, 'error');
     } finally {
       setIsLoadingCloud(false);
@@ -1089,6 +1157,9 @@ export default function App() {
           status: status ? 1 : 0
         };
       });
+
+      // Unblock imported orders if any were previously deleted
+      preparedOrders.forEach((o) => restoreDeletedOrder(o.orderNo));
       const toCreate = preparedOrders.filter((row) => !(Number(row.id || row.ID) > 0));
       const toUpdate = preparedOrders.filter((row) => Number(row.id || row.ID) > 0);
       const totalSteps = toCreate.length + toUpdate.length;

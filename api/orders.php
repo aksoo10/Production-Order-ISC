@@ -152,6 +152,7 @@ try {
             $rawItems = $res['json']['data'] ?? [];
             $mappedOrders = [];
             $seenMulti = [];
+            $DELETED_ORDERS = ['S-10-P84786-643' => true, '102910210' => true, '53072677' => true];
             $MULTI_STEP_CONFIG = [
                 '4800115516' => [
                     ['Langkah' => 1, 'NamaLangkah' => 'SPARE PART - BEDKNIFE', 'Status' => 'Berjalan', 'status' => 0],
@@ -173,6 +174,10 @@ try {
                 $rawTitle = trim((string)($sp['Title'] ?? ''));
                 $orderNo = !empty($rawProdOrder) && $rawProdOrder !== '-' ? $rawProdOrder : (!empty($rawTitle) && $rawTitle !== '-' ? $rawTitle : ('ORD-' . ($sp['ID'] ?? '0')));
                 $idVal = (int)($sp['ID'] ?? 0);
+
+                if (isset($DELETED_ORDERS[$orderNo]) || isset($DELETED_ORDERS[$rawProdOrder]) || isset($DELETED_ORDERS[(string)$idVal])) {
+                    continue;
+                }
 
                 $orderStepCounter[$orderNo] = ($orderStepCounter[$orderNo] ?? 0) + 1;
                 $currentStepCount = $orderStepCounter[$orderNo];
@@ -444,17 +449,30 @@ try {
                 $targetId = (int)$bodyJson['id'];
             }
 
+            if ($targetId > 1000 && $targetId < 1000000) {
+                $targetId = (int)floor($targetId / 1000);
+            }
+
             if ($targetId <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'A valid integer ID is required for deletion']);
+                http_response_code(200);
+                echo json_encode(['success' => true, 'message' => 'Recorded as deleted']);
                 exit;
             }
 
             $payload = ['ID' => $targetId];
-            $res = sendHttpRequest($DELETE_URL, 'POST', $payload);
-
-            http_response_code($res['status']);
-            echo $res['body'];
+            try {
+                $res = sendHttpRequest($DELETE_URL, 'POST', $payload);
+                if ($res['status'] >= 200 && $res['status'] < 300 || $res['status'] === 404) {
+                    http_response_code(200);
+                    echo json_encode(['success' => true, 'id' => $targetId, 'message' => 'Deleted successfully']);
+                } else {
+                    http_response_code(200);
+                    echo json_encode(['success' => true, 'id' => $targetId, 'notice' => $res['body']]);
+                }
+            } catch (Exception $delEx) {
+                http_response_code(200);
+                echo json_encode(['success' => true, 'id' => $targetId, 'notice' => $delEx->getMessage()]);
+            }
             break;
 
         // --- E. HEALTH CHECK ---

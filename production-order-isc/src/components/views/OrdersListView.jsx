@@ -158,8 +158,11 @@ export default function OrdersListView({
   // Handle Confirm Delete
   const handleConfirmDelete = async () => {
     if (orderToDelete && onDeleteOrder) {
-      await onDeleteOrder(orderToDelete);
-      setOrderToDelete(null);
+      try {
+        await onDeleteOrder(orderToDelete);
+      } finally {
+        setOrderToDelete(null);
+      }
     }
   };
 

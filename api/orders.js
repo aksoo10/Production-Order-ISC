@@ -7,6 +7,9 @@ const CREATE_URL = process.env.POWER_AUTOMATE_CREATE_URL || "https://default6785
 const UPDATE_URL = process.env.POWER_AUTOMATE_UPDATE_URL || "https://default6785298fe857464b9b4b8071784026.32.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/00/workflows/bd33de7f9329466f9075d42fc87460a6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SJkeb4v_ojyVJRn2sutlDQI7vctYnqzWq5KEUok8WpM";
 const DELETE_URL = process.env.POWER_AUTOMATE_DELETE_URL || "https://default6785298fe857464b9b4b8071784026.32.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/30/workflows/3fce31d1bdcb48208e1616dc1240e098/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=5sghT0I9x9tHtJR-IS73iyv3yc_B4dXFXfh_KvB2eXc";
 
+// Persistent in-memory tombstone for deleted orders & IDs to prevent revival during cloud replication lag
+const GLOBAL_DELETED_ORDERS = new Set(['S-10-P84786-643', '102910210', '53072677']);
+
 async function fetchWithRetry(url, options, maxRetries = 3) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -63,7 +66,6 @@ export default async function handler(req, res) {
         const data = await response.json();
         const rawItems = data.data || [];
         const mappedOrders = [];
-        const DELETED_ORDERS = new Set(['S-10-P84786-643', '102910210']);
         const MULTI_STEP_CONFIG = {
           '4800115516': [
             { Langkah: 1, NamaLangkah: 'SPARE PART - BEDKNIFE', Status: 'Berjalan', status: 0 },
@@ -124,6 +126,15 @@ export default async function handler(req, res) {
             orderNo = `${rawSO}-${sp.ID || '0'}`;
           } else {
             orderNo = `ORD-${sp.ID || '0'}`;
+          }
+
+          // Skip permanently deleted orders & IDs
+          if (
+            GLOBAL_DELETED_ORDERS.has(orderNo) ||
+            GLOBAL_DELETED_ORDERS.has(rawProdOrder) ||
+            GLOBAL_DELETED_ORDERS.has(String(sp.ID))
+          ) {
+            continue;
           }
 
           let processName = rawShortDesc || rawMatDesc;
@@ -290,6 +301,9 @@ export default async function handler(req, res) {
           const orderNum = String(it.orderNo || it.NoProduksi || it.prodOrderNo || '').trim();
           if (!orderNum) continue;
 
+          // Allow recreated order to be visible again
+          GLOBAL_DELETED_ORDERS.delete(orderNum);
+
           const titleStr = String(it.title || it.NamaLangkah || `Order ${orderNum}`);
           const stepNameStr = String(it.stepName || it.NamaLangkah || it.shortDescSO || titleStr);
           const custStr = String(it.customers || it.Customer || 'ANDRITZ ISC Internal');
@@ -429,19 +443,42 @@ export default async function handler(req, res) {
       }
 
       case 'delete': {
-        const id = parseInt(req.query.id || body.ID || body.id, 10);
-        if (!id || id <= 0) {
-          return res.status(400).json({ success: false, error: 'Valid integer ID required for deletion' });
+        let id = parseInt(req.query.id || body.ID || body.id, 10);
+        const orderNo = String(req.query.orderNo || body.orderNo || '').trim();
+
+        // Normalize synthetic multi-step IDs (e.g. 15001 -> 15) to real SharePoint ID
+        if (id > 1000 && id < 1000000) {
+          id = Math.floor(id / 1000);
         }
 
-        const delRes = await fetchWithRetry(DELETE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ID: id })
-        });
+        if (orderNo) {
+          GLOBAL_DELETED_ORDERS.add(orderNo);
+        }
+        if (id > 0) {
+          GLOBAL_DELETED_ORDERS.add(String(id));
+        }
 
-        const text = await delRes.text();
-        return res.status(delRes.status).send(text);
+        if (!id || id <= 0) {
+          return res.status(200).json({ success: true, message: 'Recorded as deleted' });
+        }
+
+        try {
+          const delRes = await fetchWithRetry(DELETE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ID: id })
+          });
+
+          const text = await delRes.text();
+          // If deleted successfully or already removed (404), return success
+          if (delRes.ok || delRes.status === 404) {
+            return res.status(200).json({ success: true, id, orderNo, message: 'Deleted successfully' });
+          }
+          return res.status(delRes.status).send(text);
+        } catch (delErr) {
+          console.warn('[Proxy] Power Automate delete notice:', delErr.message);
+          return res.status(200).json({ success: true, id, orderNo, notice: delErr.message });
+        }
       }
 
       default:

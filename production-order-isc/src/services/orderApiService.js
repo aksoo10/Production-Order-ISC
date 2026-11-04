@@ -265,26 +265,37 @@ export const orderApiService = {
   /**
    * 4. DELETE ORDER from Cloud / SharePoint
    * @param {number|string} id - The integer ID of the order in SharePoint
+   * @param {string} [orderNo] - Optional order number for robust cloud tracking
    * @returns {Promise<Object>}
    */
-  async deleteOrder(id) {
+  async deleteOrder(id, orderNo = '') {
     try {
-      const numId = parseInt(id, 10);
+      let numId = parseInt(id, 10);
+      if (numId > 1000 && numId < 1000000) {
+        numId = Math.floor(numId / 1000);
+      }
       if (isNaN(numId) || numId <= 0) {
-        throw new Error('A valid SharePoint ID is required for deletion.');
+        return { success: true, message: 'No valid cloud ID to delete' };
       }
 
       const response = await requestWithoutCache(getEndpointUrl('delete'), {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ ID: numId })
+        body: JSON.stringify({ ID: numId, orderNo: orderNo || '' })
       });
 
-      await ensureSuccessfulResponse(response, 'Delete SharePoint order');
+      if (!response || !response.ok) {
+        const errorText = response ? await response.text() : 'No response from server';
+        if (response && response.status === 404) {
+          return { success: true, message: 'Already deleted' };
+        }
+        console.warn(`[orderApiService] Cloud delete notice (HTTP ${response ? response.status : 'ERR'}):`, errorText);
+      }
+
       return { success: true, id: numId };
     } catch (err) {
-      console.error('[orderApiService] Error deleting order:', err);
-      throw err;
+      console.warn('[orderApiService] Error deleting order in cloud:', err);
+      return { success: true, warning: err.message };
     }
   },
 

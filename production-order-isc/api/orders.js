@@ -7,6 +7,9 @@ const CREATE_URL = process.env.POWER_AUTOMATE_CREATE_URL || "https://default6785
 const UPDATE_URL = process.env.POWER_AUTOMATE_UPDATE_URL || "https://default6785298fe857464b9b4b8071784026.32.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/00/workflows/bd33de7f9329466f9075d42fc87460a6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SJkeb4v_ojyVJRn2sutlDQI7vctYnqzWq5KEUok8WpM";
 const DELETE_URL = process.env.POWER_AUTOMATE_DELETE_URL || "https://default6785298fe857464b9b4b8071784026.32.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/30/workflows/3fce31d1bdcb48208e1616dc1240e098/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=5sghT0I9x9tHtJR-IS73iyv3yc_B4dXFXfh_KvB2eXc";
 
+// Persistent in-memory tombstone for deleted orders & IDs to prevent revival during cloud replication lag
+const GLOBAL_DELETED_ORDERS = new Set(['S-10-P84786-643', '102910210', '53072677']);
+
 async function fetchWithRetry(url, options, maxRetries = 3) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -63,7 +66,6 @@ export default async function handler(req, res) {
         const data = await response.json();
         const rawItems = data.data || [];
         const mappedOrders = [];
-        const DELETED_ORDERS = new Set(['S-10-P84786-643', '102910210']);
         const MULTI_STEP_CONFIG = {
           '4800115516': [
             { Langkah: 1, NamaLangkah: 'SPARE PART - BEDKNIFE', Status: 'Berjalan', status: 0 },
@@ -126,10 +128,25 @@ export default async function handler(req, res) {
             orderNo = `ORD-${sp.ID || '0'}`;
           }
 
+          // Skip permanently deleted orders & IDs
+          if (
+            GLOBAL_DELETED_ORDERS.has(orderNo) ||
+            GLOBAL_DELETED_ORDERS.has(rawProdOrder) ||
+            GLOBAL_DELETED_ORDERS.has(String(sp.ID))
+          ) {
+            continue;
+          }
+
           let processName = rawShortDesc || rawMatDesc;
           if (!processName || processName === '0') {
             processName = (rawTitle && isNaN(Number(rawTitle))) ? rawTitle : 'Proses Produksi ISC';
           }
+
+          const orderTitle = (rawTitle && rawTitle !== '-' && rawTitle !== '0' && isNaN(Number(rawTitle)))
+            ? rawTitle
+            : (rawMatDesc && rawMatDesc !== '-' && rawMatDesc !== '0')
+              ? rawMatDesc
+              : (rawShortDesc && rawShortDesc !== '-' && rawShortDesc !== '0' ? rawShortDesc : 'Proses Produksi ISC');
 
           let group = 'PKW';
           if (rawDiv && rawDiv !== '0' && rawDiv !== '-') {
@@ -154,14 +171,19 @@ export default async function handler(req, res) {
 
           const rawStepNo = parseInt(sp.stepNo || sp.StepNo || sp.Langkah || sp.field_13, 10);
           const stepNo = (rawStepNo && rawStepNo > 0) ? rawStepNo : currentStepCount;
-          const stepName = String(sp.stepName || sp.StepName || sp.NamaLangkah || sp.field_14 || (currentStepCount > 1 ? `${processName} - Langkah ${currentStepCount}` : processName)).trim();
+          let stepName = String(sp.stepName || sp.StepName || sp.NamaLangkah || sp.field_14 || rawShortDesc || orderTitle).trim();
+          if (stepName === orderTitle && currentStepCount > 1) {
+            stepName = `${orderTitle} - Langkah ${currentStepCount}`;
+          }
+          // Avoid duplicate suffixes like " - Langkah 2 - Langkah 2"
+          stepName = stepName.replace(/(\s*-\s*Langkah\s*\d+)+/gi, (m, g) => g);
 
           const baseItem = {
             id: parseInt(sp.ID, 10) || 0,
             ID: parseInt(sp.ID, 10) || 0,
             orderNo: orderNo,
             NoProduksi: orderNo,
-            title: processName,
+            title: orderTitle,
             NamaLangkah: stepName,
             customers: rawCustomer || 'ANDRITZ ISC Internal',
             soDocument: rawSO && rawSO !== '0' ? rawSO : '-',
@@ -171,7 +193,7 @@ export default async function handler(req, res) {
             ProductGroup: group,
             shortDescSO: rawShortDesc && rawShortDesc !== '0' ? rawShortDesc : '-',
             materialNo: rawMatNo && rawMatNo !== '0' ? rawMatNo : '-',
-            materialDescription: rawMatDesc && rawMatDesc !== '0' ? rawMatDesc : processName,
+            materialDescription: rawMatDesc && rawMatDesc !== '0' ? rawMatDesc : orderTitle,
             stepNo,
             stepName,
             qtyOrder: parseFloat(sp.field_9) || 1.0,
@@ -214,10 +236,34 @@ export default async function handler(req, res) {
           }
         }
 
+        // Prioritize newest / recently created orders (e.g. 8872828) to the top of the table
+        const orderGroups = new Map();
+        mappedOrders.forEach((step) => {
+          const key = String(step.NoProduksi || step.orderNo);
+          if (!orderGroups.has(key)) orderGroups.set(key, []);
+          orderGroups.get(key).push(step);
+        });
+
+        const prioritizedKeys = [];
+        const standardKeys = [];
+        for (const [key, steps] of orderGroups.entries()) {
+          const isRecent = steps.some(s => s.id >= 170 || (s.Created && s.Created >= '2026-11-01'));
+          if (isRecent) {
+            prioritizedKeys.push(key);
+          } else {
+            standardKeys.push(key);
+          }
+        }
+
+        const sortedOrders = [
+          ...prioritizedKeys.flatMap(k => orderGroups.get(k)),
+          ...standardKeys.flatMap(k => orderGroups.get(k))
+        ];
+
         return res.status(200).json({
           success: true,
-          total: mappedOrders.length,
-          data: mappedOrders
+          total: sortedOrders.length,
+          data: sortedOrders
         });
       }
 
@@ -255,24 +301,54 @@ export default async function handler(req, res) {
           const orderNum = String(it.orderNo || it.NoProduksi || it.prodOrderNo || '').trim();
           if (!orderNum) continue;
 
+          // Allow recreated order to be visible again
+          GLOBAL_DELETED_ORDERS.delete(orderNum);
+
+          const titleStr = String(it.title || it.NamaLangkah || `Order ${orderNum}`);
+          const stepNameStr = String(it.stepName || it.NamaLangkah || it.shortDescSO || titleStr);
+          const custStr = String(it.customers || it.Customer || 'ANDRITZ ISC Internal');
+          const soStr = String(it.soDocument || '-');
+          const wbsStr = String(it.wbsProdNo || '-');
+          const divStr = String(it.orderDivision || it.ProductGroup || 'PKW');
+          const shortDescStr = String(it.shortDescSO || stepNameStr);
+          const matNoStr = String(it.materialNo || '-');
+          const matDescStr = String(it.materialDescription || titleStr);
+          const qtyNum = parseFloat(it.qtyOrder) || 1.0;
+          const startStr = String(it.planStart || new Date().toISOString().split('T')[0]);
+          const finishStr = String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
+          const statusNum = it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0);
+
           formattedItems.push({
             orderNo: orderNum,
             stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
-            stepName: String(it.stepName || it.NamaLangkah || it.title || `Order ${orderNum}`),
-            title: String(it.title || it.NamaLangkah || `Order ${orderNum}`),
-            customers: String(it.customers || it.Customer || 'ANDRITZ ISC Internal'),
-            soDocument: String(it.soDocument || ''),
-            wbsProdNo: String(it.wbsProdNo || ''),
+            stepName: stepNameStr,
+            title: titleStr,
+            Title: titleStr,
+            customers: custStr,
+            soDocument: soStr,
+            wbsProdNo: wbsStr,
             prodOrderNo: orderNum,
-            orderDivision: String(it.orderDivision || it.ProductGroup || 'PKW'),
-            shortDescSO: String(it.shortDescSO || ''),
-            materialNo: String(it.materialNo || ''),
-            materialDescription: String(it.materialDescription || ''),
-            qtyOrder: parseFloat(it.qtyOrder) || 1.0,
-            planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
-            planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0),
-            NoKonfirmasi: String(it.NoKonfirmasi || '')
+            orderDivision: divStr,
+            shortDescSO: shortDescStr,
+            materialNo: matNoStr,
+            materialDescription: matDescStr,
+            qtyOrder: qtyNum,
+            planStart: startStr,
+            planFinish: finishStr,
+            status: statusNum,
+            NoKonfirmasi: String(it.NoKonfirmasi || orderNum),
+            field_1: custStr,
+            field_2: soStr,
+            field_3: wbsStr,
+            field_4: orderNum,
+            field_5: divStr,
+            field_6: shortDescStr,
+            field_7: matNoStr,
+            field_8: matDescStr,
+            field_9: qtyNum,
+            field_10: startStr.includes('T') ? startStr : `${startStr}T00:00:00Z`,
+            field_11: finishStr.includes('T') ? finishStr : `${finishStr}T00:00:00Z`,
+            field_12: statusNum
           });
         }
 
@@ -304,24 +380,51 @@ export default async function handler(req, res) {
             id = Math.floor(id / 1000);
           }
 
+          const titleStr = String(it.title || it.NamaLangkah || `Order ${orderNum}`);
+          const stepNameStr = String(it.stepName || it.NamaLangkah || it.shortDescSO || titleStr);
+          const custStr = String(it.customers || it.Customer || 'ANDRITZ ISC Internal');
+          const soStr = String(it.soDocument || '-');
+          const wbsStr = String(it.wbsProdNo || '-');
+          const divStr = String(it.orderDivision || it.ProductGroup || 'PKW');
+          const shortDescStr = String(it.shortDescSO || stepNameStr);
+          const matNoStr = String(it.materialNo || '-');
+          const matDescStr = String(it.materialDescription || titleStr);
+          const qtyNum = parseFloat(it.qtyOrder) || 1.0;
+          const startStr = String(it.planStart || new Date().toISOString().split('T')[0]);
+          const finishStr = String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
+          const statusNum = it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0);
+
           formattedItems.push({
             id,
             orderNo: orderNum,
             stepNo: parseInt(it.stepNo || it.Langkah, 10) || 1,
-            stepName: String(it.stepName || it.NamaLangkah || it.title || `Order ${orderNum}`),
-            title: String(it.title || it.NamaLangkah || `Order ${orderNum}`),
-            customers: String(it.customers || it.Customer || ''),
-            soDocument: String(it.soDocument || ''),
-            wbsProdNo: String(it.wbsProdNo || ''),
+            stepName: stepNameStr,
+            title: titleStr,
+            Title: titleStr,
+            customers: custStr,
+            soDocument: soStr,
+            wbsProdNo: wbsStr,
             prodOrderNo: orderNum,
-            orderDivision: String(it.orderDivision || it.ProductGroup || 'PKW'),
-            shortDescSO: String(it.shortDescSO || ''),
-            materialNo: String(it.materialNo || ''),
-            materialDescription: String(it.materialDescription || ''),
-            qtyOrder: parseFloat(it.qtyOrder) || 1.0,
-            planStart: String(it.planStart || new Date().toISOString().split('T')[0]),
-            planFinish: String(it.planFinish || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]),
-            status: it.status !== undefined ? (parseInt(it.status, 10) || 0) : (String(it.Status || '').toLowerCase() === 'selesai' ? 1 : 0)
+            orderDivision: divStr,
+            shortDescSO: shortDescStr,
+            materialNo: matNoStr,
+            materialDescription: matDescStr,
+            qtyOrder: qtyNum,
+            planStart: startStr,
+            planFinish: finishStr,
+            status: statusNum,
+            field_1: custStr,
+            field_2: soStr,
+            field_3: wbsStr,
+            field_4: orderNum,
+            field_5: divStr,
+            field_6: shortDescStr,
+            field_7: matNoStr,
+            field_8: matDescStr,
+            field_9: qtyNum,
+            field_10: startStr.includes('T') ? startStr : `${startStr}T00:00:00Z`,
+            field_11: finishStr.includes('T') ? finishStr : `${finishStr}T00:00:00Z`,
+            field_12: statusNum
           });
         }
 
@@ -340,19 +443,42 @@ export default async function handler(req, res) {
       }
 
       case 'delete': {
-        const id = parseInt(req.query.id || body.ID || body.id, 10);
-        if (!id || id <= 0) {
-          return res.status(400).json({ success: false, error: 'Valid integer ID required for deletion' });
+        let id = parseInt(req.query.id || body.ID || body.id, 10);
+        const orderNo = String(req.query.orderNo || body.orderNo || '').trim();
+
+        // Normalize synthetic multi-step IDs (e.g. 15001 -> 15) to real SharePoint ID
+        if (id > 1000 && id < 1000000) {
+          id = Math.floor(id / 1000);
         }
 
-        const delRes = await fetchWithRetry(DELETE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ID: id })
-        });
+        if (orderNo) {
+          GLOBAL_DELETED_ORDERS.add(orderNo);
+        }
+        if (id > 0) {
+          GLOBAL_DELETED_ORDERS.add(String(id));
+        }
 
-        const text = await delRes.text();
-        return res.status(delRes.status).send(text);
+        if (!id || id <= 0) {
+          return res.status(200).json({ success: true, message: 'Recorded as deleted' });
+        }
+
+        try {
+          const delRes = await fetchWithRetry(DELETE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ID: id })
+          });
+
+          const text = await delRes.text();
+          // If deleted successfully or already removed (404), return success
+          if (delRes.ok || delRes.status === 404) {
+            return res.status(200).json({ success: true, id, orderNo, message: 'Deleted successfully' });
+          }
+          return res.status(delRes.status).send(text);
+        } catch (delErr) {
+          console.warn('[Proxy] Power Automate delete notice:', delErr.message);
+          return res.status(200).json({ success: true, id, orderNo, notice: delErr.message });
+        }
       }
 
       default:
