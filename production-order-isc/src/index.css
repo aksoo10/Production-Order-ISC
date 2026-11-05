@@ -2225,8 +2225,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .three-barcodes-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   width: 100%;
 }
@@ -2239,6 +2239,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--bg-card);
   overflow: hidden;
   transition: all var(--transition-fast);
+  width: 100%;
 }
 
 .single-barcode-col:hover {
@@ -2253,8 +2254,18 @@ h1, h2, h3, h4, h5, h6 {
   display: none !important;
 }
 
+.col-barcode-render .barcode-card-container {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+  width: 100%;
+}
+
 .col-barcode-render .barcode-svg-wrapper {
-  padding: 4px;
+  padding: 6px;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .col-step-header {
